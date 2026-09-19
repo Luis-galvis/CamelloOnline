@@ -647,15 +647,24 @@ export function ColombiaSalesCommercialBoard() {
                 Cerrar
               </button>
 
-              <a
-                href={selectedJob.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
-              >
-                <span>Postularme en la fuente oficial</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              {selectedJob.sourceUrl?.startsWith('mailto:') || selectedJob.contactEmail ? (
+                <a
+                  href={selectedJob.sourceUrl?.startsWith('mailto:') ? selectedJob.sourceUrl : `mailto:${selectedJob.contactEmail}?subject=${encodeURIComponent(`Postulación: ${selectedJob.title} - ${selectedJob.companyName}`)}`}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <span>✉️ Enviar HV por Correo ({selectedJob.contactEmail || selectedJob.sourceUrl?.replace('mailto:', '').split('?')[0]})</span>
+                </a>
+              ) : (
+                <a
+                  href={selectedJob.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <span>Postularme en la fuente oficial</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           </div>
         </div>

@@ -1191,15 +1191,24 @@ export function ColombiaJobBoard() {
               )}
 
               {selectedJobModal.sourceUrl && (
-                <a
-                  href={selectedJobModal.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
-                >
-                  <span>{selectedJobModal.isLinkedInPost ? 'Ver Empresa en LinkedIn' : 'Postularme a esta vacante'}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                selectedJobModal.sourceUrl.startsWith('mailto:') || selectedJobModal.contactEmail ? (
+                  <a
+                    href={selectedJobModal.sourceUrl.startsWith('mailto:') ? selectedJobModal.sourceUrl : `mailto:${selectedJobModal.contactEmail}?subject=${encodeURIComponent(`Postulación: ${selectedJobModal.title} - ${selectedJobModal.companyName}`)}`}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md"
+                  >
+                    <span>✉️ Enviar CV por Correo ({selectedJobModal.contactEmail || selectedJobModal.sourceUrl.replace('mailto:', '').split('?')[0]})</span>
+                  </a>
+                ) : (
+                  <a
+                    href={selectedJobModal.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+                  >
+                    <span>Postularme en la fuente oficial</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )
               )}
             </div>
 
