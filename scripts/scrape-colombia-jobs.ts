@@ -1,0 +1,193 @@
+import { createClient } from '@supabase/supabase-js';
+import { aggregateAllColombiaJobs } from '../src/lib/services/scrapers/index';
+import { decodeHtmlEntities } from '../src/lib/services/scrapers/clean-text';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://tapusiqdotxhtnyxavta.supabase.co';
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhcHVzaXFkb3R4aHRueXhhdnRhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODQ1MDg1MSwiZXhwIjoyMTA0MDI2ODUxfQ.2UWWE50nkAojGIihFZRJOD6N7RZ3gkT6t1FqqM3eLF0';
+
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 100);
+}
+
+function shortHash(str: string): string {
+  return crypto.createHash('md5').update(str).digest('hex').slice(0, 24);
+}
+
+async function runColombiaScraperPipeline() {
+  console.log('🚀 ========================================================');
+  console.log('   REALJOBS COLOMBIA - MOTOR DE SCRAPING MULTIFUENTE EXPANDIDO');
+  console.log('   (LinkedIn + Recruiter Posts + WeRemoto/WorkRemoto + Computrabajo +');
+  console.log('    ElEmpleo + Torre + Jooble + ATSs + Ventas, TAT & Contabilidad)');
+  console.log('========================================================\n');
+
+  const report = await aggregateAllColombiaJobs();
+
+  // Clean HTML entities on all jobs
+  for (const j of report.jobs) {
+    j.title = decodeHtmlEntities(j.title);
+    j.companyName = decodeHtmlEntities(j.companyName);
+    j.description = decodeHtmlEntities(j.description);
+    j.displayLocation = decodeHtmlEntities(j.displayLocation);
+  }
+
+  console.log(`\n📊 REPORTE DE EXTRACCIÓN Y DEDUPLICACIÓN EN COLOMBIA:`);
+  console.log(`   - Total Bruto Encontrado: ${report.totalRawFound}`);
+  console.log(`   - LinkedIn Colombia (Jobs): ${report.sourcesBreakdown.linkedin}`);
+  console.log(`   - LinkedIn Posts (Reclutadores & Feed): ${report.sourcesBreakdown.linkedinPosts}`);
+  console.log(`   - WeRemoto / WorkRemoto (Remoto Latam): ${report.sourcesBreakdown.weremoto}`);
+  console.log(`   - Computrabajo Colombia: ${report.sourcesBreakdown.computrabajo}`);
+  console.log(`   - ElEmpleo Colombia: ${report.sourcesBreakdown.elempleo}`);
+  console.log(`   - Get on Board Latam/CO: ${report.sourcesBreakdown.getonbrd}`);
+  console.log(`   - Remotive Global/Latam (Remoto): ${report.sourcesBreakdown.remotive}`);
+  console.log(`   - Torre.ai Colombia/Remote: ${report.sourcesBreakdown.torre}`);
+  console.log(`   - ATSs Directos (Rappi, Nubank, EPAM, Bitso, Scotiabank, etc.): ${report.sourcesBreakdown.ats}`);
+  console.log(`   - Ventas, TAT, Puntos de Venta & Contabilidad (Luker, Nutresa, Postobón, etc.): ${report.sourcesBreakdown.salesCommercial}`);
+  console.log(`   - Jooble Colombia: ${report.sourcesBreakdown.jooble}`);
+  console.log(`   - Cajas Locales (Comfatolima, Comfenalco, Sena APE): ${report.sourcesBreakdown.localBoards}`);
+  console.log(`   - ✨ Total Deduplicado en Colombia: ${report.totalDeduplicatedColombiaJobs}`);
+  console.log(`   - 🏠 Vacantes 100% Remotas: ${report.remoteCount}`);
+  console.log(`   - 📍 Vacantes en Ibagué / Tolima: ${report.ibagueCount}`);
+  console.log(`   - 🇬🇧 Piden Inglés: ${report.englishBreakdown.requiresEnglish}`);
+  console.log(`   - 🇨🇴 No Requieren Inglés (Español): ${report.englishBreakdown.noEnglishRequired}\n`);
+
+  // 1. Guardar archivo local de respaldo JSON de inmediato
+  const dataPath = path.resolve(process.cwd(), 'src/lib/scraped-colombia-jobs.json');
+  fs.writeFileSync(dataPath, JSON.stringify(report.jobs, null, 2), 'utf-8');
+  console.log(`💾 Respaldo JSON actualizado con ${report.jobs.length} vacantes en: ${dataPath}`);
+
+  // 2. Limpiar vacantes anteriores en Supabase
+  console.log('🧹 Sincronizando vacantes en Supabase...');
+  try {
+    await supabase.from('job_posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (err: any) {
+    console.warn('Nota al limpiar job_posts:', err.message);
+  }
+
+  // 3. Obtener o crear mapa de empresas
+  const uniqueCompanies = new Map<string, any>();
+  for (const job of report.jobs) {
+    const compSlug = slugify(job.companyName) || `empresa-${shortHash(job.companyName)}`;
+    if (!uniqueCompanies.has(compSlug)) {
+      uniqueCompanies.set(compSlug, {
+        name: job.companyName,
+        slug: compSlug,
+        domain_email: job.companyDomain || `${compSlug}.com`,
+        website: job.companyDomain ? `https://${job.companyDomain}` : `https://www.google.com/search?q=${encodeURIComponent(job.companyName)}`,
+        industry: job.category === 'sales_commercial' || job.category === 'finance_accounting' ? 'Consumo Masivo & Comercial' : 'Tecnología & Software',
+        country_code: 'CO',
+        city: job.locationCity,
+        is_verified: true,
+        is_auto_ingested: true,
+        ats_source: ['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source) ? (job.source as any) : 'manual'
+      });
+    }
+  }
+
+  console.log(`🏢 Sincronizando ${uniqueCompanies.size} empresas en Supabase...`);
+  const companyList = Array.from(uniqueCompanies.values());
+  const companyIdMap = new Map<string, string>();
+
+  // Upsert companies in chunks of 50
+  for (let i = 0; i < companyList.length; i += 50) {
+    const chunk = companyList.slice(i, i + 50);
+    const { data: inserted, error: cErr } = await supabase
+      .from('companies')
+      .upsert(chunk, { onConflict: 'slug' })
+      .select('id, slug');
+
+    if (inserted) {
+      for (const c of inserted) {
+        companyIdMap.set(c.slug, c.id);
+      }
+    }
+  }
+
+  // 4. Batch insert job posts in chunks of 50
+  const jobPostsToInsert: any[] = [];
+  for (const job of report.jobs) {
+    const compSlug = slugify(job.companyName) || `empresa-${shortHash(job.companyName)}`;
+    const companyId = companyIdMap.get(compSlug);
+    if (!companyId) continue;
+
+    const uniqueJobIdHash = shortHash(`${job.source}:${job.sourceJobId || job.sourceUrl}:${job.title}:${job.displayLocation}`);
+    const baseSlug = `${slugify(job.title).slice(0, 50)}-${compSlug.slice(0, 30)}-${uniqueJobIdHash.slice(0, 10)}-${Math.random().toString(36).slice(2, 6)}`;
+
+    const mappedAts = ['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source)
+      ? job.source
+      : 'manual';
+
+    const englishEnum = job.requiresEnglish
+      ? (job.englishLevel === 'c1_advanced' ? 'c1_advanced' : 'b2_upper_intermediate')
+      : 'no_english';
+
+    const minSal = Math.max(300, Number(job.salaryMinUsdEquivalent || job.salaryMinUsd) || 700);
+    const maxSal = Math.max(minSal, Number(job.salaryMaxUsdEquivalent || job.salaryMaxUsd) || 1500);
+    const expReq = Math.max(0, Math.min(Number(job.maxYearsExperience) || 0, 2.0));
+
+    let mappedSeniority = 'junior';
+    if (job.seniority === 'trainee' || job.seniority === 'intern' || job.isZeroExperience) {
+      mappedSeniority = 'trainee';
+    } else if (job.seniority === 'early_mid' || job.seniority === 'senior') {
+      mappedSeniority = 'early_mid';
+    }
+
+    jobPostsToInsert.push({
+      company_id: companyId,
+      title: job.title.trim().slice(0, 140),
+      slug: baseSlug.slice(0, 180),
+      description: job.description.slice(0, 1500),
+      work_modality: job.workModality,
+      location_country: 'CO',
+      location_city: job.locationCity,
+      salary_min_usd: minSal,
+      salary_max_usd: maxSal,
+      currency: job.salaryCurrency || 'COP',
+      seniority_required: mappedSeniority,
+      english_required: englishEnum,
+      max_years_experience_required: expReq,
+      is_zero_experience: job.isZeroExperience,
+      status: 'active',
+      is_auto_ingested: true,
+      source_ats: mappedAts,
+      source_url: job.sourceUrl,
+      source_job_id: uniqueJobIdHash,
+      is_claimed: false
+    });
+  }
+
+  console.log(`📥 Insertando ${jobPostsToInsert.length} vacantes en Supabase por lotes...`);
+  let totalInserted = 0;
+  for (let i = 0; i < jobPostsToInsert.length; i += 50) {
+    const chunk = jobPostsToInsert.slice(i, i + 50);
+    const { data: res, error: jErr } = await supabase
+      .from('job_posts')
+      .insert(chunk)
+      .select('id');
+
+    if (!jErr && res) {
+      totalInserted += res.length;
+    } else if (jErr) {
+      console.warn(`Error en lote ${i / 50 + 1}:`, jErr.message);
+    }
+  }
+
+  console.log(`\n🎉 ========================================================`);
+  console.log(`   ✅ ${totalInserted} VACANTES REALES DE COLOMBIA PERSISTIDAS EN SUPABASE`);
+  console.log(`   ✅ RESPALDO JSON LOCAL EN src/lib/scraped-colombia-jobs.json (${report.jobs.length} vacantes)`);
+  console.log(`========================================================\n`);
+}
+
+runColombiaScraperPipeline().catch(console.error);

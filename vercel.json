@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/scrape",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

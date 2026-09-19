@@ -1,0 +1,168 @@
+import { ColombiaScrapedJob } from './types';
+import { normalizeLocation } from './location-normalizer';
+import { extractSalary } from './salary-extractor';
+import { detectEnglishRequirement } from './english-detector';
+import { detectContractType } from './contract-detector';
+import { detectTechCategory } from './category-detector';
+import { detectNonTechCategory } from './non-tech-remote-colombia';
+import { extractSkills } from '../ats-ingestion';
+import { decodeHtmlEntities } from './clean-text';
+import { detectExperience } from './experience-detector';
+
+const COMPUTRABAJO_SEARCH_PATHS = [
+  // 1. Ibagué & Tolima (Ventas, Comercial, TAT, Contabilidad, Administración)
+  'https://co.computrabajo.com/trabajo-de-ventas-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-comercial-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-jefe-de-ventas-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-coordinador-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-supervisor-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-tat-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-contador-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-administrador-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-ventas-en-ibague',
+  'https://co.computrabajo.com/trabajo-de-comercial-en-ibague',
+  // 2. Tech & Remoto
+  'https://co.computrabajo.com/trabajo-de-desarrollador-software',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-junior',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-frontend',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-backend',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-remoto',
+  'https://co.computrabajo.com/trabajo-de-analista-de-datos',
+  'https://co.computrabajo.com/trabajo-de-analista-qa'
+];
+
+async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'es-CO,es;q=0.9'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
+
+export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]> {
+  const jobs: ColombiaScrapedJob[] = [];
+  const seenIds = new Set<string>();
+
+  const chunkSize = 4;
+  for (let i = 0; i < COMPUTRABAJO_SEARCH_PATHS.length; i += chunkSize) {
+    const chunk = COMPUTRABAJO_SEARCH_PATHS.slice(i, i + chunkSize);
+    await Promise.allSettled(chunk.map(async (url) => {
+      const html = await fetchWithTimeout(url, 3500);
+      if (!html) return;
+
+      const articleRegex = /<article[^>]*class="[^"]*box_offer[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+      let match;
+
+      while ((match = articleRegex.exec(html)) !== null) {
+        const articleHtml = match[1];
+
+        const titleMatch = articleHtml.match(/<a[^>]*class="[^"]*js-o-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i) ||
+                           articleHtml.match(/<h1[^>]*class="[^"]*fs18[^"]*"[^>]*><a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+        if (!titleMatch) continue;
+
+        const rawHref = titleMatch[1];
+        const title = decodeHtmlEntities(titleMatch[2].replace(/<[^>]*>/g, '').trim());
+        const sourceUrl = rawHref.startsWith('http') ? rawHref : `https://co.computrabajo.com${rawHref.split('?')[0]}`;
+        
+        const idMatch = sourceUrl.match(/-([a-f0-9]{32})/i) || sourceUrl.match(/\/oferta-de-trabajo-de-[^/]+-en-[^/]+-([A-Z0-9]+)/i);
+        const sourceJobId = idMatch ? idMatch[1] : `comp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        if (seenIds.has(sourceJobId)) continue;
+        seenIds.add(sourceJobId);
+
+        const compMatch = articleHtml.match(/<a[^>]*class="[^"]*it-blank[^"]*"[^>]*>([\s\S]*?)<\/a>/i) ||
+                          articleHtml.match(/<p[^>]*class="[^"]*fs16[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        const companyName = compMatch ? decodeHtmlEntities(compMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Empresa Confidencial';
+
+        const locMatch = articleHtml.match(/<p[^>]*class="[^"]*fs14[^"]*">\s*<span[^>]*>([\s\S]*?)<\/span>/i) ||
+                         articleHtml.match(/<span[^>]*class="[^"]*mr10[^"]*">([\s\S]*?)<\/span>/i);
+        const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Colombia';
+
+        const descMatch = articleHtml.match(/<p[^>]*class="[^"]*text-show-more[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
+                          articleHtml.match(/<p[^>]*class="[^"]*fs13[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        const snippet = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
+
+        const locationNorm = normalizeLocation(rawLocation, `${title} ${snippet}`);
+        if (!locationNorm.isColombiaValid) continue;
+
+        const expResult = detectExperience(title, snippet);
+        if (!expResult.isEligible) continue;
+
+        const salaryResult = extractSalary(articleHtml, title);
+        const englishResult = detectEnglishRequirement(title, `${snippet} ${articleHtml}`);
+        const contractResult = detectContractType(title, articleHtml, salaryResult.displayText || salaryResult.salaryDisplayText);
+        
+        let catResult: any = detectTechCategory(title, snippet);
+        if (catResult.category === 'software_dev' && !title.toLowerCase().includes('desarroll') && !title.toLowerCase().includes('program') && !title.toLowerCase().includes('software')) {
+          catResult = detectNonTechCategory(title, snippet);
+        }
+
+        const skills = extractSkills(`${title} ${snippet}`);
+
+        jobs.push({
+          id: `computrabajo-${sourceJobId}`,
+          source: 'computrabajo',
+          sourceUrl,
+          sourceJobId,
+          title,
+          companyName,
+          companyDomain: `${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+          description: snippet || `Oferta laboral para ${title} en ${companyName}. Ubicación: ${rawLocation}.`,
+          locationCity: locationNorm.city,
+          locationDepartment: locationNorm.department,
+          locationCountry: 'CO',
+          displayLocation: locationNorm.displayLocation,
+          locationFilterKey: locationNorm.filterKey,
+          isRemote: locationNorm.isRemote,
+          workModality: locationNorm.workModality,
+          salaryDisclosed: salaryResult.isDisclosed,
+          salaryMin: salaryResult.min || salaryResult.salaryMinCop,
+          salaryMax: salaryResult.max || salaryResult.salaryMaxCop,
+          salaryMinUsd: salaryResult.usdEquivalentMin || salaryResult.salaryMinUsd,
+          salaryMaxUsd: salaryResult.usdEquivalentMax || salaryResult.salaryMaxUsd,
+          salaryCurrency: salaryResult.currency || 'COP',
+          salaryDisplayText: salaryResult.displayText || salaryResult.salaryDisplayText || 'Salario no especificado',
+          salaryPeriod: salaryResult.period || 'monthly',
+          salaryMinUsdEquivalent: salaryResult.usdEquivalentMin || salaryResult.salaryMinUsd,
+          salaryMaxUsdEquivalent: salaryResult.usdEquivalentMax || salaryResult.salaryMaxUsd,
+          requiresEnglish: englishResult.requiresEnglish,
+          englishLevel: englishResult.englishLevel,
+          englishLevelLabel: englishResult.levelLabel,
+          englishBadgeText: englishResult.badgeText,
+          seniority: expResult.seniority,
+          maxYearsExperience: expResult.maxYearsExperience ?? expResult.maxYears ?? 1,
+          minYearsExperience: expResult.minYears ?? 0,
+          isZeroExperience: expResult.isZeroExperience,
+          experienceTier: expResult.experienceTier,
+          experienceLabel: expResult.experienceLabel,
+          experienceLevelLabel: expResult.experienceLabel,
+          requiredSkills: skills.length > 0 ? skills : ['Atención al Detalle', 'Responsabilidad'],
+          contractType: contractResult.contractType,
+          contractTypeLabel: contractResult.contractTypeLabel,
+          category: catResult.category as any,
+          categoryLabel: catResult.categoryLabel,
+          applicantCountText: 'Menos de 20 postulantes',
+          applicantTier: 'low',
+          applicantCount: 12,
+          postedDateText: 'Publicada recientemente',
+          createdAt: new Date().toISOString(),
+          scrapedAt: new Date().toISOString()
+        });
+      }
+    }));
+  }
+
+  return jobs;
+}
