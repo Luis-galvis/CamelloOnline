@@ -8,6 +8,7 @@ import { detectNonTechCategory } from './non-tech-remote-colombia';
 import { extractSkills } from '../ats-ingestion';
 import { decodeHtmlEntities } from './clean-text';
 import { detectExperience } from './experience-detector';
+import { extractPostedDate } from './date-extractor';
 
 const COMPUTRABAJO_SEARCH_PATHS = [
   // 1. Ibagué & Tolima (Ventas, Comercial, TAT, Contabilidad, Administración, Retail)
@@ -120,7 +121,25 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
           catResult = detectNonTechCategory(title, snippet);
         }
 
+        const dateResult = extractPostedDate(articleHtml, `${title} ${snippet}`);
         const skills = extractSkills(`${title} ${snippet}`);
+
+        const isSalesOrCommercial = /ventas|comercial|tat|supervisor|asesor|vendedor|ejecutiv|tienda|punto de venta|cajer|cliente/i.test(`${title} ${snippet}`);
+        const isAccounting = /contad|contable|costos|presupuesto|auditor|factur/i.test(`${title} ${snippet}`);
+        const isManager = /director|gerente|jefe|coordinador|lider|administrador/i.test(`${title} ${snippet}`);
+
+        let roleSkills = skills;
+        if (roleSkills.length === 0) {
+          if (isAccounting) {
+            roleSkills = ['Contabilidad General', 'Costos y Presupuestos', 'Conciliaciones', 'Excel Avanzado'];
+          } else if (isSalesOrCommercial) {
+            roleSkills = ['Gestión Comercial', 'Ventas y Negociación', 'Atención al Cliente', 'Cumplimiento de Metas'];
+          } else if (isManager) {
+            roleSkills = ['Liderazgo de Equipos', 'Gestión Estratégica', 'Planificación', 'Toma de Decisiones'];
+          } else {
+            roleSkills = ['Trabajo en Equipo', 'Orientación a Resultados', 'Responsabilidad'];
+          }
+        }
 
         jobs.push({
           id: `computrabajo-${sourceJobId}`,
@@ -159,7 +178,7 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
           experienceTier: expResult.experienceTier,
           experienceLabel: expResult.experienceLabel,
           experienceLevelLabel: expResult.experienceLabel,
-          requiredSkills: skills.length > 0 ? skills : ['Atención al Detalle', 'Responsabilidad'],
+          requiredSkills: roleSkills,
           contractType: contractResult.contractType,
           contractTypeLabel: contractResult.contractTypeLabel,
           category: catResult.category as any,
@@ -167,9 +186,9 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
           applicantCountText: 'Menos de 20 postulantes',
           applicantTier: 'low',
           applicantCount: 12,
-          postedDateText: 'Publicada recientemente',
-          createdAt: new Date().toISOString(),
-          scrapedAt: new Date().toISOString()
+          postedDateText: dateResult.postedDateText || 'Reciente',
+          createdAt: dateResult.postedDate.toISOString(),
+          scrapedAt: dateResult.postedDate.toISOString()
         });
       }
     }));
