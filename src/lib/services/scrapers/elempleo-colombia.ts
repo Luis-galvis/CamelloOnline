@@ -19,6 +19,9 @@ const ELEMPLEO_SEARCH_URLS = [
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-asistente-administrativo',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-servicio-al-cliente-remoto',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-de-software',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-junior',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-practicante-de-sistemas',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-aprendiz-sena-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-ingeniero-de-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-de-datos',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-qa'

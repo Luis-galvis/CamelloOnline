@@ -32,12 +32,17 @@ const COMPUTRABAJO_SEARCH_PATHS = [
   'https://co.computrabajo.com/trabajo-de-servicio-al-cliente-remoto',
   'https://co.computrabajo.com/trabajo-de-ejecutivo-de-cuenta',
   'https://co.computrabajo.com/trabajo-de-call-center-remoto',
-  // 3. Tech & Remoto
+  // 3. Tech & Remoto (Junior & Sin Experiencia)
   'https://co.computrabajo.com/trabajo-de-desarrollador-software',
   'https://co.computrabajo.com/trabajo-de-desarrollador-junior',
   'https://co.computrabajo.com/trabajo-de-desarrollador-frontend',
   'https://co.computrabajo.com/trabajo-de-desarrollador-backend',
   'https://co.computrabajo.com/trabajo-de-desarrollador-remoto',
+  'https://co.computrabajo.com/trabajo-de-programador-remoto',
+  'https://co.computrabajo.com/trabajo-de-practicante-sistemas',
+  'https://co.computrabajo.com/trabajo-de-aprendiz-sena-sistemas',
+  'https://co.computrabajo.com/trabajo-de-semillero-desarrollo',
+  'https://co.computrabajo.com/trabajo-de-soporte-ti-remoto',
   'https://co.computrabajo.com/trabajo-de-analista-de-datos',
   'https://co.computrabajo.com/trabajo-de-analista-qa'
 ];

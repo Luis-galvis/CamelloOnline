@@ -23,19 +23,16 @@ const STRONG_ENGLISH_PATTERNS = [
   /\b(dominio\s*(?:del\s*)?ingl[eé]s|manejo\s*(?:del\s*)?ingl[eé]s|nivel\s*(?:de\s*)?ingl[eé]s)\b/i,
   /\b(100%\s*english|100%\s*bilingual|ingl[eé]s\s*80%|ingl[eé]s\s*85%|ingl[eé]s\s*90%|ingl[eé]s\s*100%)\b/i,
   /\b(spoken\s*and\s*written\s*english|written\s*and\s*verbal\s*english|english\s*speaker)\b/i,
-  /\b(client\s*in\s*(?:the\s*)?(?:us|usa|united\s*states|uk|europe|canada))\b/i,
-  /\b(customer\s*service\s*agent|customer\s*support\s*agent|customer\s*success\s*agent)\b/i,
-  /\b(b2\s*english|c1\s*english|b2\s*ingl[eé]s|c1\s*ingl[eé]s)\b/i,
-  /\b(remote\s*\(latin\s*america\)|location:\s*remote|full-time\s*·\s*independent\s*contractor)\b/i
+  /\b(b2\s*english|c1\s*english|b2\s*ingl[eé]s|c1\s*ingl[eé]s)\b/i
 ];
 
 const EXPLICIT_NO_ENGLISH_PATTERNS = [
   /\b(no\s*requiere\s*ingl[eé]s|no\s*necesita\s*ingl[eé]s|sin\s*ingl[eé]s|no\s*english\s*required)\b/i,
-  /\b(100%\s*espa[ñn]ol|solo\s*espa[ñn]ol|espa[ñn]ol\s*nativo)\b/i,
+  /\b(100%\s*espa[ñn]ol|solo\s*espa[ñn]ol|espa[ñn]ol\s*nativo|español)\b/i,
 ];
 
 const ENGLISH_SECTION_PATTERNS = [
-  /\b(responsibilities|accountabilities|qualifications|requirements|job description|about the role|about the company|who we are|what you['’]?ll do|what we offer|what we are looking for|who you are|key skills|key responsibilities|education \/ experience|bachelor['’]?s degree|working conditions|a day in the life|role requirements|benefits & perks|what success looks like|how to apply|what to expect)\b/i,
+  /\b(responsibilities|accountabilities|qualifications|job description|about the role|about the company|who we are|what you['’]?ll do|what we offer|what we are looking for|who you are|key skills|key responsibilities|education \/ experience|bachelor['’]?s degree|working conditions|a day in the life|role requirements|benefits & perks|what success looks like|how to apply|what to expect)\b/i,
   /\b(contributes to the overall success|customer focused culture|agile team environment|hands on development|ensures all activities|written and spoken english|strong communication skills|we are an equal opportunity employer)\b/i
 ];
 
@@ -46,7 +43,6 @@ const ENGLISH_STOPWORDS = [
   'working', 'business', 'development', 'knowledge', 'degree', 'support', 'using', 
   'ensures', 'culture', 'values', 'design', 'environment', 'tools', 'code',
   'must', 'have', 'from', 'this', 'that', 'they', 'their', 'which', 'other', 'fluent', 'written', 'spoken',
-  'intern', 'internship', 'marketing', 'remote', 'work', 'growth', 'client', 'clients', 'data', 'software',
   'building', 'looking', 'help', 'learn', 'opportunity', 'company', 'position', 'strong', 'learning'
 ];
 
@@ -57,14 +53,7 @@ const SPANISH_STOPWORDS = [
   'postular', 'vacante', 'contrato', 'salario', 'remoto'
 ];
 
-const ENGLISH_JOB_TITLES = [
-  /\b(ai\s+engineer\s+intern|ai\s+engineering\s+intern)\b/i,
-  /\b(digital\s+marketing\s+intern|marketing\s+intern)\b/i,
-  /\b(software\s+engineer\s+intern|developer\s+intern)\b/i,
-  /\b(trainee\s+developer|junior\s+developer|junior\s+software\s+engineer)\b/i,
-  /\b(customer\s+service|customer\s+support|account\s+executive|sales\s+development|growth\s+lead)\b/i,
-  /\b(remote\s+work\s*\|\s*ref#)\b/i
-];
+const ENGLISH_JOB_TITLES: RegExp[] = [];
 
 export function detectEnglishRequirement(title: string, description: string = ''): EnglishDetectionResult {
   const combined = `${title} ${description}`.toLowerCase();

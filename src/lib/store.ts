@@ -25,14 +25,14 @@ import { detectTechCategory } from './services/scrapers/category-detector';
 import { extractSkills } from './services/ats-ingestion';
 
 const STORAGE_KEYS = {
-  CANDIDATES: 'realjobs_colombia_cand_v8',
-  JOBS: 'realjobs_colombia_jobs_v8',
-  INBOUNDS: 'realjobs_colombia_inb_v8',
-  CONVERSATIONS: 'realjobs_colombia_conv_v8',
-  COMPANIES: 'realjobs_colombia_comp_v8',
-  ACTIVE_ROLE: 'realjobs_colombia_role_v8',
-  ACTIVE_CANDIDATE_ID: 'realjobs_colombia_active_cand_v8',
-  APPLIED_JOB_IDS: 'realjobs_colombia_applied_v8',
+  CANDIDATES: 'realjobs_colombia_cand_v9',
+  JOBS: 'realjobs_colombia_jobs_v9',
+  INBOUNDS: 'realjobs_colombia_inb_v9',
+  CONVERSATIONS: 'realjobs_colombia_conv_v9',
+  COMPANIES: 'realjobs_colombia_comp_v9',
+  ACTIVE_ROLE: 'realjobs_colombia_role_v9',
+  ACTIVE_CANDIDATE_ID: 'realjobs_colombia_active_cand_v9',
+  APPLIED_JOB_IDS: 'realjobs_colombia_applied_v9',
 };
 
 export function useAppStore() {

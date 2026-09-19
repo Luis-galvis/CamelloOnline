@@ -21,6 +21,7 @@ const LINKEDIN_PRIORITY_QUERIES = [
   { q: 'desarrollador node', remote: false },
   { q: 'desarrollador java junior', remote: false },
   { q: 'mobile developer flutter', remote: true },
+  { q: 'programador junior remoto', remote: true },
   // Datos, Analytics & IA
   { q: 'analista de datos', remote: false },
   { q: 'data analyst remote', remote: true },
@@ -31,12 +32,18 @@ const LINKEDIN_PRIORITY_QUERIES = [
   { q: 'qa tester junior', remote: true },
   { q: 'analista qa remoto', remote: true },
   { q: 'soporte ti junior', remote: false },
+  { q: 'soporte tecnico remoto', remote: true },
   { q: 'devops junior cloud', remote: true },
-  // Trainees y Prácticas 0 YoE
+  // Trainees, Semilleros y Prácticas 0 YoE (Sin Experiencia)
   { q: 'practicante sistemas', remote: false },
+  { q: 'practicante sistemas remoto', remote: true },
+  { q: 'practicante desarrollo software', remote: true },
   { q: 'practicante desarrollo web', remote: true },
   { q: 'practicante analisis de datos', remote: true },
-  { q: 'trainee desarrollador', remote: true }
+  { q: 'aprendiz sena adso remoto', remote: true },
+  { q: 'semillero desarrollo software', remote: true },
+  { q: 'trainee desarrollador', remote: true },
+  { q: 'junior sin experiencia', remote: true }
 ];
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
