@@ -12,13 +12,18 @@ import { detectExperience } from './experience-detector';
 const ELEMPLEO_SEARCH_URLS = [
   'https://www.elempleo.com/co/ofertas-empleo/ibague/ventas',
   'https://www.elempleo.com/co/ofertas-empleo/ibague/administracion-y-oficina',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/servicio-al-cliente',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/contabilidad-y-finanzas',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asesor-comercial',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asistente-administrativo',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-servicio-al-cliente-remoto',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-de-software',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-ingeniero-de-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-de-datos',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-qa'
 ];
 
-async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
+async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -46,7 +51,7 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
   for (let i = 0; i < ELEMPLEO_SEARCH_URLS.length; i += chunkSize) {
     const chunk = ELEMPLEO_SEARCH_URLS.slice(i, i + chunkSize);
     await Promise.allSettled(chunk.map(async (url) => {
-      const html = await fetchWithTimeout(url, 3500);
+      const html = await fetchWithTimeout(url, 4000);
       if (!html) return;
 
       const itemRegex = /<div[^>]*class="[^"]*result-item[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi;
@@ -61,7 +66,8 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
 
         const rawHref = titleMatch[1];
         const title = decodeHtmlEntities(titleMatch[2].replace(/<[^>]*>/g, '').trim());
-        const sourceUrl = rawHref.startsWith('http') ? rawHref : `https://www.elempleo.com${rawHref.split('#')[0]}`;
+        const cleanHref = rawHref.split('#')[0].split('?')[0];
+        const sourceUrl = cleanHref.startsWith('http') ? cleanHref : `https://www.elempleo.com${cleanHref}`;
         
         const idMatch = sourceUrl.match(/(\d{6,})/);
         const sourceJobId = idMatch ? idMatch[1] : `ee-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

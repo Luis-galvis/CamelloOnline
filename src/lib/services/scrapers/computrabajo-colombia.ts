@@ -10,18 +10,28 @@ import { decodeHtmlEntities } from './clean-text';
 import { detectExperience } from './experience-detector';
 
 const COMPUTRABAJO_SEARCH_PATHS = [
-  // 1. Ibagué & Tolima (Ventas, Comercial, TAT, Contabilidad, Administración)
+  // 1. Ibagué & Tolima (Ventas, Comercial, TAT, Contabilidad, Administración, Retail)
   'https://co.computrabajo.com/trabajo-de-ventas-en-tolima',
   'https://co.computrabajo.com/trabajo-de-comercial-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-asesor-comercial-en-tolima',
   'https://co.computrabajo.com/trabajo-de-jefe-de-ventas-en-tolima',
   'https://co.computrabajo.com/trabajo-de-coordinador-en-tolima',
   'https://co.computrabajo.com/trabajo-de-supervisor-en-tolima',
   'https://co.computrabajo.com/trabajo-de-tat-en-tolima',
   'https://co.computrabajo.com/trabajo-de-contador-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-auxiliar-contable-en-tolima',
   'https://co.computrabajo.com/trabajo-de-administrador-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-servicio-al-cliente-en-tolima',
+  'https://co.computrabajo.com/trabajo-de-cajero-en-tolima',
   'https://co.computrabajo.com/trabajo-de-ventas-en-ibague',
   'https://co.computrabajo.com/trabajo-de-comercial-en-ibague',
-  // 2. Tech & Remoto
+  'https://co.computrabajo.com/trabajo-de-asesor-comercial-en-ibague',
+  // 2. Ventas & Comercial Nacional & Remoto
+  'https://co.computrabajo.com/trabajo-de-asesor-comercial-remoto',
+  'https://co.computrabajo.com/trabajo-de-servicio-al-cliente-remoto',
+  'https://co.computrabajo.com/trabajo-de-ejecutivo-de-cuenta',
+  'https://co.computrabajo.com/trabajo-de-call-center-remoto',
+  // 3. Tech & Remoto
   'https://co.computrabajo.com/trabajo-de-desarrollador-software',
   'https://co.computrabajo.com/trabajo-de-desarrollador-junior',
   'https://co.computrabajo.com/trabajo-de-desarrollador-frontend',
@@ -31,7 +41,7 @@ const COMPUTRABAJO_SEARCH_PATHS = [
   'https://co.computrabajo.com/trabajo-de-analista-qa'
 ];
 
-async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
+async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -59,7 +69,7 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
   for (let i = 0; i < COMPUTRABAJO_SEARCH_PATHS.length; i += chunkSize) {
     const chunk = COMPUTRABAJO_SEARCH_PATHS.slice(i, i + chunkSize);
     await Promise.allSettled(chunk.map(async (url) => {
-      const html = await fetchWithTimeout(url, 3500);
+      const html = await fetchWithTimeout(url, 4000);
       if (!html) return;
 
       const articleRegex = /<article[^>]*class="[^"]*box_offer[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
@@ -74,7 +84,8 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
 
         const rawHref = titleMatch[1];
         const title = decodeHtmlEntities(titleMatch[2].replace(/<[^>]*>/g, '').trim());
-        const sourceUrl = rawHref.startsWith('http') ? rawHref : `https://co.computrabajo.com${rawHref.split('?')[0]}`;
+        const cleanHref = rawHref.split('#')[0].split('?')[0];
+        const sourceUrl = cleanHref.startsWith('http') ? cleanHref : `https://co.computrabajo.com${cleanHref}`;
         
         const idMatch = sourceUrl.match(/-([a-f0-9]{32})/i) || sourceUrl.match(/\/oferta-de-trabajo-de-[^/]+-en-[^/]+-([A-Z0-9]+)/i);
         const sourceJobId = idMatch ? idMatch[1] : `comp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

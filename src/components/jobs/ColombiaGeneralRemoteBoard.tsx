@@ -23,7 +23,8 @@ import {
   Lock
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
-import rawGeneralRemoteJobs from '@/lib/scraped-colombia-remote-general.json';
+import { useAppStore } from '@/lib/store';
+import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
 import { detectContractType } from '@/lib/services/scrapers/contract-detector';
 import { detectNonTechCategory } from '@/lib/services/scrapers/non-tech-remote-colombia';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
@@ -51,6 +52,8 @@ const NON_TECH_CATEGORIES = [
 
 export function ColombiaGeneralRemoteBoard() {
   const { user, openAuthModal, signInWithGoogle } = useAuth();
+  const { jobs: storeJobs } = useAppStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NonTechCategoryFilter>('all');
   const [selectedExp, setSelectedExp] = useState<ExperienceFilter>('all');
@@ -62,22 +65,21 @@ export function ColombiaGeneralRemoteBoard() {
   const [displayCount, setDisplayCount] = useState<number>(24);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
 
-  // Parse raw JSON into rich job entities
+  // Parse live jobs into rich job entities
   const allRemoteJobs = useMemo(() => {
-    return (rawGeneralRemoteJobs as any[])
+    const sourceList = storeJobs && storeJobs.length > 0 ? storeJobs : (rawColombiaJobs as any[]);
+    const TECH_CATEGORIES = new Set(['software_dev', 'data_ai', 'qa_testing', 'it_support', 'ui_ux_product']);
+
+    return sourceList
       .filter((job) => {
-        if (job.postedDateText) {
-          const pL = job.postedDateText.toLowerCase();
-          if (pL.includes('mes') || pL.includes('month') || pL.includes('año') || pL.includes('year')) {
-            return false;
-          }
-        }
-        const dateStr = job.scrapedAt || job.postedAt;
-        if (dateStr) {
-          const jobTime = new Date(dateStr).getTime();
-          const ageDays = (Date.now() - jobTime) / (1000 * 60 * 60 * 24);
-          if (ageDays > 21) return false;
-        }
+        const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') || (job.displayLocation || '').toLowerCase().includes('remoto');
+        if (!isRem) return false;
+        
+        // Exclude purely software developer roles to keep non-tech remote clean
+        const isTechDev = job.category && TECH_CATEGORIES.has(job.category) && 
+          /developer|software|ingeniero|devops|fullstack|frontend|backend|programad/i.test(job.title || '');
+        if (isTechDev) return false;
+
         return true;
       })
       .map((job, idx) => {
@@ -90,22 +92,22 @@ export function ColombiaGeneralRemoteBoard() {
         return {
           ...job,
           id: job.id || `remote-nt-${idx}`,
-          contractType: contractRes.contractType,
-          contractTypeLabel: contractRes.contractTypeLabel,
+          contractType: job.contractType || contractRes.contractType,
+          contractTypeLabel: job.contractTypeLabel || contractRes.contractTypeLabel,
           category: nonTechCat.category,
           categoryLabel: nonTechCat.categoryLabel,
-          isZeroExperience: expRes.isZeroExperience,
-          maxYearsExperience: expRes.isZeroExperience ? 0 : expRes.maxYearsExperience,
+          isZeroExperience: job.isZeroExperience ?? expRes.isZeroExperience,
+          maxYearsExperience: job.isZeroExperience ? 0 : (job.maxYearsExperience ?? expRes.maxYearsExperience),
           experienceTier: job.experienceTier || expRes.experienceTier,
           experienceLabel: job.experienceLabel || expRes.experienceLabel,
-          seniority: expRes.seniority,
-          requiresEnglish: engRes.requiresEnglish,
-          englishBadgeText: engRes.badgeText,
+          seniority: job.seniority || expRes.seniority,
+          requiresEnglish: job.requiresEnglish ?? engRes.requiresEnglish,
+          englishBadgeText: job.englishBadgeText || engRes.badgeText,
           applicantCountText: job.applicantCountText || appRes.applicantCountText,
           applicantTier: job.applicantTier || appRes.applicantTier
         };
       });
-  }, []);
+  }, [storeJobs]);
 
   // Category counts
   const categoryCounts = useMemo(() => {

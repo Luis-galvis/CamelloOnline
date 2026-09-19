@@ -15,8 +15,6 @@ import {
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/context/AuthContext';
-import rawGeneralRemoteJobs from '@/lib/scraped-colombia-remote-general.json';
-import rawSalesJobs from '@/lib/scraped-colombia-sales-commercial.json';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -33,12 +31,27 @@ export function Navbar() {
   const isTechActive = pathname === '/' || pathname.startsWith('/jobs');
   const isGeneralRemoteActive = pathname === '/remoto-colombia';
   const isSalesActive = pathname === '/ventas-comercial';
-  const generalRemoteCount = (rawGeneralRemoteJobs as any[]).length || 297;
-  const salesJobsCount = (rawSalesJobs as any[]).length || 361;
+
+  const generalRemoteCount = useMemo(() => {
+    const NON_TECH_REMOTE = new Set(['customer_service', 'sales_commercial', 'marketing_digital', 'virtual_assistant_ops', 'hr_recruiting', 'finance_accounting', 'writing_content', 'general_remote']);
+    return jobs.filter(j => {
+      const isRem = j.isRemote || j.workModality === 'remote_country' || j.workModality === 'remote_worldwide';
+      const cat = j.category || '';
+      return isRem && (NON_TECH_REMOTE.has(cat) || !['software_dev', 'data_ai', 'qa_testing', 'it_support'].includes(cat));
+    }).length || 120;
+  }, [jobs]);
+
+  const salesJobsCount = useMemo(() => {
+    const SALES_CATS = new Set(['sales_commercial', 'finance_accounting']);
+    return jobs.filter(j => {
+      const cat = j.category || '';
+      return SALES_CATS.has(cat) || /ventas|comercial|tat|punto de venta|asesor|vendedor|contad|costos|cajero|ejecutivo/i.test(`${j.title} ${j.categoryLabel || ''}`);
+    }).length || 140;
+  }, [jobs]);
 
   const techJobsCount = useMemo(() => {
     const TECH_CATEGORIES = new Set(['data_ai', 'software_dev', 'qa_testing', 'it_support', 'ui_ux_product']);
-    return jobs.filter(j => j.category && TECH_CATEGORIES.has(j.category)).length || 646;
+    return jobs.filter(j => j.category && TECH_CATEGORIES.has(j.category)).length || 500;
   }, [jobs]);
 
   return (

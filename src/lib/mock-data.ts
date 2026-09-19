@@ -1,7 +1,5 @@
 import { CandidateProfile, JobPost, InboundRequest, Conversation, Company } from '@/types';
 import rawColombiaJobs from './scraped-colombia-jobs.json';
-import rawGeneralRemoteJobs from './scraped-colombia-remote-general.json';
-import rawSalesJobs from './scraped-colombia-sales-commercial.json';
 import { detectContractType } from './services/scrapers/contract-detector';
 import { detectTechCategory } from './services/scrapers/category-detector';
 import { detectNonTechCategory } from './services/scrapers/non-tech-remote-colombia';
@@ -21,12 +19,8 @@ function slugify(text: string): string {
 // Build initial companies and jobs strictly from all verified Colombia scraped feeds
 const companyMap = new Map<string, Company>();
 
-// 1. Combine and deduplicate all feeds: Tech + Remoto General + Ventas/Comercial/Contabilidad
-const combinedRaw = [
-  ...(rawColombiaJobs as any[]),
-  ...(rawGeneralRemoteJobs as any[]),
-  ...(rawSalesJobs as any[])
-];
+// 1. All feeds: Tech + Remoto General + Ventas/Comercial/Contabilidad
+const combinedRaw = (rawColombiaJobs as any[]) || [];
 
 const seenJobKeys = new Set<string>();
 const deduplicatedRawList: any[] = [];

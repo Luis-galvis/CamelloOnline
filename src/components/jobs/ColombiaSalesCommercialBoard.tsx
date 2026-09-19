@@ -21,7 +21,8 @@ import {
   Award
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
-import rawSalesJobs from '@/lib/scraped-colombia-sales-commercial.json';
+import { useAppStore } from '@/lib/store';
+import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
 
 type SortOption = 'newest' | 'highest_salary' | 'lowest_salary' | 'ibague_first';
 type SalesSubCategory = 'all' | 'tat_mixto' | 'punto_venta' | 'contabilidad_finanzas' | 'gerencia_proyectos' | 'b2b_empresarial';
@@ -40,6 +41,7 @@ const SALES_CATEGORIES = [
 
 export function ColombiaSalesCommercialBoard() {
   const { user, signInWithGoogle, openAuthModal } = useAuth();
+  const { jobs: storeJobs } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<SalesSubCategory>('all');
@@ -52,7 +54,7 @@ export function ColombiaSalesCommercialBoard() {
 
   // Clasificador de subcategoría
   const getSubCategory = (job: any): SalesSubCategory => {
-    const text = `${job.title} ${job.description} ${job.categoryLabel} ${job.category}`.toLowerCase();
+    const text = `${job.title || ''} ${job.description || ''} ${job.categoryLabel || ''} ${job.category || ''}`.toLowerCase();
     
     // Contabilidad & Finanzas
     if (text.includes('contad') || text.includes('costo') || text.includes('presupuesto') || text.includes('auditor') || text.includes('niif') || text.includes('financier') || text.includes('tesorer') || text.includes('cartera') || text.includes('factura') || text.includes('tributari')) {
@@ -74,9 +76,37 @@ export function ColombiaSalesCommercialBoard() {
     return 'b2b_empresarial';
   };
 
+  const isSalesCommercialTarget = (job: any): boolean => {
+    const cat = job.category || '';
+    if (cat === 'sales_commercial' || cat === 'finance_accounting') return true;
+    const text = `${job.title || ''} ${job.description || ''} ${job.categoryLabel || ''}`.toLowerCase();
+    return (
+      text.includes('ventas') ||
+      text.includes('comercial') ||
+      text.includes('asesor') ||
+      text.includes('vendedor') ||
+      text.includes('tat') ||
+      text.includes('punto de venta') ||
+      text.includes('pdv') ||
+      text.includes('contador') ||
+      text.includes('contable') ||
+      text.includes('cajero') ||
+      text.includes('ejecutivo de cuenta') ||
+      text.includes('servicio al cliente') ||
+      text.includes('supervisor') ||
+      text.includes('coordinador')
+    );
+  };
+
+  // Base list from live store or fresh scraped JSON
+  const allBaseSalesJobs = useMemo(() => {
+    const sourceList = storeJobs && storeJobs.length > 0 ? storeJobs : (rawColombiaJobs as any[]);
+    return sourceList.filter(isSalesCommercialTarget);
+  }, [storeJobs]);
+
   // Filtrado reactivo
   const filteredJobs = useMemo(() => {
-    return (rawSalesJobs as any[]).filter((job) => {
+    return allBaseSalesJobs.filter((job) => {
       const subCat = getSubCategory(job);
       const loc = ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase();
       const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') || loc.includes('remoto');
@@ -178,11 +208,11 @@ export function ColombiaSalesCommercialBoard() {
   }, [filteredJobs, sortBy]);
 
   const totalIbagueCount = useMemo(() => {
-    return (rawSalesJobs as any[]).filter(j => {
+    return allBaseSalesJobs.filter(j => {
       const l = ((j.displayLocation || '') + ' ' + (j.locationCity || '')).toLowerCase();
       return l.includes('ibag') || l.includes('tolima');
     }).length;
-  }, []);
+  }, [allBaseSalesJobs]);
 
   const resetFilters = () => {
     setSearchQuery('');
