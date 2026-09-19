@@ -636,6 +636,27 @@ export function ColombiaSalesCommercialBoard() {
                   {selectedJob.description}
                 </p>
               </div>
+
+              {/* Source Origin & Provenance Box */}
+              <div className="p-3.5 rounded-xl bg-slate-100/80 border border-slate-200 text-xs text-slate-600 space-y-1">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                  <span>Origen de la Vacante:</span>
+                  <span className="capitalize font-semibold text-indigo-700">
+                    {selectedJob.isLinkedInPost 
+                      ? `Convocatoria Directa de Reclutador (${selectedJob.postAuthor || 'Equipo de Selección'})` 
+                      : selectedJob.source === 'computrabajo' ? 'Computrabajo Colombia' 
+                      : selectedJob.source === 'elempleo' ? 'ElEmpleo Colombia' 
+                      : selectedJob.source === 'linkedin' ? 'LinkedIn Jobs Colombia' 
+                      : 'Portal de Carreras de la Empresa'}
+                  </span>
+                </div>
+                {selectedJob.contactEmail && (
+                  <p className="text-[11px] text-slate-500">
+                    📌 <strong>Canal de aplicación:</strong> Envío directo de hoja de vida al buzón de talento <code>{selectedJob.contactEmail}</code>.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Modal Footer */}
