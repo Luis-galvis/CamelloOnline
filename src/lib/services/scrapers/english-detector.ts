@@ -27,12 +27,11 @@ const STRONG_ENGLISH_PATTERNS = [
 ];
 
 const EXPLICIT_NO_ENGLISH_PATTERNS = [
-  /\b(no\s*requiere\s*ingl[eé]s|no\s*necesita\s*ingl[eé]s|sin\s*ingl[eé]s|no\s*english\s*required)\b/i,
-  /\b(100%\s*espa[ñn]ol|solo\s*espa[ñn]ol|espa[ñn]ol\s*nativo|español)\b/i,
+  /\b(no\s*requiere\s*ingl[eé]s|no\s*necesita\s*ingl[eé]s|sin\s*ingl[eé]s|no\s*english\s*required|100%\s*espa[ñn]ol|solo\s*espa[ñn]ol|espa[ñn]ol\s*nativo)\b/i,
 ];
 
 const ENGLISH_SECTION_PATTERNS = [
-  /\b(responsibilities|accountabilities|qualifications|job description|about the role|about the company|who we are|what you['’]?ll do|what we offer|what we are looking for|who you are|key skills|key responsibilities|education \/ experience|bachelor['’]?s degree|working conditions|a day in the life|role requirements|benefits & perks|what success looks like|how to apply|what to expect)\b/i,
+  /\b(responsibilities|accountabilities|qualifications|job description|about the role|about the company|who we are|what you['’]?ll do|what we offer|what's on offer|what we are looking for|who you are|key skills|key responsibilities|education \/ experience|bachelor['’]?s degree|working conditions|a day in the life|role requirements|benefits & perks|what success looks like|how to apply|what to expect|quote job ref)\b/i,
   /\b(contributes to the overall success|customer focused culture|agile team environment|hands on development|ensures all activities|written and spoken english|strong communication skills|we are an equal opportunity employer)\b/i
 ];
 
@@ -53,7 +52,9 @@ const SPANISH_STOPWORDS = [
   'postular', 'vacante', 'contrato', 'salario', 'remoto'
 ];
 
-const ENGLISH_JOB_TITLES: RegExp[] = [];
+const ENGLISH_JOB_TITLES: RegExp[] = [
+  /\b(software\s*engineer|cloud\s*engineer|system\s*(?:&|and)?\s*cloud|devops\s*engineer|frontend\s*developer|backend\s*developer|full\s*stack\s*developer|data\s*engineer|data\s*scientist|qa\s*automation|sdr\s*b2b|customer\s*support\s*representative|product\s*manager|site\s*reliability\s*engineer|security\s*engineer|solutions\s*architect|technical\s*support\s*engineer|scrum\s*master)\b/i,
+];
 
 export function detectEnglishRequirement(title: string, description: string = ''): EnglishDetectionResult {
   const combined = `${title} ${description}`.toLowerCase();

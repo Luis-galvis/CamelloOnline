@@ -174,8 +174,8 @@ function parseLinkedInHtml(
     // Applicant Count Estimation
     const applicantInfo = extractApplicantCount(cardHtml);
 
-    // Modality
-    const isRemoteFinal = isForceRemote || locationNorm.isRemote || /remot[oa]|remote|teletrabajo|anywhere/i.test(`${title} ${rawLocation}`);
+    // Modality: strictly based on job text and normalized location, never blindly forced
+    const isRemoteFinal = locationNorm.isRemote || /remot[oa]|remote|teletrabajo|anywhere|desde\s*casa|wfh/i.test(`${title} ${rawLocation}`);
     const workModality = isRemoteFinal 
       ? (locationNorm.workModality.includes('worldwide') ? 'remote_worldwide' : 'remote_country')
       : locationNorm.workModality;
