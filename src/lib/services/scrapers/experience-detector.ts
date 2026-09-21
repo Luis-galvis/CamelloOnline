@@ -29,9 +29,9 @@ export interface ExperienceResult {
   isEligible: boolean;
 }
 
-const ZERO_EXP_EXPLICIT_REGEX = /\b(sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|no\s+requiere\s+experiencia|0\s*a[ñn]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|primer\s+empleo|primer\s+trabajo|autodidacta|abierto\s+a\s+bootcamp)\b/i;
+const ZERO_EXP_EXPLICIT_REGEX = /\b(sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia\s+laboral|sin\s+experiencia|no\s+requiere\s+experiencia|no\s+se\s+requiere\s+experiencia|no\s+exigimos\s+experiencia|no\s+necesita\s+experiencia|no\s+requerimos\s+experiencia|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|0\s*a[ñn]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|cero\s+experiencia|primer\s+empleo|primer\s+trabajo|reci[eé]n\s+egresad[oa]|reci[eé]n\s+graduad[oa]|autodidacta|abierto\s+a\s+bootcamp|te\s+capacitamos|te\s+formamos|capacitaci[oó]n\s+paga|semillero\s+de\s+talento|semillero\s+tech)\b/i;
 
-const INTERN_TITLE_REGEX = /\b(practicante|aprendiz|pasant[ií]a|intern|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso)\b/i;
+const INTERN_TITLE_REGEX = /\b(practicante|aprendiz|pasant[ií]a|intern|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso|etapa\s+productiva|semillero\s+desarrollo|semillero\s+ti)\b/i;
 
 const SIX_MONTHS_REGEX = /\b(6\s*meses|seis\s*meses|medio\s*a[ñn]o|0\.5\s*a[ñn]os?|6\s*months?|six\s*months?)\b/i;
 

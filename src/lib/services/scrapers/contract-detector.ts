@@ -69,7 +69,12 @@ export function detectContractType(
     combined.includes('obra o labor') ||
     combined.includes('obra labor') ||
     combined.includes('por obra') ||
-    combined.includes('labor determinada')
+    combined.includes('por labor') ||
+    combined.includes('obra o labor determinada') ||
+    combined.includes('labor determinada') ||
+    combined.includes('mision') ||
+    combined.includes('misión') ||
+    combined.includes('temporal')
   ) {
     return {
       contractType: 'obra_labor',
@@ -86,7 +91,9 @@ export function detectContractType(
     combined.includes('plazo fijo') ||
     combined.includes('contrato fijo') ||
     combined.includes('fijo a') ||
-    combined.includes('tiempo determinado')
+    combined.includes('tiempo determinado') ||
+    combined.includes('meses renovable') ||
+    combined.includes('meses prorrogable')
   ) {
     return {
       contractType: 'fijo',
@@ -105,10 +112,10 @@ export function detectContractType(
     combined.includes('plazo indefinido') ||
     combined.includes('tiempo indefinido') ||
     combined.includes('directo con la empresa') ||
+    combined.includes('contratacion directa') ||
+    combined.includes('contratación directa') ||
     combined.includes('permanent') ||
-    combined.includes('tiempo completo') ||
-    combined.includes('full-time') ||
-    combined.includes('full time')
+    combined.includes('indefinite')
   ) {
     return {
       contractType: 'indefinido',
@@ -116,9 +123,9 @@ export function detectContractType(
     };
   }
 
-  // Por defecto en desarrollo de software / tech empresarial
+  // Si no está especificado explícitamente en el texto
   return {
-    contractType: 'indefinido',
-    contractTypeLabel: 'Término Indefinido'
+    contractType: 'no_especificado',
+    contractTypeLabel: 'A convenir / No especificado'
   };
 }

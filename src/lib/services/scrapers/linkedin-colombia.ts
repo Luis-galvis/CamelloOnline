@@ -42,8 +42,13 @@ const LINKEDIN_PRIORITY_QUERIES = [
   { q: 'practicante analisis de datos', remote: true },
   { q: 'aprendiz sena adso remoto', remote: true },
   { q: 'semillero desarrollo software', remote: true },
+  { q: 'semillero java', remote: true },
   { q: 'trainee desarrollador', remote: true },
-  { q: 'junior sin experiencia', remote: true }
+  { q: 'junior sin experiencia', remote: true },
+  { q: 'soporte tecnico sin experiencia', remote: false },
+  { q: 'mesa de ayuda junior', remote: false },
+  { q: 'auxiliar sistemas junior', remote: false },
+  { q: 'analista soporte nivel 1', remote: true }
 ];
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
