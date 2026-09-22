@@ -24,6 +24,7 @@ import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/context/AuthContext';
 import { JobPost } from '@/types';
 import { detectTechCategory } from '@/lib/services/scrapers/category-detector';
+import { detectExperience } from '@/lib/services/scrapers/experience-detector';
 
 export function ColombiaJobBoard() {
   const { jobs } = useAppStore();
@@ -46,6 +47,26 @@ export function ColombiaJobBoard() {
   const [displayCount, setDisplayCount] = useState(20);
 
   // Helper functions for classification
+  const isJobLinkedInPost = (job: JobPost): boolean => {
+    if (!job) return false;
+    if (job.isLinkedInPost || job.isDirectRecruiterPost) return true;
+    const url = (job.sourceUrl || '').toLowerCase();
+    if (url.includes('/posts/') || url.includes('/feed/update/') || url.includes('linkedin.com/search/results/content')) return true;
+    if (job.sourceAts === 'linkedin_post') return true;
+    if (job.sourceName === 'linkedin_post' || (job.applicantCountText || '').toLowerCase().includes('post')) return true;
+    const desc = job.description || '';
+    if (
+      desc.includes('Envía tu HV a') || 
+      desc.includes('Envía tu CV a') || 
+      desc.includes('Interesados remitir HV a') || 
+      desc.includes('Postulaciones abiertas enviando CV') || 
+      desc.includes('#hiring') || 
+      desc.includes('#semillero') ||
+      desc.includes('#primerempleo')
+    ) return true;
+    return false;
+  };
+
   const isJobRemote = (job: JobPost): boolean => {
     if (job.isRemote) return true;
     if (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') return true;
@@ -56,20 +77,14 @@ export function ColombiaJobBoard() {
 
   const isJobZeroExp = (job: JobPost): boolean => {
     if (job.isZeroExperience) return true;
+    if (job.experienceTier === 'zero_exp') return true;
     if (job.contractType === 'aprendizaje') return true;
     if (job.seniorityRequired === 'trainee' || job.seniorityRequired === 'intern') return true;
     if (Number(job.maxYearsExperienceRequired) === 0) return true;
-    const title = (job.title || '').toLowerCase();
-    return (
-      title.includes('practicante') ||
-      title.includes('aprendiz') ||
-      title.includes('trainee') ||
-      title.includes('semillero') ||
-      title.includes('sin experiencia') ||
-      title.includes('pasante') ||
-      title.includes('pasantia') ||
-      title.includes('intern')
-    );
+    
+    // Evaluate via comprehensive detector
+    const exp = detectExperience(job.title || '', job.description || '');
+    return exp.isZeroExperience;
   };
 
   const getJobCategory = (job: JobPost): string => {
@@ -78,18 +93,15 @@ export function ColombiaJobBoard() {
   };
 
   const getJobExperienceTier = (job: JobPost): string => {
-    if (job.experienceTier) return job.experienceTier;
     if (isJobZeroExp(job)) return 'zero_exp';
-    const yoe = Number(job.maxYearsExperienceRequired) || 1;
-    if (yoe <= 0.7) return 'six_months';
-    if (yoe <= 1.5) return 'one_year';
-    if (yoe <= 3.0) return 'two_to_three';
-    if (yoe <= 4.5) return 'three_to_four';
-    return 'more_than_five';
+    if (job.experienceTier && job.experienceTier !== 'zero_exp') return job.experienceTier;
+    const exp = detectExperience(job.title || '', job.description || '');
+    return exp.experienceTier;
   };
 
   const getJobExperienceLabel = (job: JobPost): string => {
-    if (job.experienceLabel) return job.experienceLabel;
+    if (isJobZeroExp(job)) return 'Sin experiencia previa';
+    if (job.experienceLabel && job.experienceLabel !== 'Sin experiencia previa') return job.experienceLabel;
     const tier = getJobExperienceTier(job);
     switch (tier) {
       case 'zero_exp': return 'Sin experiencia previa';
@@ -226,10 +238,10 @@ export function ColombiaJobBoard() {
 
       // 10. Filtro de Tipo de Publicación (Posts de Reclutadores / LinkedIn vs Tableros Tradicionales)
       if (selectedPostType === 'posts_only') {
-        const isPost = job.isLinkedInPost || (job.sourceUrl || '').includes('/posts/') || (job.sourceUrl || '').includes('/feed/update/') || (job.applicantCountText || '').includes('Post');
+        const isPost = isJobLinkedInPost(job);
         if (!isPost) return false;
       } else if (selectedPostType === 'boards_only') {
-        const isPost = job.isLinkedInPost || (job.sourceUrl || '').includes('/posts/') || (job.sourceUrl || '').includes('/feed/update/');
+        const isPost = isJobLinkedInPost(job);
         if (isPost) return false;
       }
 
@@ -346,7 +358,7 @@ export function ColombiaJobBoard() {
   const totalDataAiCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'data_ai').length, [techJobs]);
   const totalQaCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'qa_testing').length, [techJobs]);
   const totalSoftwareDevCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'software_dev').length, [techJobs]);
-  const totalLinkedInPostsCount = useMemo(() => techJobs.filter(j => j.isLinkedInPost || (j.sourceUrl || '').includes('/posts/') || (j.sourceUrl || '').includes('/feed/update/')).length, [techJobs]);
+  const totalLinkedInPostsCount = useMemo(() => techJobs.filter(isJobLinkedInPost).length, [techJobs]);
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
@@ -785,7 +797,7 @@ export function ColombiaJobBoard() {
               const isRem = isJobRemote(job);
               const isZero = isJobZeroExp(job);
               const cat = getJobCategory(job);
-              const isLiPost = job.isLinkedInPost || (job.sourceUrl || '').includes('/posts/') || (job.sourceUrl || '').includes('/feed/update/');
+              const isLiPost = isJobLinkedInPost(job);
 
               return (
                 <div
@@ -1097,7 +1109,7 @@ export function ColombiaJobBoard() {
             </div>
 
             {/* LinkedIn Post Recruiter Direct Info Box */}
-            {(selectedJobModal.isLinkedInPost || selectedJobModal.contactEmail) && (
+            {(isJobLinkedInPost(selectedJobModal) || selectedJobModal.contactEmail) && (
               <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 via-sky-50 to-indigo-50 border border-indigo-200 space-y-2.5">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-indigo-600 text-white">

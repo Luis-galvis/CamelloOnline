@@ -39,7 +39,7 @@ export type InboundRequestStatus =
   | 'declined'
   | 'expired';
 
-export type AtsSource = 'manual' | 'greenhouse' | 'lever' | 'ashby' | 'workable';
+export type AtsSource = 'manual' | 'greenhouse' | 'lever' | 'ashby' | 'workable' | 'linkedin_post' | 'computrabajo' | 'elempleo' | 'weremoto';
 
 export interface User {
   id: string;

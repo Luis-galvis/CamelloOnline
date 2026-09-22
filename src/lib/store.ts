@@ -22,6 +22,7 @@ import { extractSalary } from './services/scrapers/salary-extractor';
 import { normalizeLocation } from './services/scrapers/location-normalizer';
 import { detectContractType } from './services/scrapers/contract-detector';
 import { detectTechCategory } from './services/scrapers/category-detector';
+import { detectExperience } from './services/scrapers/experience-detector';
 import { extractSkills } from './services/ats-ingestion';
 
 const STORAGE_KEYS = {
@@ -141,14 +142,35 @@ export function useAppStore() {
           const locResult = normalizeLocation(j.location_city || 'Colombia', `${j.title} ${j.description || ''}`);
           const skills = extractSkills(`${j.title} ${j.description || ''}`);
           const contractRes = detectContractType(j.title, j.description || '', '');
+          const expRes = detectExperience(j.title, j.description || '');
 
           const cleanDisplayLoc = (locResult.displayLocation || j.location_city || 'Colombia')
             .replace(/^📍\s*/, '')
             .replace(/^🏠\s*/, '');
 
-          const isLiPost = (j.source_url || '').includes('/posts/') || (j.source_url || '').includes('/feed/update/') || (j.description || '').includes('📩 Envía tu CV') || (j.description || '').includes('📩 Postulaciones a');
+          const isLiPost = Boolean(
+            j.source_ats === 'linkedin_post' ||
+            (j.source_job_id && String(j.source_job_id).startsWith('lipost-')) ||
+            (j.source_url && (
+              j.source_url.includes('/posts/') || 
+              j.source_url.includes('/feed/update/') ||
+              j.source_url.includes('linkedin.com/search/results/content')
+            )) ||
+            (j.description || '').includes('Envía tu HV a') ||
+            (j.description || '').includes('Envía tu CV a') ||
+            (j.description || '').includes('Interesados remitir HV a') ||
+            (j.description || '').includes('Postulaciones abiertas enviando CV') ||
+            (j.description || '').includes('📩') ||
+            (j.description || '').includes('#hiring') ||
+            (j.description || '').includes('#semillero') ||
+            (j.description || '').includes('#primerempleo')
+          );
+
           const emailMatch = (j.description || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
           const detectedEmail = emailMatch ? emailMatch[0] : undefined;
+
+          const isZeroExp = Boolean(j.is_zero_experience || expRes.isZeroExperience || expRes.maxYearsExperience === 0);
+          const expYears = isZeroExp ? 0 : (Number(j.max_years_experience_required) || expRes.maxYearsExperience || 1);
 
           return {
             id: j.id,
@@ -167,14 +189,14 @@ export function useAppStore() {
             salaryMinUsd: Number(j.salary_min_usd) || 700,
             salaryMaxUsd: Number(j.salary_max_usd) || 1500,
             currency: j.currency || 'COP',
-            seniorityRequired: j.seniority_required || 'junior',
+            seniorityRequired: isZeroExp ? (j.seniority_required === 'intern' ? 'intern' : 'trainee') : (j.seniority_required || expRes.seniority || 'junior'),
             englishRequired: j.english_required || 'no_english',
-            maxYearsExperienceRequired: Number(j.max_years_experience_required) || 0.0,
-            isZeroExperience: Boolean(j.is_zero_experience),
+            maxYearsExperienceRequired: expYears,
+            isZeroExperience: isZeroExp,
             status: j.status || 'active',
             expiresAt: j.expires_at || new Date(Date.now() + 30 * 86400000).toISOString(),
             isAutoIngested: Boolean(j.is_auto_ingested),
-            sourceAts: j.source_ats || 'manual',
+            sourceAts: isLiPost ? 'linkedin_post' : (j.source_ats || 'manual'),
             sourceUrl: j.source_url,
             isClaimed: Boolean(j.is_claimed),
             claimToken: j.claim_token,
@@ -193,14 +215,16 @@ export function useAppStore() {
             contractTypeLabel: contractRes.contractTypeLabel,
             category: detectTechCategory(j.title, `${j.description || ''} ${cleanDisplayLoc}`).category,
             categoryLabel: detectTechCategory(j.title, `${j.description || ''} ${cleanDisplayLoc}`).categoryLabel,
-            experienceTier: Boolean(j.is_zero_experience) ? 'zero_exp' : 'one_year',
-            experienceLabel: Boolean(j.is_zero_experience) ? 'Sin experiencia previa' : '1 año de exp',
-            sourceName: '',
+            experienceTier: isZeroExp ? 'zero_exp' : expRes.experienceTier,
+            experienceLabel: isZeroExp ? 'Sin experiencia previa' : expRes.experienceLabel,
+            sourceName: isLiPost ? 'LinkedIn Post Directo' : (j.source_ats || 'Portal Verificado'),
             isLinkedInPost: isLiPost,
             postAuthor: isLiPost ? compName : undefined,
             contactEmail: detectedEmail,
             applicationEmail: detectedEmail,
             isDirectRecruiterPost: isLiPost,
+            applicantCountText: isLiPost ? '💬 Post Directo de Reclutador' : (isZeroExp ? '🌱 Sin Experiencia / Trainee' : 'Menos de 20 postulantes'),
+            applicantTier: 'low',
             createdAt: j.created_at
           };
         });

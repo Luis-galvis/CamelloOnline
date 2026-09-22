@@ -122,12 +122,15 @@ async function runColombiaScraperPipeline() {
     const companyId = companyIdMap.get(compSlug);
     if (!companyId) continue;
 
-    const uniqueJobIdHash = shortHash(`${job.source}:${job.sourceJobId || job.sourceUrl}:${job.title}:${job.displayLocation}`);
+    const isLiPost = Boolean(job.isLinkedInPost || (job as any).isDirectRecruiterPost || (job.sourceUrl || '').includes('/posts/') || (job.sourceUrl || '').includes('/feed/update/'));
+    const uniqueJobIdHash = isLiPost 
+      ? `lipost-${shortHash(job.title + job.companyName)}`
+      : shortHash(`${job.source}:${job.sourceJobId || job.sourceUrl}:${job.title}:${job.displayLocation}`);
     const baseSlug = `${slugify(job.title).slice(0, 50)}-${compSlug.slice(0, 30)}-${uniqueJobIdHash.slice(0, 10)}-${Math.random().toString(36).slice(2, 6)}`;
 
-    const mappedAts = ['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source)
-      ? job.source
-      : 'manual';
+    const mappedAts = isLiPost
+      ? 'linkedin_post'
+      : (['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source) ? job.source : 'manual');
 
     const englishEnum = job.requiresEnglish
       ? (job.englishLevel === 'c1_advanced' ? 'c1_advanced' : 'b2_upper_intermediate')
@@ -135,10 +138,11 @@ async function runColombiaScraperPipeline() {
 
     const minSal = Math.max(300, Number(job.salaryMinUsdEquivalent || job.salaryMinUsd) || 700);
     const maxSal = Math.max(minSal, Number(job.salaryMaxUsdEquivalent || job.salaryMaxUsd) || 1500);
-    const expReq = Math.max(0, Math.min(Number(job.maxYearsExperience) || 0, 2.0));
+    const isZeroExp = Boolean(job.isZeroExperience || job.experienceTier === 'zero_exp' || Number(job.maxYearsExperience) === 0);
+    const expReq = isZeroExp ? 0 : Number(job.maxYearsExperience || 1);
 
     let mappedSeniority = 'junior';
-    if (job.seniority === 'trainee' || job.seniority === 'intern' || job.isZeroExperience) {
+    if (job.seniority === 'trainee' || job.seniority === 'intern' || isZeroExp) {
       mappedSeniority = 'trainee';
     } else if (job.seniority === 'early_mid' || job.seniority === 'senior') {
       mappedSeniority = 'early_mid';
@@ -158,7 +162,7 @@ async function runColombiaScraperPipeline() {
       seniority_required: mappedSeniority,
       english_required: englishEnum,
       max_years_experience_required: expReq,
-      is_zero_experience: job.isZeroExperience,
+      is_zero_experience: isZeroExp,
       status: 'active',
       is_auto_ingested: true,
       source_ats: mappedAts,
