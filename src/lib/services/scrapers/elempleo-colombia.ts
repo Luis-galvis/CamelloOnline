@@ -69,12 +69,17 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
         if (!titleMatch) continue;
 
         const rawHref = titleMatch[1];
+        if (rawHref.includes('{{') || rawHref.includes('undefined')) continue;
+
         const title = decodeHtmlEntities(titleMatch[2].replace(/<[^>]*>/g, '').trim());
+        if (title.includes('{{') || !title) continue;
+
         const cleanHref = rawHref.split('#')[0].split('?')[0];
         const sourceUrl = cleanHref.startsWith('http') ? cleanHref : `https://www.elempleo.com${cleanHref}`;
         
         const idMatch = sourceUrl.match(/(\d{6,})/);
-        const sourceJobId = idMatch ? idMatch[1] : `ee-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        if (!idMatch) continue;
+        const sourceJobId = idMatch[1];
 
         if (seenIds.has(sourceJobId)) continue;
         seenIds.add(sourceJobId);

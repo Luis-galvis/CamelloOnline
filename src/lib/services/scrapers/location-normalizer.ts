@@ -48,7 +48,7 @@ const COLOMBIA_CITIES_ORDERED: Array<{ key: string; name: string; dept: string; 
 ];
 
 // Exhaustive list of foreign cities, countries and regions that invalidate the job for Colombia
-const FOREIGN_LOCATION_REJECTION_REGEX = /\b(bangalore|bengaluru|mumbai|delhi|hyderabad|pune|chennai|noida|gurgaon|india|san\s*francisco|new\s*york|los\s*angeles|seattle|austin|chicago|boston|denver|atlanta|dallas|miami|united\s*states|usa|u\.s\.a?|california|texas|florida|washington|london|manchester|birmingham|united\s*kingdom|uk|u\.k\.|england|ireland|dublin|madrid|barcelona|valencia|sevilla|spain|espana|berlin|munich|frankfurt|hamburg|germany|deutschland|paris|france|amsterdam|netherlands|rotterdam|poland|warsaw|krakow|toronto|vancouver|montreal|canada|sydney|melbourne|brisbane|australia|auckland|new\s*zealand|tokyo|japan|singapore|philippines|manila|cebu|vietnam|hanoi|saudi\s*arabia|uae|dubai|mexico|ciudad\s*de\s*mexico|cdmx|guadalajara|monterrey|brazil|brasil|sao\s*paulo|rio\s*de\s*janeiro|curitiba|buenos\s*aires|argentina|cordoba|rosario|santiago|chile|lima|peru|costa\s*rica|san\s*jose|panama|uruguay|montevideo|paraguay|asuncion|bolivia|la\s*paz|ecuador|quito|guayaquil|venezuela|caracas|emea|apac|latam\s*\(excluding\s*colombia\))\b/i;
+const FOREIGN_LOCATION_REJECTION_REGEX = /\b(china|beijing|shanghai|shenzhen|hong\s*kong|taiwan|taipei|korea|seoul|bangalore|bengaluru|mumbai|delhi|hyderabad|pune|chennai|noida|gurgaon|india|san\s*francisco|new\s*york|los\s*angeles|seattle|austin|chicago|boston|denver|atlanta|dallas|miami|united\s*states|usa|u\.s\.a?|california|texas|florida|washington|london|manchester|birmingham|united\s*kingdom|uk|u\.k\.|england|ireland|dublin|madrid|barcelona|valencia|sevilla|spain|espana|berlin|munich|frankfurt|hamburg|germany|deutschland|paris|france|amsterdam|netherlands|rotterdam|poland|warsaw|krakow|toronto|vancouver|montreal|canada|sydney|melbourne|brisbane|australia|auckland|new\s*zealand|tokyo|japan|singapore|philippines|manila|cebu|vietnam|hanoi|saudi\s*arabia|uae|dubai|mexico|ciudad\s*de\s*mexico|cdmx|guadalajara|monterrey|brazil|brasil|sao\s*paulo|rio\s*de\s*janeiro|curitiba|buenos\s*aires|argentina|cordoba|rosario|santiago|chile|lima|peru|costa\s*rica|san\s*jose|panama|uruguay|montevideo|paraguay|asuncion|bolivia|la\s*paz|ecuador|quito|guayaquil|venezuela|caracas|emea|apac|latam\s*\(excluding\s*colombia\))\b/i;
 
 export function normalizeLocation(rawLocation: string, actualJobDescription: string = ''): LocationNormalizationResult {
   const loc = (rawLocation || '').trim();
@@ -108,9 +108,10 @@ export function normalizeLocation(rawLocation: string, actualJobDescription: str
   // 3. Remote Colombia ONLY if location specifically mentions Colombia or pure general remote without foreign flags
   if (isExplicitRemote) {
     const hasColombia = normLoc.includes('colombia') || normLoc.includes('co') || normDesc.includes('colombia') || normDesc.includes('latam');
+    const isGenericRemoteLoc = normLoc === 'remote' || normLoc === 'remoto' || normLoc === 'remote / teletrabajo' || normLoc === 'anywhere' || normLoc === 'worldwide' || normLoc.includes('home based') || normLoc === '';
     
-    // If it's a pure generic "Remote" with no foreign cities
-    if (hasColombia || normLoc === 'remote' || normLoc === 'remoto' || normLoc === 'remote / teletrabajo' || !FOREIGN_LOCATION_REJECTION_REGEX.test(normLoc)) {
+    // Accept if confirmed Colombia or truly generic remote without foreign city/country names
+    if ((hasColombia || isGenericRemoteLoc) && !FOREIGN_LOCATION_REJECTION_REGEX.test(normLoc)) {
       return {
         isColombiaValid: true,
         city: 'Remoto (Colombia)',

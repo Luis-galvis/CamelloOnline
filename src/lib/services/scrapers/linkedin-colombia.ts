@@ -12,46 +12,48 @@ import { extractPostedDate } from './date-extractor';
 import { decodeHtmlEntities } from './clean-text';
 
 const LINKEDIN_PRIORITY_QUERIES = [
-  // Desarrollo y Software Remoto / Colombia
+  // 1. Trainees, Semilleros, Prácticas y 0 YoE (Prioridad Máxima - Remoto y Colombia)
+  { q: 'practicante', remote: true },
+  { q: 'aprendiz sena', remote: true },
+  { q: 'semillero', remote: true },
+  { q: 'semillero', remote: false },
+  { q: 'trainee', remote: true },
+  { q: 'practicante sistemas', remote: false },
+  { q: 'desarrollador junior', remote: true },
+  { q: 'junior developer', remote: true },
+  { q: 'junior sin experiencia', remote: true },
+  { q: 'soporte tecnico junior', remote: true },
+  { q: 'analista junior', remote: true },
+  { q: 'data analyst junior', remote: true },
+  { q: 'qa junior', remote: true },
+  { q: 'practicante desarrollo software', remote: false },
+  // 2. Desarrollo de Software Remoto & Presencial
   { q: 'desarrollador junior', remote: false },
   { q: 'junior software engineer', remote: false },
   { q: 'desarrollador frontend react', remote: true },
   { q: 'desarrollador backend python', remote: true },
-  { q: 'desarrollador full stack remote', remote: true },
+  { q: 'desarrollador full stack', remote: true },
   { q: 'desarrollador node', remote: false },
   { q: 'desarrollador java junior', remote: false },
   { q: 'mobile developer flutter', remote: true },
-  { q: 'programador junior remoto', remote: true },
-  // Datos, Analytics & IA
+  { q: 'programador junior', remote: true },
+  // 3. Datos, Analytics & IA
   { q: 'analista de datos', remote: false },
-  { q: 'data analyst remote', remote: true },
+  { q: 'data analyst', remote: true },
   { q: 'ingeniero de datos', remote: false },
   { q: 'power bi analista', remote: true },
   { q: 'ai engineer machine learning', remote: true },
-  // QA, DevOps & Soporte
-  { q: 'qa tester junior', remote: true },
-  { q: 'analista qa remoto', remote: true },
+  // 4. QA, DevOps & Soporte
+  { q: 'qa tester', remote: true },
+  { q: 'analista qa', remote: true },
   { q: 'soporte ti junior', remote: false },
-  { q: 'soporte tecnico remoto', remote: true },
-  { q: 'devops junior cloud', remote: true },
-  // Trainees, Semilleros y Prácticas 0 YoE (Sin Experiencia)
-  { q: 'practicante sistemas', remote: false },
-  { q: 'practicante sistemas remoto', remote: true },
-  { q: 'practicante desarrollo software', remote: true },
-  { q: 'practicante desarrollo web', remote: true },
-  { q: 'practicante analisis de datos', remote: true },
-  { q: 'aprendiz sena adso remoto', remote: true },
-  { q: 'semillero desarrollo software', remote: true },
-  { q: 'semillero java', remote: true },
-  { q: 'trainee desarrollador', remote: true },
-  { q: 'junior sin experiencia', remote: true },
-  { q: 'soporte tecnico sin experiencia', remote: false },
+  { q: 'soporte tecnico', remote: true },
+  { q: 'devops junior', remote: true },
   { q: 'mesa de ayuda junior', remote: false },
-  { q: 'auxiliar sistemas junior', remote: false },
-  { q: 'analista soporte nivel 1', remote: true }
+  { q: 'auxiliar sistemas junior', remote: false }
 ];
 
-async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<string | null> {
+async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -77,10 +79,10 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
 
-  console.log(`[LinkedIn Scraper] Consultando ${LINKEDIN_PRIORITY_QUERIES.length} queries prioritarias en paralelo...`);
+  console.log(`[LinkedIn Scraper] Consultando ${LINKEDIN_PRIORITY_QUERIES.length} queries prioritarias con control de tasa...`);
 
-  // Batch execution (chunks of 4)
-  const chunkSize = 4;
+  // Batch execution (chunks of 3 with breather delay to prevent HTTP 429)
+  const chunkSize = 3;
   for (let i = 0; i < LINKEDIN_PRIORITY_QUERIES.length; i += chunkSize) {
     const chunk = LINKEDIN_PRIORITY_QUERIES.slice(i, i + chunkSize);
     
@@ -90,15 +92,18 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
         const remoteParam = item.remote ? '&f_WT=2' : '';
         const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&start=${offset}`;
 
-        const html = await fetchWithTimeout(url, 3500);
+        const html = await fetchWithTimeout(url, 4000);
         if (html) {
           parseLinkedInHtml(html, encodedQuery, item.q, jobs, seenIds, item.remote);
         }
       }
     }));
+
+    // Respectful delay between batches to prevent 429 rate limit
+    await new Promise(r => setTimeout(r, 600));
   }
 
-  console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes de LinkedIn Jobs.`);
+  console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes verificadas de LinkedIn Jobs.`);
   return jobs;
 }
 
@@ -134,8 +139,11 @@ function parseLinkedInHtml(
 
     const linkMatch = cardHtml.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i);
     let rawUrl = linkMatch ? linkMatch[1].split('?')[0] : '';
+    
+    // Strict numeric ID extraction (at least 7 digits) to prevent broken URLs
     const jobIdMatch = rawUrl.match(/(\d{7,})/);
-    const sourceJobId = jobIdMatch ? jobIdMatch[1] : `li-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    if (!jobIdMatch) continue;
+    const sourceJobId = jobIdMatch[1];
 
     if (seenIds.has(sourceJobId)) continue;
     seenIds.add(sourceJobId);

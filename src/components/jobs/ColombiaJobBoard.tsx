@@ -102,6 +102,21 @@ export function ColombiaJobBoard() {
     }
   };
 
+  const getResilientJobUrl = (job: JobPost): string => {
+    const url = (job.sourceUrl || '').trim();
+    if (!url || url.includes('{{') || url.includes('undefined')) {
+      return `https://www.google.com/search?q=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || '') + ' empleo Colombia')}`;
+    }
+    // If it's a LinkedIn job without numeric ID, redirect to verified search
+    if (url.includes('linkedin.com/jobs/view/')) {
+      const hasNumericId = /\d{7,}/.test(url);
+      if (!hasNumericId) {
+        return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || ''))}&location=Colombia`;
+      }
+    }
+    return url;
+  };
+
   const getJobAgeHours = (job: JobPost): number => {
     const pText = (job.postedDateText || '').toLowerCase();
     const numMatch = pText.match(/\d+/);
@@ -976,7 +991,7 @@ export function ColombiaJobBoard() {
 
                       {job.sourceUrl && (
                         <a
-                          href={job.sourceUrl}
+                          href={getResilientJobUrl(job)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
@@ -1200,7 +1215,7 @@ export function ColombiaJobBoard() {
                   </a>
                 ) : (
                   <a
-                    href={selectedJobModal.sourceUrl}
+                    href={getResilientJobUrl(selectedJobModal)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"

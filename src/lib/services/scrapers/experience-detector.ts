@@ -29,13 +29,15 @@ export interface ExperienceResult {
   isEligible: boolean;
 }
 
-const ZERO_EXP_EXPLICIT_REGEX = /\b(sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia\s+laboral|sin\s+experiencia|no\s+requiere\s+experiencia|no\s+se\s+requiere\s+experiencia|no\s+exigimos\s+experiencia|no\s+necesita\s+experiencia|no\s+requerimos\s+experiencia|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|0\s*a[ñn]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|cero\s+experiencia|primer\s+empleo|primer\s+trabajo|reci[eé]n\s+egresad[oa]|reci[eé]n\s+graduad[oa]|autodidacta|abierto\s+a\s+bootcamp|te\s+capacitamos|te\s+formamos|capacitaci[oó]n\s+paga|semillero\s+de\s+talento|semillero\s+tech)\b/i;
+const ZERO_EXP_EXPLICIT_REGEX = /\b(con\s+o\s+sin\s+experiencia|sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia\s+laboral|sin\s+experiencia|no\s+requiere\s+experiencia|no\s+se\s+requiere\s+experiencia|no\s+exigimos\s+experiencia|no\s+necesita\s+experiencia|no\s+requerimos\s+experiencia|no\s+pedimos\s+experiencia|experiencia\s+no\s+requerida|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|entry[\s-]*level|0\s*a[ñn]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|0\s*(?:a|-|to)\s*1\s*a[ñn]o|0\s*(?:a|-|to)\s*6\s*meses|de\s+0\s+a\s+1\s+a[ñn]o|cero\s+experiencia|primer\s+empleo|primer\s+trabajo|primera\s+oportunidad|reci[eé]n\s+egresad[oa]|reci[eé]n\s+graduad[oa]|autodidacta|abierto\s+a\s+bootcamp|bootcamp\s+grad|te\s+capacitamos|te\s+formamos|capacitaci[oó]n\s+paga|semillero\s+de\s+talento|semillero\s+tech|semillero)\b/i;
 
-const INTERN_TITLE_REGEX = /\b(practicante|aprendiz|pasant[ií]a|intern|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso|etapa\s+productiva|semillero\s+desarrollo|semillero\s+ti)\b/i;
+const INTERN_OR_TRAINEE_REGEX = /\b(practicante|aprendiz|pasant[ií]a|intern\b|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso|etapa\s+productiva|early[\s-]*career|entry[\s-]*level)\b/i;
 
 const SIX_MONTHS_REGEX = /\b(6\s*meses|seis\s*meses|medio\s*a[ñn]o|0\.5\s*a[ñn]os?|6\s*months?|six\s*months?)\b/i;
 
 const ONE_YEAR_REGEX = /\b(1\s*a[ñn]o|un\s*a[ñn]o|12\s*meses|doce\s*meses|1\s*year|one\s*year|1\s*yr)\b/i;
+
+const SENIOR_OR_LEAD_TITLE_REGEX = /\b(senior|sr\.?|lead|principal|staff|architect|director|gerente|manager|head\s+of|vp)\b/i;
 
 // Regex para capturar rangos y números de años
 const EXP_YEARS_PATTERNS = [
@@ -54,44 +56,81 @@ export function detectExperience(title: string = '', description: string = ''): 
   const cleanDesc = (description || '').trim().toLowerCase();
   const fullText = `${cleanTitle} ${cleanDesc}`;
 
-  // 1. Verificar si es explícitamente 0 experiencia / prácticas / semilleros
-  const isExplicitZero = ZERO_EXP_EXPLICIT_REGEX.test(fullText);
-  const isInternTitle = INTERN_TITLE_REGEX.test(cleanTitle);
-
-  // 2. Extraer explícitamente los años de experiencia solicitados
-  let detectedYears: number | null = null;
-
-  // Detección directa de 6 meses
-  if (SIX_MONTHS_REGEX.test(fullText) && !cleanDesc.includes('1 año') && !cleanDesc.includes('2 años')) {
-    detectedYears = 0.5;
+  // 1. PROTECCIÓN SENIOR / LEAD: Si el título es explícitamente Senior o Lead, nunca es trainee/zero_exp
+  if (SENIOR_OR_LEAD_TITLE_REGEX.test(cleanTitle)) {
+    let seniorYears = 5.0;
+    for (const pattern of EXP_YEARS_PATTERNS) {
+      const match = fullText.match(pattern);
+      if (match && match[1]) {
+        const val = parseFloat(match[1]);
+        if (!isNaN(val) && val > seniorYears) seniorYears = val;
+      }
+    }
+    return {
+      isZeroExperience: false,
+      maxYearsExperience: seniorYears,
+      experienceTier: 'more_than_five',
+      experienceLabel: '5+ años de experiencia',
+      seniority: 'senior',
+      isEligible: true
+    };
   }
 
-  for (const pattern of EXP_YEARS_PATTERNS) {
-    const match = fullText.match(pattern);
-    if (match) {
-      if (match[2] && !isNaN(parseFloat(match[2])) && match[3]) {
-        // Rango "1 a 2 años" -> tomar el límite inferior o promedio realista
-        const minVal = parseFloat(match[1]);
-        const maxVal = parseFloat(match[2]);
-        const val = (minVal + maxVal) / 2;
-        if (!isNaN(val) && (detectedYears === null || val > detectedYears)) {
-          detectedYears = val;
-        }
-      } else if (match[1]) {
-        let val = parseFloat(match[1]);
-        const unit = (match[2] || match[0]).toLowerCase();
-        if (unit.includes('mes') || unit.includes('month')) {
-          val = val / 12;
-        }
-        if (!isNaN(val) && (detectedYears === null || val > detectedYears)) {
-          detectedYears = val;
+  // 2. Verificar si es explícitamente 0 experiencia / prácticas / semilleros / entry-level
+  const isExplicitZero = ZERO_EXP_EXPLICIT_REGEX.test(fullText);
+  const isInternTitle = INTERN_OR_TRAINEE_REGEX.test(cleanTitle);
+
+  // 3. Extraer explícitamente los años de experiencia solicitados
+  let detectedYears: number | null = null;
+
+  // Si dice explícitamente "0 a 1 año" o "con o sin experiencia", forzar 0 años
+  if (
+    fullText.includes('con o sin experiencia') ||
+    fullText.includes('sin experiencia') ||
+    fullText.includes('no requiere experiencia') ||
+    fullText.includes('0 a 1 año') ||
+    fullText.includes('0 a 6 meses') ||
+    fullText.includes('0-1 año') ||
+    isInternTitle
+  ) {
+    detectedYears = 0;
+  } else {
+    // Detección directa de 6 meses si no habla de años mayores
+    if (SIX_MONTHS_REGEX.test(fullText) && !cleanDesc.includes('1 año') && !cleanDesc.includes('2 años') && !cleanDesc.includes('3 años')) {
+      detectedYears = 0.5;
+    }
+
+    for (const pattern of EXP_YEARS_PATTERNS) {
+      const match = fullText.match(pattern);
+      if (match) {
+        if (match[2] && !isNaN(parseFloat(match[2])) && match[3]) {
+          const minVal = parseFloat(match[1]);
+          const maxVal = parseFloat(match[2]);
+          // Si el rango empieza en 0 (ej. 0 a 1 año), es de entrada / 0 años
+          if (minVal === 0) {
+            detectedYears = 0;
+            break;
+          }
+          const val = (minVal + maxVal) / 2;
+          if (!isNaN(val) && (detectedYears === null || val > detectedYears)) {
+            detectedYears = val;
+          }
+        } else if (match[1]) {
+          let val = parseFloat(match[1]);
+          const unit = (match[2] || match[0]).toLowerCase();
+          if (unit.includes('mes') || unit.includes('month')) {
+            val = val / 12;
+          }
+          if (!isNaN(val) && (detectedYears === null || val > detectedYears)) {
+            detectedYears = val;
+          }
         }
       }
     }
   }
 
-  // 3. Casos de 0 experiencia
-  if ((isInternTitle || isExplicitZero || detectedYears === 0) && (detectedYears === null || detectedYears < 0.5)) {
+  // 4. Casos de 0 experiencia / Prácticas / Trainees / Semilleros / Entry-Level
+  if (isInternTitle || isExplicitZero || detectedYears === 0) {
     const seniority = cleanTitle.includes('aprendiz') || cleanTitle.includes('practicante') || cleanTitle.includes('pasant') || cleanTitle.includes('intern')
       ? 'intern'
       : 'trainee';
@@ -106,7 +145,7 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 4. Casos de 6 meses (0.1 a 0.7 años)
+  // 5. Casos de 6 meses (0.1 a 0.7 años)
   if (detectedYears !== null && detectedYears > 0 && detectedYears <= 0.7) {
     return {
       isZeroExperience: false,
@@ -118,7 +157,7 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 5. Casos de 1 año (0.8 a 1.5 años)
+  // 6. Casos de 1 año (0.8 a 1.5 años)
   if (detectedYears !== null && detectedYears > 0.7 && detectedYears <= 1.5) {
     return {
       isZeroExperience: false,
@@ -130,7 +169,7 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 6. Casos de 2 a 3 años (1.6 a 3.0 años)
+  // 7. Casos de 2 a 3 años (1.6 a 3.0 años)
   if (detectedYears !== null && detectedYears > 1.5 && detectedYears <= 3.0) {
     return {
       isZeroExperience: false,
@@ -142,7 +181,7 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 7. Casos de 3 a 4 años (3.1 a 4.5 años)
+  // 8. Casos de 3 a 4 años (3.1 a 4.5 años)
   if (detectedYears !== null && detectedYears > 3.0 && detectedYears <= 4.5) {
     return {
       isZeroExperience: false,
@@ -154,11 +193,11 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 8. Casos de más de 5 años (> 4.5 años o título senior/lead)
-  if ((detectedYears !== null && detectedYears > 4.5) || cleanTitle.includes('senior') || cleanTitle.includes('lead') || cleanTitle.includes('architect')) {
+  // 9. Casos de más de 5 años (> 4.5 años)
+  if (detectedYears !== null && detectedYears > 4.5) {
     return {
       isZeroExperience: false,
-      maxYearsExperience: detectedYears ? Number(detectedYears.toFixed(1)) : 5.0,
+      maxYearsExperience: Number(detectedYears.toFixed(1)),
       experienceTier: 'more_than_five',
       experienceLabel: '5+ años de experiencia',
       seniority: 'senior',
@@ -166,7 +205,7 @@ export function detectExperience(title: string = '', description: string = ''): 
     };
   }
 
-  // 9. Heurística por título si no hubo match numérico
+  // 10. Heurística por título si no hubo match numérico
   if (cleanTitle.includes('junior') || cleanTitle.includes('jr') || cleanTitle.includes('entry') || cleanTitle.includes('asistente') || cleanTitle.includes('auxiliar')) {
     return {
       isZeroExperience: false,

@@ -23,22 +23,23 @@ export function detectContractType(
   const combined = `${title} ${description} ${extraInfo}`.toLowerCase();
 
   // 1. Contrato de Aprendizaje / Prácticas / SENA / Pasante / Trainee
+  const isSeniorTitle = /\b(senior|sr\.?|lead|principal|staff|architect|director|manager|gerente)\b/i.test(title);
   if (
-    combined.includes('aprendizaje') ||
-    combined.includes('practicante') ||
-    combined.includes('prácticas') ||
-    combined.includes('practicas') ||
-    combined.includes('pasante') ||
-    combined.includes('pasantia') ||
-    combined.includes('pasantía') ||
-    combined.includes('aprendiz') ||
-    combined.includes('sena') ||
-    combined.includes('etapa productiva') ||
-    combined.includes('estudiante en practica') ||
-    combined.includes('internship') ||
-    combined.includes('intern') ||
-    combined.includes('becario') ||
-    combined.includes('semillero')
+    !isSeniorTitle && (
+      combined.includes('aprendizaje') ||
+      combined.includes('practicante') ||
+      combined.includes('prácticas') ||
+      combined.includes('practicas') ||
+      combined.includes('pasante') ||
+      combined.includes('pasantia') ||
+      combined.includes('pasantía') ||
+      combined.includes('aprendiz') ||
+      combined.includes('sena') ||
+      combined.includes('etapa productiva') ||
+      combined.includes('estudiante en practica') ||
+      /\b(internship|intern|interns|becario|trainee)\b/i.test(combined) ||
+      combined.includes('semillero')
+    )
   ) {
     return {
       contractType: 'aprendizaje',
