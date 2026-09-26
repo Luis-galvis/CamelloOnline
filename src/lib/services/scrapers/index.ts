@@ -8,6 +8,7 @@ import { scrapeAtsColombiaJobs } from './ats-colombia';
 import { scrapeGetOnBoardColombia } from './getonboard-colombia';
 import { scrapeTorreColombia } from './torre-colombia';
 import { scrapeRemotiveColombia } from './remotive-colombia';
+import { scrapeNonTechRemoteColombia } from './non-tech-remote-colombia';
 import { scrapeSalesAndCommercialColombia } from './sales-commercial-colombia';
 import { scrapeJoobleColombia } from './jooble-colombia';
 import { scrapeLocalBoardsColombia } from './local-boards-colombia';
@@ -21,6 +22,7 @@ export * from './deduplicator';
 export * from './sales-commercial-colombia';
 export * from './linkedin-posts';
 export * from './weremoto-colombia';
+export * from './non-tech-remote-colombia';
 
 export interface ScrapeAggregationReport {
   timestamp: string;
@@ -36,6 +38,7 @@ export interface ScrapeAggregationReport {
     remotive: number;
     torre: number;
     ats: number;
+    nonTechRemote: number;
     salesCommercial: number;
     jooble: number;
     localBoards: number;
@@ -45,13 +48,15 @@ export interface ScrapeAggregationReport {
     noEnglishRequired: number;
   };
   remoteCount: number;
+  zeroExpCount: number;
+  remoteZeroExpCount: number;
   ibagueCount: number;
   locationsBreakdown: Record<string, number>;
   jobs: ColombiaScrapedJob[];
 }
 
 export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationReport> {
-  console.log('🇨🇴 [REALJOBS] Iniciando agregación masiva expandida de vacantes (LinkedIn Jobs + Recruiter Posts + WeRemoto/WorkRemoto + Computrabajo + ElEmpleo + ATSs + Ventas)...');
+  console.log('🇨🇴 [REALJOBS] Iniciando agregación masiva expandida de vacantes (LinkedIn + Computrabajo + ElEmpleo + WeRemoto + Torre + NonTech Remote + ATSs)...');
 
   const [
     linkedinJobs, 
@@ -63,6 +68,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     remotiveJobs, 
     torreJobs, 
     atsJobs,
+    nonTechJobs,
     salesJobs,
     joobleJobs,
     localBoardsJobs
@@ -76,6 +82,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     scrapeRemotiveColombia(),
     scrapeTorreColombia(),
     scrapeAtsColombiaJobs(),
+    scrapeNonTechRemoteColombia(),
     scrapeSalesAndCommercialColombia(),
     scrapeJoobleColombia(),
     scrapeLocalBoardsColombia()
@@ -90,6 +97,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
   const rawRemotive = remotiveJobs.status === 'fulfilled' ? remotiveJobs.value : [];
   const rawTorre = torreJobs.status === 'fulfilled' ? torreJobs.value : [];
   const rawAts = atsJobs.status === 'fulfilled' ? atsJobs.value : [];
+  const rawNonTech = nonTechJobs.status === 'fulfilled' ? nonTechJobs.value : [];
   const rawSales = salesJobs.status === 'fulfilled' ? salesJobs.value : [];
   const rawJooble = joobleJobs.status === 'fulfilled' ? joobleJobs.value : [];
   const rawLocalBoards = localBoardsJobs.status === 'fulfilled' ? localBoardsJobs.value : [];
@@ -104,6 +112,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     ...rawRemotive,
     ...rawTorre, 
     ...rawAts,
+    ...rawNonTech,
     ...rawSales,
     ...rawJooble,
     ...rawLocalBoards
@@ -120,13 +129,19 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
   let reqEng = 0;
   let noEng = 0;
   let remoteCount = 0;
+  let zeroExpCount = 0;
+  let remoteZeroExpCount = 0;
   let ibagueCount = 0;
 
   for (const j of deduplicated) {
     locMap[j.locationCity] = (locMap[j.locationCity] || 0) + 1;
     if (j.requiresEnglish) reqEng++;
     else noEng++;
-    if (j.isRemote || j.workModality === 'remote_country' || j.workModality === 'remote_worldwide') remoteCount++;
+    const isRem = Boolean(j.isRemote || j.workModality === 'remote_country' || j.workModality === 'remote_worldwide');
+    const isZero = Boolean(j.isZeroExperience || j.experienceTier === 'zero_exp' || j.maxYearsExperience === 0);
+    if (isRem) remoteCount++;
+    if (isZero) zeroExpCount++;
+    if (isRem && isZero) remoteZeroExpCount++;
     if (
       j.locationFilterKey === 'ibague' || 
       (j.locationCity || '').toLowerCase().includes('ibag') || 
@@ -151,6 +166,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
       remotive: rawRemotive.length,
       torre: rawTorre.length,
       ats: rawAts.length,
+      nonTechRemote: rawNonTech.length,
       salesCommercial: rawSales.length,
       jooble: rawJooble.length,
       localBoards: rawLocalBoards.length
@@ -160,6 +176,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
       noEnglishRequired: noEng
     },
     remoteCount,
+    zeroExpCount,
+    remoteZeroExpCount,
     ibagueCount,
     locationsBreakdown: locMap,
     jobs: deduplicated

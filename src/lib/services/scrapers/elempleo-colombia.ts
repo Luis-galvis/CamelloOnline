@@ -11,18 +11,34 @@ import { detectExperience } from './experience-detector';
 import { extractPostedDate } from './date-extractor';
 
 const ELEMPLEO_SEARCH_URLS = [
-  'https://www.elempleo.com/co/ofertas-empleo/ibague/ventas',
-  'https://www.elempleo.com/co/ofertas-empleo/ibague/administracion-y-oficina',
-  'https://www.elempleo.com/co/ofertas-empleo/ibague/servicio-al-cliente',
-  'https://www.elempleo.com/co/ofertas-empleo/ibague/contabilidad-y-finanzas',
-  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asesor-comercial',
-  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asistente-administrativo',
+  // 1. Sin Experiencia Remoto & Nacional (Prioridad Alta)
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-sin-experiencia-remoto',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-remoto-sin-experiencia',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-sin-experiencia',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-primer-empleo',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-primer-empleo-remoto',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-practicante-remoto',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-practicante',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-aprendiz-sena',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-aprendiz-remoto',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-call-center-remoto',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-call-center-sin-experiencia',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asistente-virtual',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-asesor-remoto',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-servicio-al-cliente-remoto',
-  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-de-software',
+
+  // 2. Ibagué & Tolima
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/sin-experiencia',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/ventas',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/servicio-al-cliente',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/administracion-y-oficina',
+  'https://www.elempleo.com/co/ofertas-empleo/ibague/contabilidad-y-finanzas',
+
+  // 3. Tech & Junior
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-junior',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-practicante-de-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-aprendiz-sena-sistemas',
-  'https://www.elempleo.com/co/ofertas-empleo/trabajo-ingeniero-de-sistemas',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-de-software',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-de-datos',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-qa'
 ];
@@ -55,8 +71,11 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
   for (let i = 0; i < ELEMPLEO_SEARCH_URLS.length; i += chunkSize) {
     const chunk = ELEMPLEO_SEARCH_URLS.slice(i, i + chunkSize);
     await Promise.allSettled(chunk.map(async (url) => {
-      const html = await fetchWithTimeout(url, 4000);
+      const html = await fetchWithTimeout(url, 4500);
       if (!html) return;
+
+      const isUrlZeroExp = /sin[\s-]*experiencia|primer[\s-]*empleo|aprendiz|practicante|pasant/i.test(url);
+      const isUrlRemote = /remoto|teletrabajo/i.test(url);
 
       const itemRegex = /<div[^>]*class="[^"]*result-item[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi;
       let itemMatch;
@@ -84,33 +103,51 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
         if (seenIds.has(sourceJobId)) continue;
         seenIds.add(sourceJobId);
 
+        // GA4 Offer Data extraction
+        const ga4Match = itemHtml.match(/data-ga4-offerdata="([^"]+)"/i);
+        let offerTags = '';
+        if (ga4Match) {
+          try {
+            const rawGa4 = decodeHtmlEntities(ga4Match[1]);
+            const parsed = JSON.parse(rawGa4);
+            offerTags = `${parsed.tags || ''} ${parsed.equivalentPositions || ''}`.toLowerCase();
+          } catch {}
+        }
+
         const compMatch = itemHtml.match(/<span[^>]*class="[^"]*info-company[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
                           itemHtml.match(/<span[^>]*class="[^"]*company-name[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
         const companyName = compMatch ? decodeHtmlEntities(compMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Empresa Verificada';
 
         const locMatch = itemHtml.match(/<span[^>]*class="[^"]*info-city[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-        const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Colombia';
+        const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : (isUrlRemote ? 'Remoto (Colombia)' : 'Colombia');
 
         const descMatch = itemHtml.match(/<p[^>]*class="[^"]*text-description[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
         const snippet = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
 
-        const locationNorm = normalizeLocation(rawLocation, `${title} ${snippet}`);
-        if (!locationNorm.isColombiaValid) continue;
+        const hasRemoteInText = /remot[oa]|remote|teletrabajo|desde\s*casa|wfh/i.test(`${title} ${rawLocation} ${snippet} ${offerTags}`);
+        const isRemoteFinal = isUrlRemote || hasRemoteInText;
 
-        const expResult = detectExperience(title, snippet);
+        const locationNorm = normalizeLocation(rawLocation, `${title} ${snippet}`);
+        if (!locationNorm.isColombiaValid && !isRemoteFinal) continue;
+
+        const isZeroExpExplicit = isUrlZeroExp || /sin[\s-]*experiencia|primer[\s-]*empleo|aprendiz|practicante/i.test(`${title} ${snippet} ${offerTags}`);
+        const expResult = detectExperience(title, `${snippet} ${offerTags}`, { isZeroExpSearch: isZeroExpExplicit, query: url });
         if (!expResult.isEligible) continue;
 
+        const isZeroExpFinal = isZeroExpExplicit || expResult.isZeroExperience;
+        const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
+
         const salaryResult = extractSalary(itemHtml, title);
-        const englishResult = detectEnglishRequirement(title, `${snippet} ${itemHtml}`);
+        const englishResult = detectEnglishRequirement(title, `${snippet} ${itemHtml} ${offerTags}`);
         const contractResult = detectContractType(title, itemHtml, salaryResult.displayText || salaryResult.salaryDisplayText);
         
-        let catResult: any = detectTechCategory(title, snippet);
+        let catResult: any = detectTechCategory(title, `${snippet} ${offerTags}`);
         if (catResult.category === 'software_dev' && !title.toLowerCase().includes('desarroll') && !title.toLowerCase().includes('program') && !title.toLowerCase().includes('software')) {
-          catResult = detectNonTechCategory(title, snippet);
+          catResult = detectNonTechCategory(title, `${snippet} ${offerTags}`);
         }
 
         const dateResult = extractPostedDate(itemHtml, `${title} ${snippet}`);
-        const skills = extractSkills(`${title} ${snippet}`);
+        const skills = extractSkills(`${title} ${snippet} ${offerTags}`);
 
         const isSalesOrCommercial = /ventas|comercial|tat|supervisor|asesor|vendedor|ejecutiv|tienda|punto de venta|cajer|cliente/i.test(`${title} ${snippet}`);
         const isAccounting = /contad|contable|costos|presupuesto|auditor|factur/i.test(`${title} ${snippet}`);
@@ -137,14 +174,14 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
           title,
           companyName,
           companyDomain: `${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          description: snippet || `Convocatoria laboral para ${title} en ${companyName}.`,
-          locationCity: locationNorm.city,
+          description: snippet || `Convocatoria laboral para ${title} en ${companyName}. Modalidad: ${isRemoteFinal ? 'Remoto (Colombia)' : rawLocation}. ${isZeroExpFinal ? 'Perfil junior / sin experiencia previa requerida.' : ''}`,
+          locationCity: isRemoteFinal ? 'Remoto (Colombia)' : locationNorm.city,
           locationDepartment: locationNorm.department,
           locationCountry: 'CO',
-          displayLocation: locationNorm.displayLocation,
-          locationFilterKey: locationNorm.filterKey,
-          isRemote: locationNorm.isRemote,
-          workModality: locationNorm.workModality,
+          displayLocation: isRemoteFinal ? `Remoto · ${locationNorm.city || 'Colombia'}` : locationNorm.displayLocation,
+          locationFilterKey: isRemoteFinal ? 'remoto_colombia' : locationNorm.filterKey,
+          isRemote: isRemoteFinal,
+          workModality: isRemoteFinal ? 'remote_country' : locationNorm.workModality,
           salaryDisclosed: salaryResult.isDisclosed,
           salaryMin: salaryResult.min || salaryResult.salaryMinCop,
           salaryMax: salaryResult.max || salaryResult.salaryMaxCop,
@@ -159,13 +196,13 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
           englishLevel: englishResult.englishLevel,
           englishLevelLabel: englishResult.levelLabel,
           englishBadgeText: englishResult.badgeText,
-          seniority: expResult.seniority,
-          maxYearsExperience: expResult.maxYearsExperience ?? expResult.maxYears ?? 1,
-          minYearsExperience: expResult.minYears ?? 0,
-          isZeroExperience: expResult.isZeroExperience,
-          experienceTier: expResult.experienceTier,
-          experienceLabel: expResult.experienceLabel,
-          experienceLevelLabel: expResult.experienceLabel,
+          seniority: isZeroExpFinal ? (/practicante|aprendiz|pasant/i.test(title) ? 'intern' : 'trainee') : expResult.seniority,
+          maxYearsExperience: maxExpFinal,
+          minYearsExperience: isZeroExpFinal ? 0 : (expResult.minYears ?? 0),
+          isZeroExperience: isZeroExpFinal,
+          experienceTier: isZeroExpFinal ? 'zero_exp' : expResult.experienceTier,
+          experienceLabel: isZeroExpFinal ? 'Sin experiencia previa' : expResult.experienceLabel,
+          experienceLevelLabel: isZeroExpFinal ? 'Sin experiencia previa' : expResult.experienceLabel,
           requiredSkills: roleSkills,
           contractType: contractResult.contractType,
           contractTypeLabel: contractResult.contractTypeLabel,

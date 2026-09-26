@@ -196,128 +196,149 @@ const NON_TECH_REMOTE_QUERIES = [
   'aprendiz remoto colombia'
 ];
 
+async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeNonTechRemoteColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
 
-  console.log('🏠 [REALJOBS] Iniciando scraping masivo de empleos REMOTOS NO-TECH en Colombia...');
+  console.log(`🏠 [NonTech Remote] Iniciando scraping de ${NON_TECH_REMOTE_QUERIES.length} queries remotas no-tech en Colombia...`);
 
-  for (const query of NON_TECH_REMOTE_QUERIES) {
-    for (const offset of [0, 10, 20]) {
-      try {
-        const encodedQuery = encodeURIComponent(query);
-        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405&f_WT=2&start=${offset}`;
+  const chunkSize = 4;
+  for (let i = 0; i < NON_TECH_REMOTE_QUERIES.length; i += chunkSize) {
+    const chunk = NON_TECH_REMOTE_QUERIES.slice(i, i + chunkSize);
+    await Promise.allSettled(chunk.map(async (query) => {
+      const isZeroExpQuery = /sin[\s-]*experiencia|primer[\s-]*empleo|aprendiz|practicante|trainee/i.test(query);
 
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8'
+      for (const offset of [0, 10]) {
+        try {
+          const encodedQuery = encodeURIComponent(query);
+          const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405&f_WT=2&start=${offset}`;
+
+          const html = await fetchWithTimeout(url, 4500);
+          if (!html) continue;
+
+          const cardRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+          let cardMatch;
+
+          while ((cardMatch = cardRegex.exec(html)) !== null) {
+            const cardHtml = cardMatch[1];
+
+            const titleMatch = cardHtml.match(/<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i);
+            const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
+
+            const compMatch = cardHtml.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i);
+            const companyName = compMatch ? decodeHtmlEntities(compMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
+
+            if (!title || !companyName) continue;
+
+            // Exclude software engineering / deep tech if scraped here (belongs to tech scraper)
+            if (isTechJob(title, cardHtml) && !title.toLowerCase().includes('soporte') && !title.toLowerCase().includes('help')) {
+              continue;
+            }
+
+            const locMatch = cardHtml.match(/<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+            const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Colombia';
+
+            const linkMatch = cardHtml.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i);
+            let rawUrl = linkMatch ? linkMatch[1].split('?')[0] : '';
+            const jobIdMatch = rawUrl.match(/(\d{7,})/);
+            const sourceJobId = jobIdMatch ? jobIdMatch[1] : `li-nt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+            if (seenIds.has(sourceJobId)) continue;
+            seenIds.add(sourceJobId);
+
+            const imgMatch = cardHtml.match(/<img[^>]*data-delayed-url="([^"]+)"/i) || cardHtml.match(/<img[^>]*src="([^"]+)"/i);
+            const logoUrl = imgMatch ? imgMatch[1] : undefined;
+
+            // Time / Freshness check (within 30 days)
+            const dateResult = extractPostedDate(cardHtml, title);
+            const postedText = dateResult.postedDateText;
+            const postedDate = dateResult.postedDate;
+
+            // Location check
+            const locationNorm = normalizeLocation(rawLocation, `${title} ${cardHtml}`);
+
+            // Experience check with zero-experience query inheritance
+            const expResult = detectExperience(title, cardHtml, { isZeroExpSearch: isZeroExpQuery, query });
+            if (!expResult.isEligible) continue;
+
+            const isZeroExpFinal = isZeroExpQuery || expResult.isZeroExperience;
+            const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
+
+            const engResult = detectEnglishRequirement(title, `${companyName} ${rawLocation} ${cardHtml}`);
+            const salResult = extractSalary(cardHtml, '');
+            const contractRes = detectContractType(title, `${title} ${companyName}`, '');
+            const nonTechCat = detectNonTechCategory(title, `${companyName} ${cardHtml}`);
+            const applicantRes = extractApplicantCount(cardHtml, `${title} ${companyName}`);
+
+            jobs.push({
+              id: `nontech-${sourceJobId}`,
+              source: 'linkedin',
+              sourceUrl: rawUrl || `https://www.linkedin.com/jobs/search/?keywords=${encodedQuery}&location=Colombia`,
+              sourceJobId: sourceJobId,
+              title: title,
+              companyName: companyName,
+              companyLogo: logoUrl,
+              description: `Oportunidad laboral 100% remota en Colombia para ${title} en ${companyName}. ${isZeroExpFinal ? 'Abierta a talentos sin experiencia previa / primer empleo.' : ''}`,
+              locationCity: 'Remoto (Colombia)',
+              locationCountry: 'CO',
+              displayLocation: 'Remoto · Colombia',
+              locationFilterKey: 'remoto_colombia',
+              isRemote: true,
+              workModality: 'remote_country',
+              salaryDisclosed: salResult.isDisclosed,
+              salaryMin: salResult.min,
+              salaryMax: salResult.max,
+              salaryCurrency: salResult.currency,
+              salaryDisplayText: salResult.displayText || 'Salario a convenir',
+              salaryMinUsdEquivalent: salResult.usdEquivalentMin,
+              salaryMaxUsdEquivalent: salResult.usdEquivalentMax,
+              requiresEnglish: engResult.requiresEnglish,
+              englishLevel: engResult.englishLevel,
+              englishBadgeText: engResult.badgeText,
+              seniority: isZeroExpFinal ? (/practicante|aprendiz|pasant/i.test(title) ? 'intern' : 'trainee') : expResult.seniority,
+              maxYearsExperience: maxExpFinal,
+              minYearsExperience: isZeroExpFinal ? 0 : (expResult.minYears ?? 0),
+              isZeroExperience: isZeroExpFinal,
+              experienceTier: isZeroExpFinal ? 'zero_exp' : expResult.experienceTier,
+              experienceLabel: isZeroExpFinal ? 'Sin experiencia previa' : expResult.experienceLabel,
+              requiredSkills: [nonTechCat.categoryLabel, 'Comunicación', 'Remoto'],
+              contractType: contractRes.contractType,
+              contractTypeLabel: contractRes.contractTypeLabel,
+              category: nonTechCat.category as any,
+              categoryLabel: nonTechCat.categoryLabel,
+              applicantCountText: applicantRes.applicantCountText,
+              applicantTier: applicantRes.applicantTier,
+              postedDateText: postedText,
+              scrapedAt: postedDate.toISOString()
+            });
           }
-        });
-
-        if (!res.ok) continue;
-
-        const html = await res.text();
-        const cardRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-        let cardMatch;
-
-        while ((cardMatch = cardRegex.exec(html)) !== null) {
-          const cardHtml = cardMatch[1];
-
-          const titleMatch = cardHtml.match(/<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i);
-          const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
-
-          const compMatch = cardHtml.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i);
-          const companyName = compMatch ? decodeHtmlEntities(compMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
-
-          if (!title || !companyName) continue;
-
-          // CRITICAL: MUST EXCLUDE TECH JOBS (Software, Data, QA, Cloud belong to the main Tech board)
-          if (isTechJob(title, cardHtml)) {
-            continue;
-          }
-
-          const locMatch = cardHtml.match(/<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-          const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Colombia';
-
-          const linkMatch = cardHtml.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i);
-          let rawUrl = linkMatch ? linkMatch[1].split('?')[0] : '';
-          const jobIdMatch = rawUrl.match(/(\d{7,})/);
-          const sourceJobId = jobIdMatch ? jobIdMatch[1] : `li-nt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-          if (seenIds.has(sourceJobId)) continue;
-          seenIds.add(sourceJobId);
-
-          const imgMatch = cardHtml.match(/<img[^>]*data-delayed-url="([^"]+)"/i) || cardHtml.match(/<img[^>]*src="([^"]+)"/i);
-          const logoUrl = imgMatch ? imgMatch[1] : undefined;
-
-          // Time / Freshness check (within 21 days)
-          const dateResult = extractPostedDate(cardHtml, title);
-          const postedText = dateResult.postedDateText;
-          const postedDate = dateResult.postedDate;
-
-          if (dateResult.ageDays > 21) continue;
-
-          // Location check
-          const locationNorm = normalizeLocation(rawLocation, `${title} ${cardHtml}`);
-          if (!locationNorm.isColombiaValid) continue;
-
-          // Experience check
-          const expResult = detectExperience(title, cardHtml);
-          if (!expResult.isEligible) continue;
-
-          const engResult = detectEnglishRequirement(title, `${companyName} ${rawLocation} ${cardHtml}`);
-          const salResult = extractSalary(cardHtml, '');
-          const contractRes = detectContractType(title, `${title} ${companyName}`, '');
-          const nonTechCat = detectNonTechCategory(title, `${companyName} ${cardHtml}`);
-          const applicantRes = extractApplicantCount(cardHtml, `${title} ${companyName}`);
-
-          jobs.push({
-            id: `nontech-${sourceJobId}`,
-            source: 'linkedin',
-            sourceUrl: rawUrl || `https://www.linkedin.com/jobs/search/?keywords=${encodedQuery}&location=Colombia`,
-            sourceJobId: sourceJobId,
-            title: title,
-            companyName: companyName,
-            companyLogo: logoUrl,
-            description: `Oportunidad de trabajo 100% remoto para el cargo de ${title} en ${companyName} (Colombia). Modalidad Teletrabajo / Remoto.`,
-            locationCity: 'Remoto (Colombia)',
-            locationCountry: 'CO',
-            displayLocation: '🏠 Remoto (Colombia)',
-            locationFilterKey: 'remoto_colombia',
-            isRemote: true,
-            workModality: 'remote_country',
-            salaryDisclosed: salResult.isDisclosed,
-            salaryMin: salResult.min,
-            salaryMax: salResult.max,
-            salaryCurrency: salResult.currency,
-            salaryDisplayText: salResult.displayText,
-            salaryMinUsdEquivalent: salResult.usdEquivalentMin,
-            salaryMaxUsdEquivalent: salResult.usdEquivalentMax,
-            requiresEnglish: engResult.requiresEnglish,
-            englishLevel: engResult.englishLevel,
-            englishBadgeText: engResult.badgeText,
-            seniority: expResult.seniority,
-            maxYearsExperience: expResult.isZeroExperience ? 0 : expResult.maxYearsExperience,
-            isZeroExperience: expResult.isZeroExperience,
-            experienceTier: expResult.experienceTier,
-            experienceLabel: expResult.experienceLabel,
-            requiredSkills: [nonTechCat.categoryLabel, 'Comunicación', 'Remoto'],
-            contractType: contractRes.contractType,
-            contractTypeLabel: contractRes.contractTypeLabel,
-            category: nonTechCat.category as any,
-            categoryLabel: nonTechCat.categoryLabel,
-            applicantCountText: applicantRes.applicantCountText,
-            applicantTier: applicantRes.applicantTier,
-            postedDateText: postedText,
-            scrapedAt: postedDate.toISOString()
-          });
+        } catch {
+          // continue
         }
-      } catch (e) {
-        console.warn(`[NonTech Remote] Error en "${query}" offset ${offset}`);
       }
-    }
+    }));
+
+    await new Promise(r => setTimeout(r, 400));
   }
 
   console.log(`✅ [NonTech Remote] ${jobs.length} vacantes remotas no-tech recolectadas.`);

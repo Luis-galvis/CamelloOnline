@@ -41,7 +41,13 @@ export async function scrapeWeRemotoColombia(): Promise<ColombiaScrapedJob[]> {
         if (seenUrls.has(url)) continue;
         seenUrls.add(url);
 
-        const expResult = detectExperience(rawTitle, '');
+        const isEntryTitle = /junior|jr|trainee|intern|practicante|pasant|entry|asistente|soporte|support|customer/i.test(rawTitle);
+        const expResult = detectExperience(rawTitle, '', { isZeroExpSearch: isEntryTitle });
+        if (!expResult.isEligible) continue;
+
+        const isZeroExpFinal = isEntryTitle || expResult.isZeroExperience;
+        const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
+
         const salaryResult = extractSalary(rawTitle);
         const englishResult = detectEnglishRequirement(rawTitle, 'Remoto Latam Colombia');
         const contractResult = detectContractType(rawTitle);
@@ -62,7 +68,7 @@ export async function scrapeWeRemotoColombia(): Promise<ColombiaScrapedJob[]> {
           locationCity: 'Remoto (Colombia)',
           locationDepartment: 'Remoto',
           locationCountry: 'CO',
-          locationFilterKey: 'remoto',
+          locationFilterKey: 'remoto_colombia',
           displayLocation: 'Remoto · Colombia / Latam',
           salaryMin: salaryResult.min || salaryResult.salaryMinCop,
           salaryMax: salaryResult.max || salaryResult.salaryMaxCop,
@@ -80,18 +86,20 @@ export async function scrapeWeRemotoColombia(): Promise<ColombiaScrapedJob[]> {
           contractTypeLabel: contractResult.contractTypeLabel || 'Indefinido',
           category: catResult.category as any,
           categoryLabel: catResult.categoryLabel,
-          description: `Vacante remota publicada en WeRemoto para Colombia y Latinoamérica: ${rawTitle}. Modalidad 100% remota con compensación internacional y flexibilidad horaria.`,
+          description: `Vacante remota publicada en WeRemoto para Colombia y Latinoamérica: ${rawTitle}. Modalidad 100% remota con compensación internacional y flexibilidad horaria. ${isZeroExpFinal ? 'Perfil junior / sin experiencia previa requerida.' : ''}`,
           requiredSkills: ['Trabajo Remoto', 'Comunicación Asíncrona', 'Autogestión'],
           createdAt: dateResult.postedDate,
           postedDateText: dateResult.postedDateText,
           applicantCountText: applicantInfo.applicantCountText,
           applicantTier: applicantInfo.applicantTier,
           applicantCount: applicantInfo.applicantCount,
-          maxYearsExperience: expResult.maxYearsExperience ?? expResult.maxYears ?? 1,
-          minYearsExperience: expResult.minYears ?? 0,
-          experienceLevelLabel: expResult.experienceLabel,
-          seniority: expResult.seniority,
-          isZeroExperience: expResult.isZeroExperience
+          maxYearsExperience: maxExpFinal,
+          minYearsExperience: isZeroExpFinal ? 0 : (expResult.minYears ?? 0),
+          experienceLevelLabel: isZeroExpFinal ? 'Sin experiencia previa' : expResult.experienceLabel,
+          experienceTier: isZeroExpFinal ? 'zero_exp' : expResult.experienceTier,
+          experienceLabel: isZeroExpFinal ? 'Sin experiencia previa' : expResult.experienceLabel,
+          seniority: isZeroExpFinal ? (/practicante|aprendiz|pasant/i.test(rawTitle) ? 'intern' : 'trainee') : expResult.seniority,
+          isZeroExperience: isZeroExpFinal
         });
       }
     }

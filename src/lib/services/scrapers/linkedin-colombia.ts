@@ -12,38 +12,42 @@ import { extractPostedDate } from './date-extractor';
 import { decodeHtmlEntities } from './clean-text';
 
 const LINKEDIN_PRIORITY_QUERIES = [
-  // 1. Trainees, Semilleros, Prácticas y 0 YoE (Prioridad Máxima - Remoto y Colombia)
-  { q: 'practicante', remote: true },
-  { q: 'aprendiz sena', remote: true },
-  { q: 'semillero', remote: true },
+  // 1. Vacantes Sin Experiencia, Primer Empleo, Trainees y Semilleros (Prioridad Remoto y Colombia)
+  { q: 'sin experiencia', remote: true },
+  { q: 'primer empleo', remote: true },
+  { q: 'practicante remoto', remote: true },
+  { q: 'aprendiz sena remoto', remote: true },
+  { q: 'semillero remoto', remote: true },
+  { q: 'trainee remoto', remote: true },
+  { q: 'junior sin experiencia', remote: true },
+  { q: 'desarrollador sin experiencia', remote: true },
+  { q: 'soporte tecnico remoto', remote: true },
+  { q: 'sin experiencia', remote: false },
+  { q: 'primer empleo', remote: false },
+  { q: 'practicante', remote: false },
+  { q: 'aprendiz sena', remote: false },
   { q: 'semillero', remote: false },
-  { q: 'trainee', remote: true },
   { q: 'practicante sistemas', remote: false },
+  { q: 'practicante desarrollo software', remote: false },
+
+  // 2. Desarrollo de Software Junior Remoto & Presencial
   { q: 'desarrollador junior', remote: true },
   { q: 'junior developer', remote: true },
-  { q: 'junior sin experiencia', remote: true },
-  { q: 'soporte tecnico junior', remote: true },
-  { q: 'analista junior', remote: true },
-  { q: 'data analyst junior', remote: true },
   { q: 'qa junior', remote: true },
-  { q: 'practicante desarrollo software', remote: false },
-  // 2. Desarrollo de Software Remoto & Presencial
-  { q: 'desarrollador junior', remote: false },
-  { q: 'junior software engineer', remote: false },
+  { q: 'data analyst junior', remote: true },
+  { q: 'analista junior', remote: true },
   { q: 'desarrollador frontend react', remote: true },
   { q: 'desarrollador backend python', remote: true },
   { q: 'desarrollador full stack', remote: true },
-  { q: 'desarrollador node', remote: false },
-  { q: 'desarrollador java junior', remote: false },
+  { q: 'desarrollador junior', remote: false },
+  { q: 'junior software engineer', remote: false },
   { q: 'mobile developer flutter', remote: true },
   { q: 'programador junior', remote: true },
-  // 3. Datos, Analytics & IA
+
+  // 3. Datos, Analytics, QA & Soporte
   { q: 'analista de datos', remote: false },
   { q: 'data analyst', remote: true },
-  { q: 'ingeniero de datos', remote: false },
   { q: 'power bi analista', remote: true },
-  { q: 'ai engineer machine learning', remote: true },
-  // 4. QA, DevOps & Soporte
   { q: 'qa tester', remote: true },
   { q: 'analista qa', remote: true },
   { q: 'soporte ti junior', remote: false },
@@ -160,9 +164,13 @@ function parseLinkedInHtml(
     const locationNorm = normalizeLocation(rawLocation, `${title} ${cardHtml}`);
     if (!locationNorm.isColombiaValid) continue;
 
-    // Seniority and experience detection
-    const experienceResult = detectExperience(title, cardHtml);
+    // Seniority and experience detection with query context
+    const isZeroExpQuery = /sin[\s-]*experiencia|primer[\s-]*empleo|aprendiz|practicante|semillero|trainee/i.test(query);
+    const experienceResult = detectExperience(title, cardHtml, { isZeroExpSearch: isZeroExpQuery, query });
     if (!experienceResult.isEligible) continue;
+
+    const isZeroExpFinal = isZeroExpQuery || experienceResult.isZeroExperience;
+    const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, experienceResult.maxYearsExperience || 1.0);
 
     // Extract Salary
     const salaryResult = extractSalary(cardHtml, title);
@@ -183,7 +191,7 @@ function parseLinkedInHtml(
     const applicantInfo = extractApplicantCount(cardHtml);
 
     // Modality: strictly based on job text and normalized location, never blindly forced
-    const isRemoteFinal = locationNorm.isRemote || /remot[oa]|remote|teletrabajo|anywhere|desde\s*casa|wfh/i.test(`${title} ${rawLocation}`);
+    const isRemoteFinal = isForceRemote || locationNorm.isRemote || /remot[oa]|remote|teletrabajo|anywhere|desde\s*casa|wfh/i.test(`${title} ${rawLocation}`);
     const workModality = isRemoteFinal 
       ? (locationNorm.workModality.includes('worldwide') ? 'remote_worldwide' : 'remote_country')
       : locationNorm.workModality;
@@ -197,11 +205,11 @@ function parseLinkedInHtml(
       companyName,
       companyLogo: logoUrl,
       companyDomain: `${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-      description: `Oportunidad laboral verificada en LinkedIn Colombia para el cargo de ${title} en ${companyName}. Ubicación: ${rawLocation}. Modalidad: ${isRemoteFinal ? 'Remoto' : 'Presencial / Híbrido'}.`,
-      locationCity: locationNorm.city,
+      description: `Oportunidad laboral verificada en LinkedIn Colombia para el cargo de ${title} en ${companyName}. Ubicación: ${rawLocation}. Modalidad: ${isRemoteFinal ? 'Remoto' : 'Presencial / Híbrido'}. ${isZeroExpFinal ? 'Vacante apta para talento sin experiencia previa.' : ''}`,
+      locationCity: isRemoteFinal ? 'Remoto (Colombia)' : locationNorm.city,
       locationDepartment: locationNorm.department,
       locationCountry: 'CO',
-      displayLocation: isRemoteFinal ? `Remoto · ${locationNorm.city}` : locationNorm.displayLocation,
+      displayLocation: isRemoteFinal ? `Remoto · ${locationNorm.city || 'Colombia'}` : locationNorm.displayLocation,
       locationFilterKey: isRemoteFinal ? 'remoto_colombia' : locationNorm.filterKey,
       isRemote: isRemoteFinal,
       workModality,
@@ -219,13 +227,13 @@ function parseLinkedInHtml(
       englishLevel: englishResult.englishLevel,
       englishLevelLabel: englishResult.levelLabel || englishResult.englishLevelLabel,
       englishBadgeText: englishResult.badgeText,
-      seniority: experienceResult.seniority,
-      maxYearsExperience: experienceResult.maxYearsExperience ?? experienceResult.maxYears ?? 1,
-      minYearsExperience: experienceResult.minYears ?? 0,
-      isZeroExperience: experienceResult.isZeroExperience,
-      experienceTier: experienceResult.experienceTier,
-      experienceLabel: experienceResult.experienceLabel,
-      experienceLevelLabel: experienceResult.experienceLabel,
+      seniority: isZeroExpFinal ? (/practicante|aprendiz|pasant/i.test(title) ? 'intern' : 'trainee') : experienceResult.seniority,
+      maxYearsExperience: maxExpFinal,
+      minYearsExperience: isZeroExpFinal ? 0 : (experienceResult.minYears ?? 0),
+      isZeroExperience: isZeroExpFinal,
+      experienceTier: isZeroExpFinal ? 'zero_exp' : experienceResult.experienceTier,
+      experienceLabel: isZeroExpFinal ? 'Sin experiencia previa' : experienceResult.experienceLabel,
+      experienceLevelLabel: isZeroExpFinal ? 'Sin experiencia previa' : experienceResult.experienceLabel,
       requiredSkills: skills.length > 0 ? skills : ['Desarrollo de Software', 'Git', 'Metodologías Ágiles'],
       contractType: contractResult.contractType,
       contractTypeLabel: contractResult.contractTypeLabel,

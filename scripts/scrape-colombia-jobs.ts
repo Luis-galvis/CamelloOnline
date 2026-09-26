@@ -53,12 +53,15 @@ async function runColombiaScraperPipeline() {
   console.log(`   - Get on Board Latam/CO: ${report.sourcesBreakdown.getonbrd}`);
   console.log(`   - Remotive Global/Latam (Remoto): ${report.sourcesBreakdown.remotive}`);
   console.log(`   - Torre.ai Colombia/Remote: ${report.sourcesBreakdown.torre}`);
+  console.log(`   - Empleos Remotos No-Tech: ${report.sourcesBreakdown.nonTechRemote}`);
   console.log(`   - ATSs Directos (Rappi, Nubank, EPAM, Bitso, Scotiabank, etc.): ${report.sourcesBreakdown.ats}`);
-  console.log(`   - Ventas, TAT, Puntos de Venta & Contabilidad (Luker, Nutresa, Postobón, etc.): ${report.sourcesBreakdown.salesCommercial}`);
+  console.log(`   - Ventas, TAT, Puntos de Venta & Contabilidad: ${report.sourcesBreakdown.salesCommercial}`);
   console.log(`   - Jooble Colombia: ${report.sourcesBreakdown.jooble}`);
   console.log(`   - Cajas Locales (Comfatolima, Comfenalco, Sena APE): ${report.sourcesBreakdown.localBoards}`);
   console.log(`   - ✨ Total Deduplicado en Colombia: ${report.totalDeduplicatedColombiaJobs}`);
   console.log(`   - 🏠 Vacantes 100% Remotas: ${report.remoteCount}`);
+  console.log(`   - ⚡ Vacantes Sin Experiencia (0 YoE): ${report.zeroExpCount}`);
+  console.log(`   - 🚀 Remotas Sin Experiencia (0 YoE + Remoto): ${report.remoteZeroExpCount}`);
   console.log(`   - 📍 Vacantes en Ibagué / Tolima: ${report.ibagueCount}`);
   console.log(`   - 🇬🇧 Piden Inglés: ${report.englishBreakdown.requiresEnglish}`);
   console.log(`   - 🇨🇴 No Requieren Inglés (Español): ${report.englishBreakdown.noEnglishRequired}\n`);
@@ -118,6 +121,11 @@ async function runColombiaScraperPipeline() {
   // 4. Batch insert job posts in chunks of 50
   const jobPostsToInsert: any[] = [];
   for (const job of report.jobs) {
+    // Exclude senior / lead roles for Junior platform
+    if (job.seniority === 'senior' || /\b(senior|sr\.?|lead|principal|staff|director|gerente)\b/i.test(job.title)) {
+      continue;
+    }
+
     const compSlug = slugify(job.companyName) || `empresa-${shortHash(job.companyName)}`;
     const companyId = companyIdMap.get(compSlug);
     if (!companyId) continue;
@@ -128,9 +136,8 @@ async function runColombiaScraperPipeline() {
       : shortHash(`${job.source}:${job.sourceJobId || job.sourceUrl}:${job.title}:${job.displayLocation}`);
     const baseSlug = `${slugify(job.title).slice(0, 50)}-${compSlug.slice(0, 30)}-${uniqueJobIdHash.slice(0, 10)}-${Math.random().toString(36).slice(2, 6)}`;
 
-    const mappedAts = isLiPost
-      ? 'linkedin_post'
-      : (['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source) ? job.source : 'manual');
+    // Strict ATS enum compliance: only valid enum values allowed in Postgres enum ats_source
+    const mappedAts = ['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source) ? job.source : 'manual';
 
     const englishEnum = job.requiresEnglish
       ? (job.englishLevel === 'c1_advanced' ? 'c1_advanced' : 'b2_upper_intermediate')
@@ -138,13 +145,16 @@ async function runColombiaScraperPipeline() {
 
     const minSal = Math.max(300, Number(job.salaryMinUsdEquivalent || job.salaryMinUsd) || 700);
     const maxSal = Math.max(minSal, Number(job.salaryMaxUsdEquivalent || job.salaryMaxUsd) || 1500);
+
     const isZeroExp = Boolean(job.isZeroExperience || job.experienceTier === 'zero_exp' || Number(job.maxYearsExperience) === 0);
-    const expReq = isZeroExp ? 0 : Number(job.maxYearsExperience || 1);
+    const rawExp = Number(job.maxYearsExperience);
+    // Strict clamp between 0.0 and 2.0 to always satisfy check constraint job_posts_max_years_experience_required_check
+    const expReq = isZeroExp ? 0 : Math.min(2.0, Math.max(0, isNaN(rawExp) ? 1.0 : rawExp));
 
     let mappedSeniority = 'junior';
     if (job.seniority === 'trainee' || job.seniority === 'intern' || isZeroExp) {
       mappedSeniority = 'trainee';
-    } else if (job.seniority === 'early_mid' || job.seniority === 'senior') {
+    } else if (job.seniority === 'early_mid') {
       mappedSeniority = 'early_mid';
     }
 
@@ -172,7 +182,7 @@ async function runColombiaScraperPipeline() {
     });
   }
 
-  console.log(`📥 Insertando ${jobPostsToInsert.length} vacantes en Supabase por lotes...`);
+  console.log(`📥 Insertando ${jobPostsToInsert.length} vacantes junior / entry-level en Supabase por lotes...`);
   let totalInserted = 0;
   for (let i = 0; i < jobPostsToInsert.length; i += 50) {
     const chunk = jobPostsToInsert.slice(i, i + 50);
@@ -184,7 +194,18 @@ async function runColombiaScraperPipeline() {
     if (!jErr && res) {
       totalInserted += res.length;
     } else if (jErr) {
-      console.warn(`Error en lote ${i / 50 + 1}:`, jErr.message);
+      console.warn(`Nota en lote ${i / 50 + 1}: ${jErr.message}. Reintentando inserción resiliente fila por fila...`);
+      for (const item of chunk) {
+        const { data: singleRes, error: sErr } = await supabase
+          .from('job_posts')
+          .insert([item])
+          .select('id');
+        if (!sErr && singleRes) {
+          totalInserted += singleRes.length;
+        } else if (sErr) {
+          console.warn(`  ⚠️ Fila fallida "${item.title}":`, sErr.message);
+        }
+      }
     }
   }
 

@@ -4,126 +4,232 @@ import { extractSalary } from './salary-extractor';
 import { detectEnglishRequirement } from './english-detector';
 import { detectContractType } from './contract-detector';
 import { detectTechCategory } from './category-detector';
+import { detectNonTechCategory } from './non-tech-remote-colombia';
 import { extractSkills } from '../ats-ingestion';
-import { isTechJob } from './tech-filter';
 import { detectExperience } from './experience-detector';
 
-const GETONBOARD_CATEGORIES = [
-  'programming',
-  'data-science-analytics',
-  'sysadmin-devops-qa',
-  'design-ux'
+// Seniority IDs from GetOnBoard API:
+//  1 = Sin experiencia
+//  2 = Junior
+//  3 = Semi Senior (excluded)
+//  4 = Senior     (excluded)
+//  5 = Expert     (excluded)
+const ELIGIBLE_SENIORITY_IDS = new Set([1, 2]);
+
+// Search queries that yield Colombia/Remote + junior results
+const SEARCH_QUERIES = [
+  'colombia',
+  'junior',
+  'trainee',
+  'intern',
+  'practicante',
+  'practicante colombia',
+  'aprendiz',
+  'soporte',
+  'support',
+  'customer service',
+  'marketing',
+  'ventas',
+  'sales',
+  'contabilidad',
+  'administrativo',
+  'rrhh',
+  'diseño',
+  'developer colombia',
+  'software colombia',
+  'finanzas colombia',
+  'asistente',
+  'assistant',
+  'bilingual',
+  'english spanish',
 ];
+
+// Accept these country strings from GetOnBoard
+const ALLOWED_COUNTRIES = new Set([
+  'colombia',
+  'co',
+  'remote',
+  'remoto',
+  'latam',
+  'latin america',
+  'latinoamérica',
+  'worldwide',
+  'anywhere',
+]);
+
+function isCountryEligible(countries: string[], remote: boolean, remoteZone: string | null): boolean {
+  if (remote && (!countries.length || countries.some((c) => ALLOWED_COUNTRIES.has(c.toLowerCase())))) {
+    return true;
+  }
+  if (countries.some((c) => ALLOWED_COUNTRIES.has(c.toLowerCase()))) return true;
+  if (remoteZone) {
+    const rz = remoteZone.toLowerCase();
+    if (
+      rz.includes('latam') ||
+      rz.includes('latin') ||
+      rz.includes('colombia') ||
+      rz.includes('anywhere') ||
+      rz.includes('worldwide')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isTitleSenior(title: string): boolean {
+  const t = title.toLowerCase();
+  return (
+    t.includes('senior') ||
+    t.includes(' sr.') ||
+    t.includes(' sr ') ||
+    t.startsWith('sr.') ||
+    t.includes(' lead') ||
+    t.includes('principal') ||
+    t.includes('director') ||
+    t.includes('head of') ||
+    t.includes(' vp ') ||
+    t.includes('chief') ||
+    t.includes('gerente') ||
+    t.includes('jefe de')
+  );
+}
 
 export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
+  const seenIds = new Set<string>();
 
-  for (const cat of GETONBOARD_CATEGORIES) {
+  for (const query of SEARCH_QUERIES) {
     try {
-      const url = `https://www.getonbrd.com/api/v0/categories/${cat}/jobs?per_page=50&page=1`;
+      const url = `https://www.getonbrd.com/api/v0/search/jobs?query=${encodeURIComponent(query)}`;
       const res = await fetch(url, {
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) REALJOBS/1.0'
-        }
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; REALJOBS/1.0)',
+        },
       });
 
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.warn(`[GetOnBrd] Query "${query}" → HTTP ${res.status}`);
+        continue;
+      }
 
       const json = await res.json();
-      const rawJobs = json.data || [];
+      const rawJobs: any[] = json.data || [];
 
       for (const item of rawJobs) {
+        const id = String(item.id || '');
+        if (!id || seenIds.has(id)) continue;
+
         const attr = item.attributes || {};
-        const title = attr.title || '';
-        const description = (attr.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        const compData = attr.company?.data?.attributes || {};
-        const companyName = compData.name || 'Empresa Tech en GetOnBoard';
-        const companyLogo = compData.logo || undefined;
-        const publicUrl = item.links?.public_url || `https://www.getonbrd.com/empleos/${item.id}`;
-        
-        // Strictly verify tech job role
-        if (!isTechJob(title, description)) continue;
+        const title: string = (attr.title || '').trim();
+        if (!title) continue;
 
-        const isRemote = Boolean(attr.remote);
-        const remoteZone = (attr.remote_zone || '').toLowerCase();
-        const countries = (attr.countries || []).map((c: string) => String(c).toLowerCase());
-        const country = String(attr.country || '').toLowerCase();
-        const rawLocation = String(attr.location || '').toLowerCase();
+        // ── Seniority filter ──────────────────────────────────────────
+        const seniorityId = Number(attr.seniority?.data?.id ?? -1);
+        // If API provides a seniority and it's neither junior nor sin-experiencia → skip
+        if (seniorityId !== -1 && !ELIGIBLE_SENIORITY_IDS.has(seniorityId)) continue;
+        // Belt-and-suspenders: also check title keywords
+        if (isTitleSenior(title)) continue;
 
-        // 1. Explicit foreign country rejection
-        const isRestrictedToForeign = 
-          (remoteZone.includes('chile') && !remoteZone.includes('colombia')) ||
-          (remoteZone.includes('argentina') && !remoteZone.includes('colombia')) ||
-          (remoteZone.includes('mexico') && !remoteZone.includes('colombia')) ||
-          (remoteZone.includes('peru') && !remoteZone.includes('colombia')) ||
-          (remoteZone.includes('brazil') && !remoteZone.includes('colombia')) ||
-          (remoteZone.includes('spain') || remoteZone.includes('españa')) ||
-          (remoteZone.includes('usa') || remoteZone.includes('united states')) ||
-          (country.includes('chile') || country.includes('argentina') || country.includes('mexico') || country.includes('peru') || country.includes('spain'));
+        // ── Country / Remote filter ───────────────────────────────────
+        const isRemote: boolean = Boolean(attr.remote);
+        const remoteZone: string = attr.remote_zone || '';
+        const countries: string[] = (attr.countries || []).map((c: any) => String(c));
 
-        if (isRestrictedToForeign && !countries.some((c: string) => c.includes('colombia') || c === 'co')) {
-          continue;
-        }
+        if (!isCountryEligible(countries, isRemote, remoteZone)) continue;
 
-        // 2. Must explicitly allow Colombia or open Latam/Worldwide
-        const allowsColombia = 
-          countries.some((c: string) => c.includes('colombia') || c === 'co') ||
-          country.includes('colombia') ||
-          country === 'co' ||
-          rawLocation.includes('colombia') ||
-          rawLocation.includes('bogot') ||
-          rawLocation.includes('medell') ||
-          rawLocation.includes('cali') ||
-          rawLocation.includes('barranqu') ||
-          remoteZone.includes('colombia') ||
-          remoteZone.includes('anywhere') ||
-          remoteZone.includes('worldwide') ||
-          remoteZone.includes('latam') ||
-          remoteZone.includes('latin america');
+        seenIds.add(id);
 
-        if (!allowsColombia) continue;
+        // ── Description ───────────────────────────────────────────────
+        const rawDesc = [
+          attr.description_headline,
+          attr.description,
+          attr.functions,
+          attr.benefits,
+          attr.desirable,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
 
-        // Accurate Experience Detection
-        const expResult = detectExperience(title, description);
+        // ── Experience ────────────────────────────────────────────────
+        const isZeroExpSearch = seniorityId === 1 || query.includes('sin experiencia') || query.includes('aprendiz') || query.includes('intern') || query.includes('trainee');
+        const expResult = detectExperience(title, rawDesc, {
+          isZeroExpSearch,
+          query,
+        });
         if (!expResult.isEligible) continue;
 
-        // Location normalization
-        const locationNorm = normalizeLocation(isRemote ? 'Remoto (Colombia)' : (attr.location || 'Colombia'), `${title} ${description}`);
-        if (!locationNorm.isColombiaValid) continue;
-        
-        // English requirement
-        const engResult = detectEnglishRequirement(title, description);
+        // ── Location ──────────────────────────────────────────────────
+        const rawLocation =
+          countries.find((c) => c.toLowerCase() !== 'remote')
+            ? countries.find((c) => c.toLowerCase() !== 'remote')!
+            : isRemote
+            ? 'Remoto (Colombia)'
+            : 'Colombia';
 
-        // Salary extraction
-        let salResult = extractSalary(description, '');
+        const locationNorm = normalizeLocation(
+          isRemote ? 'Remoto (Colombia)' : rawLocation,
+          `${title} ${rawDesc}`
+        );
+        if (!locationNorm.isColombiaValid) continue;
+
+        // ── Company ───────────────────────────────────────────────────
+        const compData = attr.company?.data?.attributes || {};
+        const companyName: string = compData.name || 'Empresa en GetOnBoard';
+        const companyLogo: string | undefined = compData.logo || undefined;
+        const publicUrl: string =
+          item.links?.public_url || `https://www.getonbrd.com/empleos/${id}`;
+
+        // ── Salary ────────────────────────────────────────────────────
+        let salResult = extractSalary(rawDesc, '');
         if (!salResult.isDisclosed && attr.min_salary && attr.max_salary) {
-          const minUsd = attr.min_salary;
-          const maxUsd = attr.max_salary;
           salResult = {
             isDisclosed: true,
-            min: minUsd,
-            max: maxUsd,
+            min: attr.min_salary,
+            max: attr.max_salary,
             currency: 'USD',
-            displayText: `$${minUsd.toLocaleString()} - $${maxUsd.toLocaleString()} USD / mes`,
-            usdEquivalentMin: minUsd,
-            usdEquivalentMax: maxUsd
+            displayText: `$${Number(attr.min_salary).toLocaleString()} - $${Number(attr.max_salary).toLocaleString()} USD / mes`,
+            usdEquivalentMin: attr.min_salary,
+            usdEquivalentMax: attr.max_salary,
           };
         }
 
-        const skills = extractSkills(`${title} ${description}`);
-        const contractRes = detectContractType(title, description, '');
-        const catRes = detectTechCategory(title, description);
+        // ── Metadata ─────────────────────────────────────────────────
+        const engResult = detectEnglishRequirement(title, rawDesc);
+        const skills = extractSkills(`${title} ${rawDesc}`);
+        const contractRes = detectContractType(title, rawDesc, '');
+
+        const categoryName = (attr.category_name || '').toLowerCase();
+        const isNonTech =
+          categoryName.includes('sales') ||
+          categoryName.includes('customer') ||
+          categoryName.includes('support') ||
+          categoryName.includes('operations') ||
+          categoryName.includes('marketing') ||
+          categoryName.includes('content') ||
+          categoryName.includes('admin') ||
+          categoryName.includes('education') ||
+          categoryName.includes('finance');
+
+        const catRes = isNonTech
+          ? detectNonTechCategory(title, rawDesc)
+          : detectTechCategory(title, rawDesc);
 
         jobs.push({
-          id: `getonbrd-${item.id}`,
+          id: `getonbrd-${id}`,
           source: 'getonbrd',
           sourceUrl: publicUrl,
-          sourceJobId: String(item.id),
-          title: title,
-          companyName: companyName,
-          companyLogo: companyLogo,
-          description: description.slice(0, 800) || `Oportunidad laboral para el cargo de ${title} en ${companyName}.`,
+          sourceJobId: id,
+          title,
+          companyName,
+          companyLogo,
+          description:
+            rawDesc.slice(0, 800) ||
+            `Oportunidad laboral para el cargo de ${title} en ${companyName}.`,
           locationCity: locationNorm.city,
           locationDepartment: locationNorm.department,
           locationCountry: 'CO',
@@ -144,19 +250,24 @@ export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> 
           seniority: expResult.seniority === 'senior' ? 'junior' : expResult.seniority,
           maxYearsExperience: expResult.isZeroExperience ? 0 : expResult.maxYearsExperience,
           isZeroExperience: expResult.isZeroExperience,
-          requiredSkills: skills.length > 0 ? skills : ['Tecnología', 'Git', 'Software'],
+          requiredSkills:
+            skills.length > 0 ? skills : ['Tecnología', 'Git', 'Software'],
           contractType: contractRes.contractType,
           contractTypeLabel: contractRes.contractTypeLabel,
-          category: catRes.category,
+          category: catRes.category as any,
           categoryLabel: catRes.categoryLabel,
           postedDateText: 'Reciente',
-          scrapedAt: new Date().toISOString()
+          scrapedAt: new Date().toISOString(),
         });
       }
-    } catch (e) {
-      console.warn(`[GetOnBrd] Error en categoría ${cat}:`, e);
+
+      // Throttle between queries
+      await new Promise((r) => setTimeout(r, 200));
+    } catch (e: any) {
+      console.warn(`[GetOnBrd] Error en query "${query}":`, e.message);
     }
   }
 
+  console.log(`[GetOnBrd] Total eligible jobs collected: ${jobs.length}`);
   return jobs;
 }

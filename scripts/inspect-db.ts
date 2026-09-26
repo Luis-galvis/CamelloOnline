@@ -5,13 +5,19 @@ const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+import fs from 'fs';
+import path from 'path';
+
 async function inspectDb() {
-  const { data: jobs, error } = await supabase.from('job_posts').select('*').limit(5);
-  console.log('Jobs error:', error);
-  console.log('Sample jobs count:', jobs?.length);
+  const { data: jobs, error, count } = await supabase
+    .from('job_posts')
+    .select('id, title, max_years_experience_required, is_zero_experience, work_modality, source_ats', { count: 'exact' })
+    .limit(10);
+
+  console.log('Total job_posts in Supabase:', count);
+  console.log('Error:', error);
   if (jobs && jobs.length > 0) {
-    console.log('Sample job keys:', Object.keys(jobs[0]));
-    console.log('First job:', jobs[0]);
+    console.log('Sample 5 jobs:', jobs.slice(0, 5));
   }
 }
 
