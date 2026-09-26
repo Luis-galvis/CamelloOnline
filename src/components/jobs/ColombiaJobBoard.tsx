@@ -23,7 +23,8 @@ import {
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/context/AuthContext';
 import { JobPost } from '@/types';
-import { detectTechCategory } from '@/lib/services/scrapers/category-detector';
+import { detectJobCategory, detectTechCategory } from '@/lib/services/scrapers/category-detector';
+import { isTechJob } from '@/lib/services/scrapers/tech-filter';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
 
 export function ColombiaJobBoard() {
@@ -49,21 +50,10 @@ export function ColombiaJobBoard() {
   // Helper functions for classification
   const isJobLinkedInPost = (job: JobPost): boolean => {
     if (!job) return false;
-    if (job.isLinkedInPost || job.isDirectRecruiterPost) return true;
+    if (job.isLinkedInPost) return true;
     const url = (job.sourceUrl || '').toLowerCase();
-    if (url.includes('/posts/') || url.includes('/feed/update/') || url.includes('linkedin.com/search/results/content')) return true;
+    if (url.includes('linkedin.com/posts/') || url.includes('linkedin.com/feed/update/') || url.includes('linkedin.com/search/results/content')) return true;
     if (job.sourceAts === 'linkedin_post') return true;
-    if (job.sourceName === 'linkedin_post' || (job.applicantCountText || '').toLowerCase().includes('post')) return true;
-    const desc = job.description || '';
-    if (
-      desc.includes('Envía tu HV a') || 
-      desc.includes('Envía tu CV a') || 
-      desc.includes('Interesados remitir HV a') || 
-      desc.includes('Postulaciones abiertas enviando CV') || 
-      desc.includes('#hiring') || 
-      desc.includes('#semillero') ||
-      desc.includes('#primerempleo')
-    ) return true;
     return false;
   };
 
@@ -89,7 +79,7 @@ export function ColombiaJobBoard() {
 
   const getJobCategory = (job: JobPost): string => {
     if (job.category) return job.category;
-    return detectTechCategory(job.title, job.description || '').category;
+    return detectJobCategory(job.title, job.description || '').category;
   };
 
   const getJobExperienceTier = (job: JobPost): string => {
@@ -164,7 +154,8 @@ export function ColombiaJobBoard() {
       const TECH_CATEGORIES = new Set(['data_ai', 'software_dev', 'qa_testing', 'it_support', 'ui_ux_product']);
       if (selectedCategory === 'all') {
         // En este portal Tech, por defecto mostramos estrictamente vacantes del sector Tech
-        if (!TECH_CATEGORIES.has(cat)) return false;
+        const isTech = isTechJob(job.title, job.description || '') && TECH_CATEGORIES.has(cat);
+        if (!isTech) return false;
       } else if (selectedCategory === 'all_inclusive') {
         // Opción explícita para explorar todas las vacantes de Colombia (Tech + Ventas + Remoto)
       } else {
@@ -345,7 +336,10 @@ export function ColombiaJobBoard() {
   const TECH_CATEGORIES = useMemo(() => new Set(['data_ai', 'software_dev', 'qa_testing', 'it_support', 'ui_ux_product']), []);
 
   const techJobs = useMemo(() => {
-    return jobs.filter(j => TECH_CATEGORIES.has(getJobCategory(j)));
+    return jobs.filter(j => {
+      const cat = getJobCategory(j);
+      return isTechJob(j.title, j.description || '') && TECH_CATEGORIES.has(cat);
+    });
   }, [jobs, TECH_CATEGORIES]);
 
   const totalTechCount = techJobs.length;
@@ -1008,7 +1002,21 @@ export function ColombiaJobBoard() {
                           rel="noopener noreferrer"
                           className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
                         >
-                          <span>{isLiPost ? 'Ver en LinkedIn' : 'Postularme'}</span>
+                          <span>
+                            {isLiPost 
+                              ? 'Ver Post en LinkedIn' 
+                              : ((job.sourceUrl || '').toLowerCase().includes('linkedin.com') 
+                                ? 'Ver en LinkedIn' 
+                                : ((job.sourceUrl || '').toLowerCase().includes('computrabajo') 
+                                  ? 'Ver en Computrabajo' 
+                                  : ((job.sourceUrl || '').toLowerCase().includes('elempleo') 
+                                    ? 'Ver en ElEmpleo' 
+                                    : ((job.sourceUrl || '').toLowerCase().includes('torre.ai') 
+                                      ? 'Ver en Torre' 
+                                      : ((job.sourceUrl || '').toLowerCase().includes('getonbrd') 
+                                        ? 'Ver en Get on Board' 
+                                        : 'Postularme')))))}
+                          </span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}

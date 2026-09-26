@@ -153,7 +153,7 @@ export interface JobPost {
   isRemote?: boolean;
   contractType?: 'indefinido' | 'fijo' | 'aprendizaje' | 'prestacion_servicios' | 'obra_labor' | 'no_especificado';
   contractTypeLabel?: string;
-  category?: 'software_dev' | 'data_ai' | 'qa_testing' | 'it_support' | 'ui_ux_product' | 'customer_service' | 'sales_commercial' | 'marketing_digital' | 'virtual_assistant_ops' | 'hr_recruiting' | 'finance_accounting' | 'writing_content' | 'general_remote';
+  category?: 'software_dev' | 'data_ai' | 'qa_testing' | 'it_support' | 'ui_ux_product' | 'customer_service' | 'sales_commercial' | 'marketing_digital' | 'virtual_assistant_ops' | 'hr_recruiting' | 'finance_accounting' | 'writing_content' | 'logistics_operations' | 'health_nursing' | 'general_remote';
   categoryLabel?: string;
   experienceTier?: 'zero_exp' | 'six_months' | 'one_year' | 'two_to_three' | 'three_to_four' | 'more_than_five';
   experienceLabel?: string;

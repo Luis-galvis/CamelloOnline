@@ -3,8 +3,7 @@ import { normalizeLocation } from './location-normalizer';
 import { extractSalary } from './salary-extractor';
 import { detectEnglishRequirement } from './english-detector';
 import { detectContractType } from './contract-detector';
-import { detectTechCategory } from './category-detector';
-import { detectNonTechCategory } from './non-tech-remote-colombia';
+import { detectJobCategory } from './category-detector';
 import { extractSkills } from '../ats-ingestion';
 import { decodeHtmlEntities } from './clean-text';
 import { detectExperience } from './experience-detector';
@@ -124,8 +123,9 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
         const descMatch = itemHtml.match(/<p[^>]*class="[^"]*text-description[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
         const snippet = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
 
-        const hasRemoteInText = /remot[oa]|remote|teletrabajo|desde\s*casa|wfh/i.test(`${title} ${rawLocation} ${snippet} ${offerTags}`);
-        const isRemoteFinal = isUrlRemote || hasRemoteInText;
+        const isLocationExplicitRemote = /remot[oa]|teletrabajo|desde\s*casa|home\s*office|wfh/i.test(rawLocation);
+        const hasRemoteInText = /remot[oa]|remote|teletrabajo|desde\s*casa|home\s*office|100%\s*remot[oa]|wfh/i.test(`${title} ${rawLocation} ${snippet} ${offerTags}`);
+        const isRemoteFinal = isLocationExplicitRemote || hasRemoteInText || (isUrlRemote && !/bogot|medell|cali|barranquilla|ibagu|bucaramanga|cartagena|pereira|manizales|armenia|neiva|cucuta|estrella|bello|itagui|envigado/i.test(rawLocation));
 
         const locationNorm = normalizeLocation(rawLocation, `${title} ${snippet}`);
         if (!locationNorm.isColombiaValid && !isRemoteFinal) continue;
@@ -141,26 +141,35 @@ export async function scrapeElEmpleoColombia(): Promise<ColombiaScrapedJob[]> {
         const englishResult = detectEnglishRequirement(title, `${snippet} ${itemHtml} ${offerTags}`);
         const contractResult = detectContractType(title, itemHtml, salaryResult.displayText || salaryResult.salaryDisplayText);
         
-        let catResult: any = detectTechCategory(title, `${snippet} ${offerTags}`);
-        if (catResult.category === 'software_dev' && !title.toLowerCase().includes('desarroll') && !title.toLowerCase().includes('program') && !title.toLowerCase().includes('software')) {
-          catResult = detectNonTechCategory(title, `${snippet} ${offerTags}`);
-        }
+        const catResult = detectJobCategory(title, `${snippet} ${offerTags}`);
 
         const dateResult = extractPostedDate(itemHtml, `${title} ${snippet}`);
         const skills = extractSkills(`${title} ${snippet} ${offerTags}`);
 
-        const isSalesOrCommercial = /ventas|comercial|tat|supervisor|asesor|vendedor|ejecutiv|tienda|punto de venta|cajer|cliente/i.test(`${title} ${snippet}`);
-        const isAccounting = /contad|contable|costos|presupuesto|auditor|factur/i.test(`${title} ${snippet}`);
-        const isManager = /director|gerente|jefe|coordinador|lider|administrador/i.test(`${title} ${snippet}`);
-
         let roleSkills = skills;
         if (roleSkills.length === 0) {
-          if (isAccounting) {
-            roleSkills = ['Contabilidad General', 'Costos y Presupuestos', 'Conciliaciones', 'Excel Avanzado'];
-          } else if (isSalesOrCommercial) {
+          if (catResult.category === 'sales_commercial') {
             roleSkills = ['Gestión Comercial', 'Ventas y Negociación', 'Atención al Cliente', 'Cumplimiento de Metas'];
-          } else if (isManager) {
-            roleSkills = ['Liderazgo de Equipos', 'Gestión Estratégica', 'Planificación', 'Toma de Decisiones'];
+          } else if (catResult.category === 'customer_service') {
+            roleSkills = ['Servicio al Cliente', 'Comunicación Asertiva', 'Resolución de PQR', 'Manejo de CRM'];
+          } else if (catResult.category === 'finance_accounting') {
+            roleSkills = ['Contabilidad General', 'Excel Avanzado', 'Conciliaciones Bancarias', 'Facturación'];
+          } else if (catResult.category === 'logistics_operations') {
+            roleSkills = ['Control de Inventarios', 'Gestión de Bodega', 'Trabajo en Equipo', 'Despachos'];
+          } else if (catResult.category === 'health_nursing') {
+            roleSkills = ['Cuidado del Paciente', 'Primeros Auxilios', 'Atención en Salud'];
+          } else if (catResult.category === 'virtual_assistant_ops') {
+            roleSkills = ['Gestión Documental', 'Herramientas Ofimáticas', 'Organización'];
+          } else if (catResult.category === 'marketing_digital') {
+            roleSkills = ['Marketing Digital', 'Gestión de Redes', 'Creación de Contenido'];
+          } else if (catResult.category === 'data_ai') {
+            roleSkills = ['SQL', 'Power BI', 'Análisis de Datos'];
+          } else if (catResult.category === 'qa_testing') {
+            roleSkills = ['QA', 'Testing de Software', 'Casos de Prueba'];
+          } else if (catResult.category === 'it_support') {
+            roleSkills = ['Soporte Técnico', 'Help Desk', 'Redes y Sistemas'];
+          } else if (catResult.category === 'software_dev') {
+            roleSkills = ['Desarrollo de Software', 'Git', 'Metodologías Ágiles'];
           } else {
             roleSkills = ['Trabajo en Equipo', 'Orientación a Resultados', 'Responsabilidad'];
           }

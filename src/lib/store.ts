@@ -21,19 +21,19 @@ import { detectEnglishRequirement } from './services/scrapers/english-detector';
 import { extractSalary } from './services/scrapers/salary-extractor';
 import { normalizeLocation } from './services/scrapers/location-normalizer';
 import { detectContractType } from './services/scrapers/contract-detector';
-import { detectTechCategory } from './services/scrapers/category-detector';
+import { detectJobCategory, detectTechCategory } from './services/scrapers/category-detector';
 import { detectExperience } from './services/scrapers/experience-detector';
 import { extractSkills } from './services/ats-ingestion';
 
 const STORAGE_KEYS = {
-  CANDIDATES: 'realjobs_colombia_cand_v9',
-  JOBS: 'realjobs_colombia_jobs_v9',
-  INBOUNDS: 'realjobs_colombia_inb_v9',
-  CONVERSATIONS: 'realjobs_colombia_conv_v9',
-  COMPANIES: 'realjobs_colombia_comp_v9',
-  ACTIVE_ROLE: 'realjobs_colombia_role_v9',
-  ACTIVE_CANDIDATE_ID: 'realjobs_colombia_active_cand_v9',
-  APPLIED_JOB_IDS: 'realjobs_colombia_applied_v9',
+  CANDIDATES: 'realjobs_colombia_cand_v10',
+  JOBS: 'realjobs_colombia_jobs_v10',
+  INBOUNDS: 'realjobs_colombia_inb_v10',
+  CONVERSATIONS: 'realjobs_colombia_conv_v10',
+  COMPANIES: 'realjobs_colombia_comp_v10',
+  ACTIVE_ROLE: 'realjobs_colombia_role_v10',
+  ACTIVE_CANDIDATE_ID: 'realjobs_colombia_active_cand_v10',
+  APPLIED_JOB_IDS: 'realjobs_colombia_applied_v10',
 };
 
 export function useAppStore() {
@@ -148,22 +148,17 @@ export function useAppStore() {
             .replace(/^📍\s*/, '')
             .replace(/^🏠\s*/, '');
 
+          const catResult = detectJobCategory(j.title, `${j.description || ''} ${cleanDisplayLoc}`);
+
+          const srcUrl = (j.source_url || '').toLowerCase();
           const isLiPost = Boolean(
             j.source_ats === 'linkedin_post' ||
             (j.source_job_id && String(j.source_job_id).startsWith('lipost-')) ||
-            (j.source_url && (
-              j.source_url.includes('/posts/') || 
-              j.source_url.includes('/feed/update/') ||
-              j.source_url.includes('linkedin.com/search/results/content')
-            )) ||
-            (j.description || '').includes('Envía tu HV a') ||
-            (j.description || '').includes('Envía tu CV a') ||
-            (j.description || '').includes('Interesados remitir HV a') ||
-            (j.description || '').includes('Postulaciones abiertas enviando CV') ||
-            (j.description || '').includes('📩') ||
-            (j.description || '').includes('#hiring') ||
-            (j.description || '').includes('#semillero') ||
-            (j.description || '').includes('#primerempleo')
+            (srcUrl && (
+              srcUrl.includes('linkedin.com/posts/') || 
+              srcUrl.includes('linkedin.com/feed/update/') ||
+              srcUrl.includes('linkedin.com/search/results/content')
+            ))
           );
 
           const emailMatch = (j.description || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -171,6 +166,44 @@ export function useAppStore() {
 
           const isZeroExp = Boolean(j.is_zero_experience || expRes.isZeroExperience || expRes.maxYearsExperience === 0);
           const expYears = isZeroExp ? 0 : (Number(j.max_years_experience_required) || expRes.maxYearsExperience || 1);
+
+          let roleSkills = skills;
+          if (roleSkills.length === 0) {
+            if (catResult.category === 'sales_commercial') {
+              roleSkills = ['Gestión Comercial', 'Ventas y Negociación', 'Atención al Cliente', 'Cumplimiento de Metas'];
+            } else if (catResult.category === 'customer_service') {
+              roleSkills = ['Servicio al Cliente', 'Comunicación Asertiva', 'Resolución de PQR', 'Manejo de CRM'];
+            } else if (catResult.category === 'finance_accounting') {
+              roleSkills = ['Contabilidad General', 'Excel Avanzado', 'Conciliaciones Bancarias', 'Facturación'];
+            } else if (catResult.category === 'logistics_operations') {
+              roleSkills = ['Control de Inventarios', 'Gestión de Bodega', 'Trabajo en Equipo', 'Despachos'];
+            } else if (catResult.category === 'health_nursing') {
+              roleSkills = ['Cuidado del Paciente', 'Primeros Auxilios', 'Atención en Salud'];
+            } else if (catResult.category === 'virtual_assistant_ops') {
+              roleSkills = ['Gestión Documental', 'Herramientas Ofimáticas', 'Organización'];
+            } else if (catResult.category === 'marketing_digital') {
+              roleSkills = ['Marketing Digital', 'Gestión de Redes', 'Creación de Contenido'];
+            } else if (catResult.category === 'data_ai') {
+              roleSkills = ['SQL', 'Power BI', 'Análisis de Datos', 'Python'];
+            } else if (catResult.category === 'qa_testing') {
+              roleSkills = ['Pruebas de Software', 'Casos de Prueba', 'QA', 'Automatización'];
+            } else if (catResult.category === 'it_support') {
+              roleSkills = ['Soporte Técnico', 'Help Desk', 'Redes y Sistemas'];
+            } else if (catResult.category === 'software_dev') {
+              roleSkills = ['Desarrollo de Software', 'Git', 'Metodologías Ágiles'];
+            } else {
+              roleSkills = ['Trabajo en Equipo', 'Orientación a Resultados', 'Responsabilidad'];
+            }
+          }
+
+          const sourceName = isLiPost 
+            ? 'LinkedIn Post Directo' 
+            : (srcUrl.includes('computrabajo') ? 'Computrabajo' 
+              : (srcUrl.includes('elempleo') ? 'ElEmpleo' 
+              : (srcUrl.includes('torre.ai') ? 'Torre.ai' 
+              : (srcUrl.includes('getonbrd') ? 'Get on Board' 
+              : (srcUrl.includes('linkedin.com') ? 'LinkedIn Jobs' 
+              : (j.source_ats || 'Portal Verificado'))))));
 
           return {
             id: j.id,
@@ -202,7 +235,7 @@ export function useAppStore() {
             claimToken: j.claim_token,
             viewsCount: j.views_count || 0,
             applicationsCount: j.applications_count || 0,
-            requiredSkills: skills.length > 0 ? skills : ['Desarrollo', 'Git', 'SQL'],
+            requiredSkills: roleSkills,
             
             // Rich Colombia metadata
             salaryDisclosed: salResult.isDisclosed,
@@ -213,11 +246,11 @@ export function useAppStore() {
             locationFilterKey: locResult.filterKey,
             contractType: contractRes.contractType,
             contractTypeLabel: contractRes.contractTypeLabel,
-            category: detectTechCategory(j.title, `${j.description || ''} ${cleanDisplayLoc}`).category,
-            categoryLabel: detectTechCategory(j.title, `${j.description || ''} ${cleanDisplayLoc}`).categoryLabel,
+            category: catResult.category as any,
+            categoryLabel: catResult.categoryLabel,
             experienceTier: isZeroExp ? 'zero_exp' : expRes.experienceTier,
             experienceLabel: isZeroExp ? 'Sin experiencia previa' : expRes.experienceLabel,
-            sourceName: isLiPost ? 'LinkedIn Post Directo' : (j.source_ats || 'Portal Verificado'),
+            sourceName: sourceName,
             isLinkedInPost: isLiPost,
             postAuthor: isLiPost ? compName : undefined,
             contactEmail: detectedEmail,

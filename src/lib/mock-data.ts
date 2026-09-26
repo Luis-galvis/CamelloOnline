@@ -1,8 +1,7 @@
 import { CandidateProfile, JobPost, InboundRequest, Conversation, Company } from '@/types';
 import rawColombiaJobs from './scraped-colombia-jobs.json';
 import { detectContractType } from './services/scrapers/contract-detector';
-import { detectTechCategory } from './services/scrapers/category-detector';
-import { detectNonTechCategory } from './services/scrapers/non-tech-remote-colombia';
+import { detectJobCategory } from './services/scrapers/category-detector';
 import { detectExperience } from './services/scrapers/experience-detector';
 import { detectEnglishRequirement } from './services/scrapers/english-detector';
 
@@ -59,10 +58,7 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
   }
 
   const contractRes = detectContractType(job.title, job.description || '', '');
-  let catRes: any = detectTechCategory(job.title, job.description || '');
-  if (catRes.category === 'software_dev' && !job.title.toLowerCase().includes('desarroll') && !job.title.toLowerCase().includes('program') && !job.title.toLowerCase().includes('software') && !job.title.toLowerCase().includes('frontend') && !job.title.toLowerCase().includes('backend')) {
-    catRes = detectNonTechCategory(job.title, job.description || '');
-  }
+  const catRes = detectJobCategory(job.title, job.description || '');
 
   const expRes = detectExperience(job.title, job.description || '');
   const engRes = detectEnglishRequirement(job.title, `${job.description || ''} ${compName}`);
