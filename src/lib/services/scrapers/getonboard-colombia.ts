@@ -295,7 +295,7 @@ export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> 
       // Throttle between queries
       await new Promise((r) => setTimeout(r, 200));
     } catch (e: any) {
-      console.warn(`[GetOnBrd] Error en query "${query}":`, e.message);
+      console.warn(`[GetOnBrd] Error en query "${target.query}":`, e.message);
     }
   }
 
