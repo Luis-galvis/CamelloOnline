@@ -51,12 +51,34 @@ const COMPUTRABAJO_SEARCH_PATHS = [
   'https://co.computrabajo.com/trabajo-de-auxiliar-contable-en-ibague',
   'https://co.computrabajo.com/trabajo-de-servicio-al-cliente-en-ibague',
 
-  // 4. Tech Junior & Desarrollo
+  // 4. Tech Junior, Desarrollo de Software, Datos & QA (Prioridad Tech Ampliada)
   'https://co.computrabajo.com/trabajo-de-desarrollador-junior',
+  'https://co.computrabajo.com/trabajo-de-programador-junior',
   'https://co.computrabajo.com/trabajo-de-programador-remoto',
   'https://co.computrabajo.com/trabajo-de-desarrollador-remoto',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-software',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-web',
+  'https://co.computrabajo.com/trabajo-de-frontend',
+  'https://co.computrabajo.com/trabajo-de-backend',
+  'https://co.computrabajo.com/trabajo-de-full-stack',
+  'https://co.computrabajo.com/trabajo-de-react',
+  'https://co.computrabajo.com/trabajo-de-python',
+  'https://co.computrabajo.com/trabajo-de-java',
+  'https://co.computrabajo.com/trabajo-de-net',
+  'https://co.computrabajo.com/trabajo-de-php',
   'https://co.computrabajo.com/trabajo-de-analista-qa',
-  'https://co.computrabajo.com/trabajo-de-analista-de-datos'
+  'https://co.computrabajo.com/trabajo-de-tester-qa',
+  'https://co.computrabajo.com/trabajo-de-analista-de-datos',
+  'https://co.computrabajo.com/trabajo-de-analista-de-datos-junior',
+  'https://co.computrabajo.com/trabajo-de-power-bi',
+  'https://co.computrabajo.com/trabajo-de-soporte-ti',
+  'https://co.computrabajo.com/trabajo-de-auxiliar-de-sistemas',
+  'https://co.computrabajo.com/trabajo-de-tecnico-en-sistemas',
+  'https://co.computrabajo.com/trabajo-de-ingeniero-de-sistemas-junior',
+  'https://co.computrabajo.com/trabajo-de-adso',
+  'https://co.computrabajo.com/trabajo-de-aprendiz-sena-adso',
+  'https://co.computrabajo.com/trabajo-de-devops',
+  'https://co.computrabajo.com/trabajo-de-ui-ux'
 ];
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {

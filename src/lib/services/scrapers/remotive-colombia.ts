@@ -10,7 +10,7 @@ import { detectExperience } from './experience-detector';
 
 export async function scrapeRemotiveColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
-  const categories = ['software-dev', 'data', 'qa', 'devops'];
+  const categories = ['software-dev', 'data', 'qa', 'devops', 'product', 'design'];
 
   for (const cat of categories) {
     try {
@@ -61,7 +61,7 @@ export async function scrapeRemotiveColombia(): Promise<ColombiaScrapedJob[]> {
 
         const pubDate = item.publication_date ? new Date(item.publication_date) : new Date();
         const ageDays = (Date.now() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (ageDays > 21) continue;
+        if (ageDays > 45) continue;
 
         const salResult = extractSalary(cleanDesc, rawSalary);
         const engResult = detectEnglishRequirement(title, cleanDesc);

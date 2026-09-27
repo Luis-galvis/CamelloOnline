@@ -34,19 +34,19 @@ export interface CategoryDetectionResult {
 const NON_TECH_ROLES_REGEX = /\b(ventas|asesor\s+comercial|ejecutivo\s+comercial|vendedor|promotor|impulsador|mercaimpulsador|tat|telemercadeo|cobranza|retenci[oó]n|punto\s+de\s+venta|cajero|servicio\s+al\s+cliente|atenci[oó]n\s+al\s+cliente|customer\s+service|customer\s+support|call\s+center|pqr|chat\s+sac|agente\s+sac|recepci[oó]n\s+de\s+llamadas|contad|contable|auxiliar\s+contable|t[eé]cnico\s+contable|analista\s+de\s+pagos|facturaci[oó]n|n[oó]mina|tesorer[ií]a|bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n\s+alimentos|operario|enfermer|m[eé]dico|dietas|salud|asistente\s+virtual|digitador|auxiliar\s+administrativo|recepcionista|secretaria|recursos\s+humanos|talento\s+humano|reclutador|headhunter|community\s+manager|redactor|copywriter|editor\s+de\s+video)\b/i;
 
 // Regex para Data & IA (requiere contexto real, NO simple palabra "datos" legal)
-const DATA_AI_REGEX = /\b(analista\s+de\s+datos|data\s+analyst|data\s+engineer|ingeniero\s+de\s+datos|cient[ií]fico\s+de\s+datos|data\s+scientist|machine\s+learning|inteligencia\s+artificial|ai\s+engineer|power\s*bi|tableau|business\s+intelligence|analista\s+bi|bi\s+analyst|etl\s+developer|big\s+data|sql\s+developer|dba|deep\s+learning|nlp|anal[ií]tica\s+de\s+datos)\b/i;
+const DATA_AI_REGEX = /\b(data\s+analyst[s]?|analista\s+de\s+datos|data\s+engineer[s]?|ingenier[oa/]*\s*(?:de\s+)?datos|cient[ií]fic[oa/]*\s*(?:de\s+)?datos|data\s+scientist[s]?|machine\s+learning|inteligencia\s+artificial|ai\s+engineer|ai\s+transformation|power\s*bi|tableau|business\s+intelligence|analista\s+bi|bi\s+analyst|etl|big\s+data|sql\s+developer|dba|database|deep\s+learning|nlp|anal[ií]tica|analytics|ciencia\s+de\s+datos|data\s+science)\b/i;
 
 // Regex para QA & Testing
-const QA_TESTING_REGEX = /\b(qa\s+tester|qa\s+engineer|qa\s+analyst|analista\s+qa|tester\s+qa|software\s+tester|testing\s+de\s+software|pruebas\s+de\s+software|calidad\s+de\s+software|automatizador\s+qa|cypress|selenium|postman|test\s+automation)\b/i;
+const QA_TESTING_REGEX = /\b(qa|qa\s+tester|qa\s+engineer|qa\s+analyst|analista\s+qa|tester\s+qa|software\s+tester|testing\s+de\s+software|testing|pruebas\s+de\s+software|calidad\s+de\s+software|automatizador\s+qa|cypress|selenium|postman|test\s+automation|quality\s+assurance)\b/i;
 
 // Regex para Soporte TI, Cloud, DevOps & Infraestructura
-const IT_SUPPORT_REGEX = /\b(soporte\s+t[eé]cnico|soporte\s+ti|help\s*desk|mesa\s+de\s+ayuda|infraestructura\s+ti|sysadmin|administrador\s+de\s+sistemas|redes\s+y\s+telecomunicaciones|ciberseguridad|seguridad\s+inform[aá]tica|devops|cloud\s+engineer|cloud\s+architect|sre|site\s+reliability|t[eé]cnico\s+en\s+sistemas|auxiliar\s+de\s+sistemas)\b/i;
+const IT_SUPPORT_REGEX = /\b(soporte\s+t[eé]cnico|soporte\s+ti|help\s*desk|mesa\s+de\s+ayuda|infraestructura|sysadmin|administrador\s+de\s+sistemas|redes|telecomunicaciones|ciberseguridad|seguridad\s+inform[aá]tica|devops|cloud\s+engineer|cloud\s+architect|cloud|sre|site\s+reliability|t[eé]cnico\s+en\s+sistemas|auxiliar\s+de\s+sistemas|technical\s+support|it\s+support|network\s+engineer|system\s+administrator|itil|soporte\s+nivel|t[eé]cnico\s+soporte|soporte\s+de\s+sistemas|tecnolog[ií]a\s+de\s+la\s+informaci[oó]n|soporte\s+a\s+usuarios)\b/i;
 
 // Regex para UI/UX & Producto
 const UI_UX_PRODUCT_REGEX = /\b(ui\/ux|ux\/ui|ux\s+designer|ui\s+designer|product\s+designer|dise[ñn]ador\s+web|dise[ñn]o\s+de\s+interfaces|product\s+owner|scrum\s+master)\b/i;
 
 // Regex para Desarrollo de Software
-const SOFTWARE_DEV_REGEX = /\b(desarrollador[a]?|desarrollo|programador[a]?|programaci[oó]n|developer|software\s+developer|software\s+engineer|ingeniero\s+de\s+software|ingeniero\s+de\s+sistemas|frontend|front-end|backend|back-end|fullstack|full-stack|react|angular|vue|next\.?js|node\.?js|python|java|javascript|typescript|c#|\.net|php|laravel|golang|ruby|flutter|android|ios|mobile\s+developer|appian|adso|desarrollo\s+web|semillero\s+desarrollo|practicante\s+sistemas|aprendiz\s+sena\s+sistemas)\b/i;
+const SOFTWARE_DEV_REGEX = /\b(desarrollador[a-z/]*|desarrollo|programador[a-z/]*|programaci[oó]n|developer[s]?|software\s+developer[s]?|software\s+engineer[s]?|software\s+development|ingenier[oa/]*\s*(?:de\s+)?software|ingenier[oa/]*\s*(?:de\s+)?sistemas|engineer[s]?|frontend|front-end|backend|back-end|fullstack|full-stack|full\s*stack|react|angular|vue|next\.?js|node\.?js|python|java|javascript|typescript|c#|\.net|php|laravel|golang|ruby|flutter|android|ios|mobile\s+developer|appian|adso|desarrollo\s+web|semillero\s+desarrollo|practicante\s+sistemas|aprendiz\s+sena\s+sistemas|software\s+solutions|proyectos\s+[–-]\s*tecnolog[ií]a|analista\s+de\s+tecnolog[ií]a)\b/i;
 
 /**
  * Detecta la categoría real de cualquier vacante (Tech o No-Tech)
@@ -56,58 +56,69 @@ export function detectJobCategory(title: string = '', description: string = ''):
   const cleanDesc = (description || '').trim().toLowerCase();
   const combinedText = `${cleanTitle} ${cleanDesc}`;
 
-  // 1. Detección de roles No-Tech específicos primero si el título es evidentemente No-Tech
-  // (a menos que tenga un calificador tech evidente como 'software', 'it recruiter', 'data analyst', 'bi analyst')
-  const isExplicitNonTechTitle = NON_TECH_ROLES_REGEX.test(cleanTitle) && 
-    !cleanTitle.includes('software') && 
-    !cleanTitle.includes('developer') && 
-    !cleanTitle.includes('data analyst') && 
-    !cleanTitle.includes('it recruiter') && 
-    !cleanTitle.includes('tech recruiter') &&
-    !cleanTitle.includes('bi analyst');
+  // 0. Si el título es inequívocamente Tecnológico, clasificar de inmediato como Tech
+  const hasStrongTechTitle = 
+    SOFTWARE_DEV_REGEX.test(cleanTitle) || 
+    DATA_AI_REGEX.test(cleanTitle) || 
+    QA_TESTING_REGEX.test(cleanTitle) || 
+    IT_SUPPORT_REGEX.test(cleanTitle) || 
+    UI_UX_PRODUCT_REGEX.test(cleanTitle);
+
+  if (!hasStrongTechTitle) {
+    // 1. Detección de roles No-Tech específicos si el título NO es tecnológico
+    const isExplicitNonTechTitle = NON_TECH_ROLES_REGEX.test(cleanTitle) && 
+      !cleanTitle.includes('software') && 
+      !cleanTitle.includes('developer') && 
+      !cleanTitle.includes('data analyst') && 
+      !cleanTitle.includes('it recruiter') && 
+      !cleanTitle.includes('tech recruiter') &&
+      !cleanTitle.includes('bi analyst') &&
+      !cleanTitle.includes('sistemas') &&
+      !cleanTitle.includes('soporte');
 
   if (isExplicitNonTechTitle) {
     // 1.1 Ventas & Comercial
-    if (/\b(ventas|asesor\s+comercial|ejecutivo\s+comercial|vendedor|promotor|impulsador|mercaimpulsador|tat|telemercadeo|cobranza|retenci[oó]n|punto\s+de\s+venta|asesor\s+de\s+tienda|bdr|sdr|account\s+executive)\b/i.test(cleanTitle)) {
+    if (/\b(ventas|asesor\s+comercial|ejecutivo\s+comercial|vendedor|promotor|impulsador|mercaimpulsador|tat|telemercadeo|cobranza|retenci[oó]n|punto\s+de\s+venta|asesor\s+de\s+tienda|bdr|sdr|account\s+executive|sales\s+agent|sales\s+rep|cold\s+calling|appointment\s+setter|lead\s+generation)\b/i.test(cleanTitle)) {
       return { category: 'sales_commercial', categoryLabel: 'Ventas & Comercial', isTech: false };
     }
 
     // 1.2 Atención al Cliente & Call Center
-    if (/\b(servicio\s+al\s+cliente|atenci[oó]n\s+al\s+cliente|customer\s+service|customer\s+support|call\s+center|pqr|chat\s+sac|agente\s+sac|recepci[oó]n\s+de\s+llamadas|bilingue|bilingüe|contact\s+center)\b/i.test(cleanTitle)) {
+    if (/\b(servicio\s+al\s+cliente|atenci[oó]n\s+al\s+cliente|customer\s+service|customer\s+support|customer\s+care|customer\s+operations|call\s+center|pqr|chat\s+sac|agente\s+sac|recepci[oó]n\s+de\s+llamadas|bilingue|bilingüe|contact\s+center|concierge)\b/i.test(cleanTitle)) {
       return { category: 'customer_service', categoryLabel: 'Atención al Cliente', isTech: false };
     }
 
     // 1.3 Finanzas, Contabilidad & Facturación
-    if (/\b(contad|contable|auxiliar\s+contable|t[eé]cnico\s+contable|analista\s+de\s+pagos|facturaci[oó]n|n[oó]mina|tesorer[ií]a|auditor|cartera|costos)\b/i.test(cleanTitle)) {
+    if (/\b(contad|contable|auxiliar\s+contable|t[eé]cnico\s+contable|analista\s+de\s+pagos|facturaci[oó]n|n[oó]mina|tesorer[ií]a|auditor|cartera|costos|finance|accounting)\b/i.test(cleanTitle)) {
       return { category: 'finance_accounting', categoryLabel: 'Finanzas & Contabilidad', isTech: false };
     }
 
     // 1.4 Logística, Bodega & Producción
-    if (/\b(bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n|operario|embalaje|inventarios)\b/i.test(cleanTitle)) {
+    if (/\b(bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n|operario|embalaje|inventarios|logistics)\b/i.test(cleanTitle)) {
       return { category: 'logistics_operations', categoryLabel: 'Logística & Bodega', isTech: false };
     }
 
     // 1.5 Salud & Nutrición
-    if (/\b(enfermer|m[eé]dico|dietas|salud|cl[ií]nica|hospital|farmacia)\b/i.test(cleanTitle)) {
+    if (/\b(enfermer|m[eé]dico|dietas|salud|cl[ií]nica|hospital|farmacia|medical|nurse)\b/i.test(cleanTitle)) {
       return { category: 'health_nursing', categoryLabel: 'Salud & Bienestar', isTech: false };
     }
 
     // 1.6 Asistente Virtual & Operaciones
-    if (/\b(asistente\s+virtual|digitador|auxiliar\s+administrativo|asistente\s+administrativo|recepcionista|secretaria|data\s+entry)\b/i.test(cleanTitle)) {
+    if (/\b(asistente\s+virtual|virtual\s+assistant|digitador|data\s+entry|auxiliar\s+administrativo|asistente\s+administrativo|administrative\s+assistant|executive\s+assistant|legal\s+assistant|transaction\s+coordinator|recepcionista|secretaria|coordinator|coordinador)\b/i.test(cleanTitle)) {
       return { category: 'virtual_assistant_ops', categoryLabel: 'Operaciones & Asistente', isTech: false };
     }
 
     // 1.7 Recursos Humanos
-    if (/\b(recursos\s+humanos|talento\s+humano|reclutador|headhunter|gesti[oó]n\s+humana|psic[oó]log)\b/i.test(cleanTitle)) {
+    if (/\b(recursos\s+humanos|talento\s+humano|reclutador|headhunter|gesti[oó]n\s+humana|psic[oó]log|recruiter|hr\s+specialist)\b/i.test(cleanTitle)) {
       return { category: 'hr_recruiting', categoryLabel: 'Recursos Humanos', isTech: false };
     }
 
     // 1.8 Marketing & Creativo
-    if (/\b(marketing|community\s+manager|redes\s+sociales|copywriter|editor\s+de\s+video|dise[ñn]ador\s+gr[aá]fico)\b/i.test(cleanTitle)) {
+    if (/\b(marketing|community\s+manager|redes\s+sociales|social\s+media|content\s+creator|creador\s+de\s+contenido|copywriter|editor\s+de\s+video|dise[ñn]ador\s+gr[aá]fico|graphic\s+designer|digital\s+designer)\b/i.test(cleanTitle)) {
       return { category: 'marketing_digital', categoryLabel: 'Marketing Digital', isTech: false };
     }
 
     return { category: 'general_remote', categoryLabel: 'Remoto General', isTech: false };
+    }
   }
 
   // 2. Detección de Categorías Tecnológicas (Tech)
@@ -138,18 +149,36 @@ export function detectJobCategory(title: string = '', description: string = ''):
   }
 
   // 3. Si no cumple tech, verificar categorías no tech secundarias
-  if (/\b(ventas|comercial|tat|asesor|vendedor|tienda|punto\s+de\s+venta)\b/i.test(combinedText)) {
+  if (/\b(ventas|comercial|tat|asesor|vendedor|tienda|punto\s+de\s+venta|sales|sdr|bdr|account\s+executive|cold\s+calling|appointment\s+setter|lead\s+generation)\b/i.test(combinedText)) {
     return { category: 'sales_commercial', categoryLabel: 'Ventas & Comercial', isTech: false };
   }
-  if (/\b(servicio\s+al\s+cliente|atenci[oó]n|call\s+center|customer\s+service)\b/i.test(combinedText)) {
+  if (/\b(servicio\s+al\s+cliente|atenci[oó]n|call\s+center|customer\s+service|customer\s+support|customer\s+care|customer\s+success|customer\s+operations|costumer|concierge|chat\s+sac|sac)\b/i.test(combinedText)) {
     return { category: 'customer_service', categoryLabel: 'Atención al Cliente', isTech: false };
   }
-  if (/\b(contab|financ|cartera|factur|pago)\b/i.test(combinedText)) {
+  if (/\b(contab|financ|cartera|factur|pago|accounting|bookkeep|accounts\s+payable|payroll|n[oó]mina|auditor)\b/i.test(combinedText)) {
     return { category: 'finance_accounting', categoryLabel: 'Finanzas & Contabilidad', isTech: false };
+  }
+  if (/\b(asistente\s+virtual|virtual\s+assistant|executive\s+assistant|administrative\s+assistant|legal\s+assistant|digitador|data\s+entry|secretari|recepcionista|coordinator|coordinador)\b/i.test(combinedText)) {
+    return { category: 'virtual_assistant_ops', categoryLabel: 'Operaciones & Asistente', isTech: false };
+  }
+  if (/\b(marketing|social\s+media|content\s+creator|creador\s+de\s+contenido|redes\s+sociales|copywriter|dise[ñn]ador\s+gr[aá]fico|graphic\s+designer|growth\s+strategist|digital\s+designer)\b/i.test(combinedText)) {
+    return { category: 'marketing_digital', categoryLabel: 'Marketing Digital', isTech: false };
+  }
+  if (/\b(recursos\s+humanos|talento\s+humano|reclutador|headhunter|recruiter|hr\s+generalist|hr\s+specialist|human\s+resources)\b/i.test(combinedText)) {
+    return { category: 'hr_recruiting', categoryLabel: 'Recursos Humanos', isTech: false };
+  }
+  if (/\b(bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n|operario|embalaje|inventarios|logistics)\b/i.test(combinedText)) {
+    return { category: 'logistics_operations', categoryLabel: 'Logística & Bodega', isTech: false };
+  }
+  if (/\b(enfermer|m[eé]dico|dietas|salud|cl[ií]nica|hospital|farmacia|medical|nurse)\b/i.test(combinedText)) {
+    return { category: 'health_nursing', categoryLabel: 'Salud & Bienestar', isTech: false };
+  }
+  if (/\b(redactor|copywriter|audiobook|writer|traductor|translator|editor\s+de\s+texto|writing)\b/i.test(combinedText)) {
+    return { category: 'writing_content', categoryLabel: 'Redacción & Traducción', isTech: false };
   }
 
   // 4. Default no-tech
-  return { category: 'general_remote', categoryLabel: 'General', isTech: false };
+  return { category: 'general_remote', categoryLabel: 'Remoto General', isTech: false };
 }
 
 /**

@@ -7,25 +7,50 @@ import { detectTechCategory } from './category-detector';
 import { detectNonTechCategory } from './non-tech-remote-colombia';
 import { detectExperience } from './experience-detector';
 
-const TORRE_SKILLS = [
-  // Tech
-  { term: 'Python', experience: 'potential-to-develop' },
-  { term: 'JavaScript', experience: 'potential-to-develop' },
-  { term: 'React', experience: 'potential-to-develop' },
-  { term: 'Software development', experience: 'potential-to-develop' },
-  { term: 'Social media', experience: 'potential-to-develop' },
-  { term: 'Virtual assistant', experience: 'potential-to-develop' },
-  // Sales / CS (biggest pools)
-  { term: 'Customer service', experience: 'potential-to-develop' },
-  { term: 'Technical support', experience: 'potential-to-develop' },
-  { term: 'Cold calling', experience: 'potential-to-develop' },
-  { term: 'Inbound sales', experience: 'potential-to-develop' },
-  { term: 'Sales', experience: 'potential-to-develop' },
-  { term: 'Appointment setting', experience: 'potential-to-develop' },
-  { term: 'Lead generation', experience: 'potential-to-develop' },
+const TORRE_TECH_SKILLS = [
+  // Core Software Development (Tech)
+  { term: 'Software development', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'JavaScript', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'TypeScript', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Python', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'React', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Node.js', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Frontend development', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Backend development', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Full-stack development', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Java', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'C#', experience: 'potential-to-develop', maxPages: 6 },
+  { term: '.NET', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'PHP', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'Flutter', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'Mobile development', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'HTML', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'CSS', experience: 'potential-to-develop', maxPages: 6 },
+  
+  // Data, AI, QA, Cloud & Soporte TI (Tech)
+  { term: 'Data analysis', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'SQL', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Quality assurance', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'Software testing', experience: 'potential-to-develop', maxPages: 8 },
+  { term: 'DevOps', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'Cloud computing', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'UI/UX design', experience: 'potential-to-develop', maxPages: 6 },
+  { term: 'Technical support', experience: 'potential-to-develop', maxPages: 6 },
 ];
 
-const MAX_PAGES_PER_SKILL = 8; // 8 * 25 = 200 per skill max
+const TORRE_NON_TECH_SKILLS = [
+  // Non-Tech Remote (Balanced to 3 pages max so they do not overpower tech jobs)
+  { term: 'Social media', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Virtual assistant', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Customer service', experience: 'potential-to-develop', maxPages: 4 },
+  { term: 'Cold calling', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Inbound sales', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Sales', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Appointment setting', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Lead generation', experience: 'potential-to-develop', maxPages: 3 },
+];
+
+const TORRE_SKILLS = [...TORRE_TECH_SKILLS, ...TORRE_NON_TECH_SKILLS];
 const SIZE = 25;
 
 async function fetchTorrePage(
@@ -106,7 +131,8 @@ export async function scrapeTorreColombia(): Promise<ColombiaScrapedJob[]> {
       let cursor: string | undefined;
       let pagesRead = 0;
 
-      while (pagesRead < MAX_PAGES_PER_SKILL) {
+      const maxPages = (skill as any).maxPages || 6;
+      while (pagesRead < maxPages) {
         const { results, nextCursor, total } = await fetchTorrePage(skill, cursor);
         pagesRead++;
 
@@ -198,22 +224,10 @@ export async function scrapeTorreColombia(): Promise<ColombiaScrapedJob[]> {
           const skills = (item.skills || []).map((s: any) => s.name || s).filter(Boolean);
           const contractRes = detectContractType(title, '', '');
 
-          const isCommercialOrFinance =
-            titleLower.includes('sales') ||
-            titleLower.includes('comercial') ||
-            titleLower.includes('ventas') ||
-            titleLower.includes('account') ||
-            titleLower.includes('financ') ||
-            titleLower.includes('customer') ||
-            titleLower.includes('support') ||
-            titleLower.includes('calling') ||
-            titleLower.includes('appointment') ||
-            titleLower.includes('agent') ||
-            titleLower.includes('virtual assistant');
-
-          const catRes = isCommercialOrFinance
-            ? detectNonTechCategory(title, '')
-            : detectTechCategory(title, `${companyName} ${locNorm.displayLocation}`);
+          const isTechSkill = TORRE_TECH_SKILLS.some(ts => ts.term.toLowerCase() === skill.term.toLowerCase());
+          const catRes = isTechSkill 
+            ? detectTechCategory(title, `${skill.term} ${companyName}`)
+            : detectNonTechCategory(title, skill.term);
 
           jobs.push({
             id: `torre-${id}`,

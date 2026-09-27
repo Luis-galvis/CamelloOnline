@@ -33,13 +33,29 @@ const ELEMPLEO_SEARCH_URLS = [
   'https://www.elempleo.com/co/ofertas-empleo/ibague/administracion-y-oficina',
   'https://www.elempleo.com/co/ofertas-empleo/ibague/contabilidad-y-finanzas',
 
-  // 3. Tech & Junior
+  // 3. Tech Junior, Desarrollo, Datos & Soporte TI (Prioridad Tech Ampliada)
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-junior',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-programador',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-web',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-frontend',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-backend',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-full-stack',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-practicante-de-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-aprendiz-sena-sistemas',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-desarrollador-de-software',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-ingeniero-de-sistemas',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-ingeniero-de-sistemas-junior',
   'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-de-datos',
-  'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-qa'
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-analista-qa',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-testing-software',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-power-bi',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-soporte-tecnico',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-soporte-ti',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-auxiliar-de-sistemas',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-python',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-java',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-react',
+  'https://www.elempleo.com/co/ofertas-empleo/trabajo-adso'
 ];
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {

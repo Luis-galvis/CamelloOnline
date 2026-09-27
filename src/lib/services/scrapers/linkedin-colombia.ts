@@ -120,8 +120,8 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
       for (const offset of [0, 25]) {
         const encodedQuery = encodeURIComponent(item.q);
         const remoteParam = item.remote ? '&f_WT=2' : '';
-        // f_TPR=r2592000 (past month) to get fresh active jobs
-        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&f_TPR=r2592000&start=${offset}`;
+        // f_TPR=r2592000 (past month) and f_E=1%2C2 (internship & entry level) to maximize fresh junior jobs
+        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&f_E=1%2C2&start=${offset}`;
 
         const html = await fetchWithTimeout(url, 4500);
         if (html) {
@@ -131,7 +131,7 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
     }));
 
     // Delay between batches to prevent 429
-    await new Promise(r => setTimeout(r, 450));
+    await new Promise(r => setTimeout(r, 350));
   }
 
   console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes verificadas de LinkedIn Jobs.`);
@@ -152,10 +152,12 @@ function parseLinkedInHtml(
   while ((cardMatch = cardRegex.exec(html)) !== null) {
     const cardHtml = cardMatch[1];
 
-    const titleMatch = cardHtml.match(/<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i);
+    const titleMatch = cardHtml.match(/<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i) ||
+                       cardHtml.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
     const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
 
-    const compMatch = cardHtml.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i);
+    const compMatch = cardHtml.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i) ||
+                      cardHtml.match(/<h4[^>]*>([\s\S]*?)<\/h4>/i);
     const companyName = compMatch ? decodeHtmlEntities(compMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
 
     if (!title || !companyName) continue;
@@ -168,7 +170,9 @@ function parseLinkedInHtml(
     const locMatch = cardHtml.match(/<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
     const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : 'Colombia';
 
-    const linkMatch = cardHtml.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i);
+    const linkMatch = cardHtml.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i) ||
+                      cardHtml.match(/<a[^>]*href="([^"]*linkedin\.com\/jobs\/view\/[^"]+)"/i) ||
+                      cardHtml.match(/<a[^>]*href="([^"]*\/jobs\/view\/[^"]+)"/i);
     let rawUrl = linkMatch ? linkMatch[1].split('?')[0] : '';
     
     // Strict numeric ID extraction (at least 7 digits) to prevent broken URLs

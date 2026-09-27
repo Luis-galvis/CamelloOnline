@@ -16,6 +16,16 @@ import { detectExperience } from './experience-detector';
 //  5 = Expert     (excluded)
 const ELIGIBLE_SENIORITY_IDS = new Set([1, 2]);
 
+// Tech Category endpoints on GetOnBoard
+const TECH_CATEGORY_ENDPOINTS = [
+  'programming',
+  'data-science-analytics',
+  'sysadmin-devops-qa',
+  'mobile-developer',
+  'ui-ux-design',
+  'cybersecurity'
+];
+
 // Search queries that yield Colombia/Remote + junior results
 const SEARCH_QUERIES = [
   'colombia',
@@ -25,6 +35,17 @@ const SEARCH_QUERIES = [
   'practicante',
   'practicante colombia',
   'aprendiz',
+  'desarrollador colombia',
+  'developer colombia',
+  'software colombia',
+  'frontend colombia',
+  'backend colombia',
+  'full stack colombia',
+  'python colombia',
+  'react colombia',
+  'data analyst colombia',
+  'qa colombia',
+  'soporte ti',
   'soporte',
   'support',
   'customer service',
@@ -35,11 +56,8 @@ const SEARCH_QUERIES = [
   'administrativo',
   'rrhh',
   'diseño',
-  'developer colombia',
-  'software colombia',
   'finanzas colombia',
   'asistente',
-  'assistant',
   'bilingual',
   'english spanish',
 ];
@@ -99,10 +117,24 @@ export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> 
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
 
+  // 1. Fetch direct tech category feeds
+  const targetEndpoints: { url: string; query: string }[] = [];
+  for (const cat of TECH_CATEGORY_ENDPOINTS) {
+    targetEndpoints.push({
+      url: `https://www.getonbrd.com/api/v0/categories/${cat}/jobs`,
+      query: cat
+    });
+  }
   for (const query of SEARCH_QUERIES) {
+    targetEndpoints.push({
+      url: `https://www.getonbrd.com/api/v0/search/jobs?query=${encodeURIComponent(query)}`,
+      query
+    });
+  }
+
+  for (const target of targetEndpoints) {
     try {
-      const url = `https://www.getonbrd.com/api/v0/search/jobs?query=${encodeURIComponent(query)}`;
-      const res = await fetch(url, {
+      const res = await fetch(target.url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; REALJOBS/1.0)',
@@ -110,7 +142,6 @@ export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> 
       });
 
       if (!res.ok) {
-        console.warn(`[GetOnBrd] Query "${query}" → HTTP ${res.status}`);
         continue;
       }
 
@@ -156,10 +187,10 @@ export async function scrapeGetOnBoardColombia(): Promise<ColombiaScrapedJob[]> 
           .trim();
 
         // ── Experience ────────────────────────────────────────────────
-        const isZeroExpSearch = seniorityId === 1 || query.includes('sin experiencia') || query.includes('aprendiz') || query.includes('intern') || query.includes('trainee');
+        const isZeroExpSearch = seniorityId === 1 || target.query.includes('sin experiencia') || target.query.includes('aprendiz') || target.query.includes('intern') || target.query.includes('trainee');
         const expResult = detectExperience(title, rawDesc, {
           isZeroExpSearch,
-          query,
+          query: target.query,
         });
         if (!expResult.isEligible) continue;
 
