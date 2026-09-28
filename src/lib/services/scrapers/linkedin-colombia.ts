@@ -14,15 +14,19 @@ import { decodeHtmlEntities } from './clean-text';
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15'
 ];
 
 const LINKEDIN_TECH_QUERIES = [
   // 1. Desarrollo de Software Junior & Trainee (Remoto & Colombia)
   { q: 'desarrollador junior', remote: true },
+  { q: 'desarrollador junior', remote: false },
   { q: 'junior developer', remote: true },
+  { q: 'junior developer', remote: false },
   { q: 'desarrollador software junior', remote: true },
+  { q: 'desarrollador software junior', remote: false },
   { q: 'junior software engineer', remote: true },
   { q: 'frontend developer junior', remote: true },
   { q: 'backend developer junior', remote: true },
@@ -33,10 +37,11 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'java developer junior', remote: true },
   { q: 'net developer junior', remote: true },
   { q: 'programador junior', remote: true },
+  { q: 'programador junior', remote: false },
   { q: 'mobile developer junior', remote: true },
   { q: 'flutter junior', remote: true },
   
-  // 2. Semilleros, ADSO & Prácticas Tech
+  // 2. Semilleros, ADSO & Prácticas Tech (Colombia)
   { q: 'practicante desarrollo software', remote: false },
   { q: 'practicante sistemas', remote: false },
   { q: 'aprendiz adso sena', remote: false },
@@ -45,15 +50,18 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'semillero programacion', remote: false },
   { q: 'trainee software engineer', remote: true },
   { q: 'ingeniero de sistemas junior', remote: false },
+  { q: 'practicante ti', remote: false },
+  { q: 'pasante desarrollo software', remote: false },
 
   // 3. Datos, Analytics & Inteligencia Artificial Junior
   { q: 'analista de datos junior', remote: true },
+  { q: 'analista de datos junior', remote: false },
   { q: 'data analyst junior', remote: true },
   { q: 'junior data engineer', remote: true },
   { q: 'analista bi junior', remote: true },
   { q: 'power bi junior', remote: true },
   { q: 'data scientist junior', remote: true },
-  { q: 'analista de datos', remote: false },
+  { q: 'analista sql junior', remote: true },
 
   // 4. QA & Testing de Software
   { q: 'qa tester junior', remote: true },
@@ -61,6 +69,7 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'qa automation junior', remote: true },
   { q: 'tester de software junior', remote: true },
   { q: 'junior qa engineer', remote: true },
+  { q: 'analista pruebas software junior', remote: false },
 
   // 5. Soporte TI, Cloud & DevOps Junior
   { q: 'soporte tecnico ti junior', remote: true },
@@ -71,14 +80,15 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'cloud engineer junior', remote: true },
   { q: 'auxiliar de sistemas junior', remote: false },
 
-  // 6. Principales Ciudades (Bogotá, Medellín, Cali)
+  // 6. Principales Ciudades & Regiones (Bogotá, Medellín, Cali, Tolima/Ibagué)
   { q: 'desarrollador junior bogota', remote: false },
   { q: 'desarrollador junior medellin', remote: false },
   { q: 'desarrollador junior cali', remote: false },
+  { q: 'practicante sistemas ibague tolima', remote: false },
   { q: 'junior developer colombia', remote: false }
 ];
 
-async function fetchWithTimeout(url: string, timeoutMs: number = 4500): Promise<string | null> {
+async function fetchWithTimeout(url: string, timeoutMs: number = 6000, retryCount: number = 0): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -87,19 +97,35 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 4500): Promise<
     const res = await fetch(url, {
       headers: {
         'User-Agent': randomUa,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none'
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin'
       },
       signal: controller.signal
     });
     clearTimeout(timeout);
 
+    if (res.status === 429) {
+      if (retryCount < 2) {
+        const waitTime = (retryCount + 1) * 1500 + Math.floor(Math.random() * 800);
+        await new Promise(r => setTimeout(r, waitTime));
+        return fetchWithTimeout(url, timeoutMs, retryCount + 1);
+      }
+      return null;
+    }
+
     if (!res.ok) return null;
     return await res.text();
   } catch {
+    if (retryCount < 1) {
+      await new Promise(r => setTimeout(r, 1000));
+      return fetchWithTimeout(url, timeoutMs, retryCount + 1);
+    }
     return null;
   }
 }
@@ -108,30 +134,29 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
 
-  console.log(`[LinkedIn Scraper] Consultando ${LINKEDIN_TECH_QUERIES.length} queries tecnológicas prioritarias con control de tasa...`);
+  console.log(`[LinkedIn Scraper] Consultando ${LINKEDIN_TECH_QUERIES.length} queries prioritarias de LinkedIn Jobs Colombia...`);
 
   // Batch execution with controlled concurrency to prevent HTTP 429
-  const chunkSize = 3;
+  const chunkSize = 2;
   for (let i = 0; i < LINKEDIN_TECH_QUERIES.length; i += chunkSize) {
     const chunk = LINKEDIN_TECH_QUERIES.slice(i, i + chunkSize);
     
     await Promise.allSettled(chunk.map(async (item) => {
-      // Query page 0 and page 25 for up to 50 jobs per query
+      // Query page 0 and page 25 for deep retrieval without f_E restriction
       for (const offset of [0, 25]) {
         const encodedQuery = encodeURIComponent(item.q);
         const remoteParam = item.remote ? '&f_WT=2' : '';
-        // f_TPR=r2592000 (past month) and f_E=1%2C2 (internship & entry level) to maximize fresh junior jobs
-        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&f_E=1%2C2&start=${offset}`;
+        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&start=${offset}`;
 
-        const html = await fetchWithTimeout(url, 4500);
+        const html = await fetchWithTimeout(url, 6000);
         if (html) {
           parseLinkedInHtml(html, encodedQuery, item.q, jobs, seenIds, item.remote);
         }
       }
     }));
 
-    // Delay between batches to prevent 429
-    await new Promise(r => setTimeout(r, 350));
+    // Delay between batches to prevent 429 rate limiting
+    await new Promise(r => setTimeout(r, 450));
   }
 
   console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes verificadas de LinkedIn Jobs.`);
