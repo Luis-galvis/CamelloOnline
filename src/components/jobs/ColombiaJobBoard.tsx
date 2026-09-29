@@ -26,6 +26,7 @@ import { JobPost } from '@/types';
 import { detectJobCategory, detectTechCategory } from '@/lib/services/scrapers/category-detector';
 import { isTechJob } from '@/lib/services/scrapers/tech-filter';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
+import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 export function ColombiaJobBoard() {
   const { jobs } = useAppStore();
@@ -356,6 +357,7 @@ export function ColombiaJobBoard() {
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+      <JobPostingJsonLd jobs={sortedJobs} />
       
       {/* Header Banner - Clean, Professional & Sober */}
       <section className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">

@@ -30,6 +30,7 @@ import { detectNonTechCategory } from '@/lib/services/scrapers/non-tech-remote-c
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
 import { detectEnglishRequirement } from '@/lib/services/scrapers/english-detector';
 import { extractApplicantCount } from '@/lib/services/scrapers/applicant-extractor';
+import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'oldest' | 'highest_salary' | 'lowest_salary' | 'zero_exp_first';
 type NonTechCategoryFilter = 'all' | 'customer_service' | 'sales_commercial' | 'marketing_digital' | 'virtual_assistant_ops' | 'hr_recruiting' | 'finance_accounting' | 'writing_content';
@@ -227,6 +228,7 @@ export function ColombiaGeneralRemoteBoard() {
 
   return (
     <div className="space-y-6">
+      <JobPostingJsonLd jobs={filteredJobs} />
       
       {/* Header Banner */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-6 sm:p-8 shadow-sm relative overflow-hidden">

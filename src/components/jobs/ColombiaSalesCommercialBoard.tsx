@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import { useAppStore } from '@/lib/store';
 import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
+import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'highest_salary' | 'lowest_salary' | 'ibague_first';
 type SalesSubCategory = 'all' | 'tat_mixto' | 'punto_venta' | 'contabilidad_finanzas' | 'gerencia_proyectos' | 'b2b_empresarial';
@@ -225,6 +226,7 @@ export function ColombiaSalesCommercialBoard() {
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+      <JobPostingJsonLd jobs={sortedJobs} />
       
       {/* Hero Banner Especial Ventas, Comercial & Contabilidad */}
       <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl relative overflow-hidden">
