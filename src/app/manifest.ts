@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'CamelloOnline | Bolsa de Empleo Colombia & Trabajo Remoto',
+    name: 'CamelloOnline | Empleo Colombia & Trabajo Remoto',
     short_name: 'CamelloOnline',
     description: 'Encuentra camello verificado en Colombia: Tech, Ventas, IA y Trabajo Remoto en Dólares.',
     start_url: '/',

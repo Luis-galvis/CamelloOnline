@@ -26,6 +26,7 @@ import { JobPost } from '@/types';
 import { detectJobCategory, detectTechCategory } from '@/lib/services/scrapers/category-detector';
 import { isTechJob } from '@/lib/services/scrapers/tech-filter';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
+import { detectContractType } from '@/lib/services/scrapers/contract-detector';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 export function ColombiaJobBoard() {
@@ -195,8 +196,14 @@ export function ColombiaJobBoard() {
 
       // 5. Filtro de Tipo de Contrato
       if (selectedContract !== 'all') {
-        const cType = job.contractType || 'indefinido';
-        if (selectedContract !== cType) return false;
+        const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+        if (selectedContract === 'indefinido') {
+          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
+            return false;
+          }
+        } else {
+          if (selectedContract !== cType) return false;
+        }
       }
 
       // 6. Filtro de Salario
@@ -356,50 +363,8 @@ export function ColombiaJobBoard() {
   const totalLinkedInPostsCount = useMemo(() => techJobs.filter(isJobLinkedInPost).length, [techJobs]);
 
   return (
-    <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-2">
       <JobPostingJsonLd jobs={sortedJobs} />
-      
-      {/* Header Banner - Clean, Professional & Sober */}
-      <section className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Colombia · {totalTechCount} ofertas Tech activas (+{totalLinkedInPostsCount} posts directos de reclutadores)</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Ofertas de Empleo en Tecnología, Datos & Software
-            </h1>
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Explora vacantes verificadas en Desarrollo, Analítica de Datos, Inteligencia Artificial, QA y Cloud — incluyendo publicaciones directas de reclutadores en LinkedIn con correos de contacto directo.
-            </p>
-          </div>
-
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0">
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-center">
-              <span className="text-[10px] text-slate-500 block font-medium">💬 Posts Reclutadores</span>
-              <span className="text-base sm:text-lg font-bold text-indigo-700">{totalLinkedInPostsCount}</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-center">
-              <span className="text-[10px] text-slate-500 block font-medium">Datos & IA</span>
-              <span className="text-base sm:text-lg font-bold text-sky-700">{totalDataAiCount}</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-center">
-              <span className="text-[10px] text-slate-500 block font-medium">QA & Testing</span>
-              <span className="text-base sm:text-lg font-bold text-amber-700">{totalQaCount}</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-center">
-              <span className="text-[10px] text-slate-500 block font-medium">Sin Experiencia</span>
-              <span className="text-base sm:text-lg font-bold text-emerald-700">{totalZeroExpCount}</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-center">
-              <span className="text-[10px] text-slate-500 block font-medium">Remoto</span>
-              <span className="text-base sm:text-lg font-bold text-slate-900">{totalRemoteCount}</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Search & Comprehensive Filters */}
       <section className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">

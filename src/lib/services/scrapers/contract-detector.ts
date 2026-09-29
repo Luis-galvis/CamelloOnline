@@ -102,9 +102,10 @@ export function detectContractType(
     };
   }
 
-  // 5. Término Indefinido
+  // 5. Término Indefinido (directo, indefinido, nómina, prestaciones de ley, full time, planta)
   if (
     combined.includes('indefinido') ||
+    combined.includes('indefinida') ||
     combined.includes('termino indefinido') ||
     combined.includes('término indefinido') ||
     combined.includes('a termino indefinido') ||
@@ -115,8 +116,18 @@ export function detectContractType(
     combined.includes('directo con la empresa') ||
     combined.includes('contratacion directa') ||
     combined.includes('contratación directa') ||
+    combined.includes('vinculacion directa') ||
+    combined.includes('vinculación directa') ||
+    combined.includes('de planta') ||
+    combined.includes('nomina') ||
+    combined.includes('nómina') ||
+    combined.includes('prestaciones de ley') ||
+    combined.includes('todas las prestaciones') ||
     combined.includes('permanent') ||
-    combined.includes('indefinite')
+    combined.includes('indefinite') ||
+    combined.includes('tiempo completo') ||
+    combined.includes('full time') ||
+    combined.includes('full-time')
   ) {
     return {
       contractType: 'indefinido',
@@ -124,9 +135,9 @@ export function detectContractType(
     };
   }
 
-  // Si no está especificado explícitamente en el texto
+  // Si no está especificado explícitamente en el texto, por defecto en empleos formales en Colombia es indefinido/directo
   return {
-    contractType: 'no_especificado',
-    contractTypeLabel: 'A convenir / No especificado'
+    contractType: 'indefinido',
+    contractTypeLabel: 'Término Indefinido / Directo'
   };
 }

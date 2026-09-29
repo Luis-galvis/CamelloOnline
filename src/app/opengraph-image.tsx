@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'CamelloOnline - Bolsa de Empleo Colombia & Trabajo Remoto';
+export const alt = 'CamelloOnline - Portal de Empleo Colombia & Trabajo Remoto';
 export const size = {
   width: 1200,
   height: 630,
@@ -72,7 +72,7 @@ export default async function Image() {
               textTransform: 'uppercase',
             }}
           >
-            Bolsa de Empleo & Trabajo Remoto
+            Portal de Empleo & Trabajo Remoto
           </span>
         </div>
 

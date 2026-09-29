@@ -5,9 +5,9 @@ export function WebSiteJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'CamelloOnline',
-    alternateName: ['Camello Online', 'CamelloOnline Colombia', 'Camello Online Bolsa de Empleo'],
+    alternateName: ['Camello Online', 'CamelloOnline Colombia', 'Camello Online Empleo'],
     url: 'https://www.camelloonline.com',
-    description: 'Bolsa de empleo y portal de trabajo remoto líder en Colombia. Vacantes verificadas en tecnología, ventas, IA y servicio al cliente.',
+    description: 'Portal de empleo y plataforma de trabajo remoto líder en Colombia. Vacantes verificadas en tecnología, ventas, IA y servicio al cliente.',
     inLanguage: 'es-CO',
     potentialAction: {
       '@type': 'SearchAction',
@@ -35,7 +35,7 @@ export function OrganizationJsonLd() {
     alternateName: 'CamelloOnline',
     url: 'https://www.camelloonline.com',
     logo: 'https://www.camelloonline.com/favicon.ico',
-    description: 'Plataforma y bolsa de trabajo digital que conecta talento colombiano con oportunidades de empleo presencial, híbrido y remoto en Colombia y el exterior.',
+    description: 'Plataforma y portal de trabajo digital que conecta talento colombiano con oportunidades de empleo presencial, híbrido y remoto en Colombia y el exterior.',
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'CO',
@@ -65,7 +65,7 @@ export function FaqJsonLd() {
         name: '¿Qué es CamelloOnline y cómo funciona?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'CamelloOnline es la bolsa de empleo moderna para Colombia y trabajo remoto internacional. Centraliza ofertas laborales reales y verificadas en áreas como Desarrollo de Software, Inteligencia Artificial, Ventas B2B, Soporte y Marketing, mostrando siempre requisitos y rangos salariales transparentes.',
+          text: 'CamelloOnline es el portal de empleo moderno para Colombia y trabajo remoto internacional. Centraliza ofertas laborales reales y verificadas en áreas como Desarrollo de Software, Inteligencia Artificial, Ventas B2B, Soporte y Marketing, mostrando siempre requisitos y rangos salariales transparentes.',
         },
       },
       {

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Empleos en Ventas, Comercial & SDR en Colombia',
-  description: 'Bolsa de empleo especializada en ventas y área comercial en Colombia: Asesores comerciales, SDR, BDR, ejecutivos de cuenta B2B y directores de ventas con altas comisiones.',
+  description: 'Portal de empleo especializado en ventas y área comercial en Colombia: Asesores comerciales, SDR, BDR, ejecutivos de cuenta B2B y directores de ventas con altas comisiones.',
   keywords: [
     'empleos ventas colombia',
     'vacantes asesor comercial bogota',

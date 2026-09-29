@@ -51,12 +51,17 @@ const NON_TECH_CATEGORIES = [
   { id: 'writing_content', label: '✍️ Redacción & Contenido', icon: PenTool },
 ];
 
+type LocationFilter = 'all' | 'remoto' | 'bogota' | 'medellin' | 'cali' | 'barranquilla' | 'bucaramanga' | 'ibague' | 'eje_cafetero';
+type ModalityFilter = 'all' | 'remote' | 'hybrid' | 'on_site';
+
 export function ColombiaGeneralRemoteBoard() {
   const { user, openAuthModal, signInWithGoogle } = useAuth();
   const { jobs: storeJobs } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NonTechCategoryFilter>('all');
+  const [selectedLocation, setSelectedLocation] = useState<LocationFilter>('all');
+  const [selectedModality, setSelectedModality] = useState<ModalityFilter>('all');
   const [selectedExp, setSelectedExp] = useState<ExperienceFilter>('all');
   const [selectedContract, setSelectedContract] = useState<ContractFilter>('all');
   const [selectedLang, setSelectedLang] = useState<LanguageFilter>('all');
@@ -73,9 +78,6 @@ export function ColombiaGeneralRemoteBoard() {
 
     return sourceList
       .filter((job) => {
-        const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') || (job.displayLocation || '').toLowerCase().includes('remoto');
-        if (!isRem) return false;
-        
         // Exclude purely software developer roles to keep non-tech remote clean
         const isTechDev = job.category && TECH_CATEGORIES.has(job.category) && 
           /developer|software|ingeniero|devops|fullstack|frontend|backend|programad/i.test(job.title || '');
@@ -126,6 +128,9 @@ export function ColombiaGeneralRemoteBoard() {
   // Filtered jobs
   const filteredJobs = useMemo(() => {
     return allRemoteJobs.filter((job) => {
+      const loc = ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase();
+      const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') || loc.includes('remoto');
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -140,6 +145,21 @@ export function ColombiaGeneralRemoteBoard() {
         return false;
       }
 
+      // Location
+      if (selectedLocation === 'remoto' && !isRem) return false;
+      if (selectedLocation === 'bogota' && !loc.includes('bogot')) return false;
+      if (selectedLocation === 'medellin' && !loc.includes('medell')) return false;
+      if (selectedLocation === 'cali' && !loc.includes('cali')) return false;
+      if (selectedLocation === 'barranquilla' && !loc.includes('barranquilla')) return false;
+      if (selectedLocation === 'bucaramanga' && !loc.includes('bucaramanga')) return false;
+      if (selectedLocation === 'ibague' && !loc.includes('ibag') && !loc.includes('tolima')) return false;
+      if (selectedLocation === 'eje_cafetero' && !loc.includes('pereira') && !loc.includes('manizales') && !loc.includes('armenia')) return false;
+
+      // Modality
+      if (selectedModality === 'remote' && !isRem) return false;
+      if (selectedModality === 'hybrid' && (isRem || job.workModality !== 'hybrid')) return false;
+      if (selectedModality === 'on_site' && (isRem || job.workModality === 'hybrid')) return false;
+
       // Experience Granular
       if (selectedExp !== 'all') {
         const tier = job.experienceTier || (job.isZeroExperience ? 'zero_exp' : job.maxYearsExperience <= 0.7 ? 'six_months' : job.maxYearsExperience <= 1.5 ? 'one_year' : job.maxYearsExperience <= 3.0 ? 'two_to_three' : job.maxYearsExperience <= 4.5 ? 'three_to_four' : 'more_than_five');
@@ -147,7 +167,16 @@ export function ColombiaGeneralRemoteBoard() {
       }
 
       // Contract
-      if (selectedContract !== 'all' && job.contractType !== selectedContract) return false;
+      if (selectedContract !== 'all') {
+        const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+        if (selectedContract === 'indefinido') {
+          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
+            return false;
+          }
+        } else {
+          if (selectedContract !== cType) return false;
+        }
+      }
 
       // Language
       if (selectedLang === 'spanish_only' && job.requiresEnglish) return false;
@@ -208,11 +237,13 @@ export function ColombiaGeneralRemoteBoard() {
       if (Math.abs(ageA - ageB) > 0.1) return ageA - ageB;
       return new Date(b.createdAt || b.scrapedAt || 0).getTime() - new Date(a.createdAt || a.scrapedAt || 0).getTime();
     });
-  }, [allRemoteJobs, searchQuery, selectedCategory, selectedExp, selectedContract, selectedLang, selectedSalary, selectedApplicantTier, sortBy]);
+  }, [allRemoteJobs, searchQuery, selectedCategory, selectedLocation, selectedModality, selectedExp, selectedContract, selectedLang, selectedSalary, selectedApplicantTier, sortBy]);
 
   const resetAllFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
+    setSelectedLocation('all');
+    setSelectedModality('all');
     setSelectedExp('all');
     setSelectedContract('all');
     setSelectedLang('all');
@@ -222,48 +253,13 @@ export function ColombiaGeneralRemoteBoard() {
   };
 
   const hasActiveFilters = 
-    searchQuery || selectedCategory !== 'all' || selectedExp !== 'all' || 
+    searchQuery || selectedCategory !== 'all' || selectedLocation !== 'all' || selectedModality !== 'all' || selectedExp !== 'all' || 
     selectedContract !== 'all' || selectedLang !== 'all' || selectedSalary !== 'all' || 
     selectedApplicantTier !== 'all' || sortBy !== 'newest';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-2">
       <JobPostingJsonLd jobs={filteredJobs} />
-      
-      {/* Header Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none flex items-center pr-8">
-          <Globe className="w-80 h-80 text-white" />
-        </div>
-
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-4 border border-emerald-400/30">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            100% Remoto en Colombia · Sin Código / No-Tech
-          </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-            Empleos Remotos en Colombia (No-Tech)
-          </h1>
-          <p className="mt-2.5 text-sm sm:text-base text-slate-300 leading-relaxed">
-            Vacantes 100% remotas verificadas para trabajar desde cualquier ciudad de Colombia en 
-            <strong className="text-white"> Atención al Cliente, Ventas, Marketing Digital, Asistentes Virtuales, Recursos Humanos y Finanzas</strong>.
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-xs">
-            <div className="bg-slate-800/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{allRemoteJobs.length} ofertas remotas</span>
-            </div>
-            <div className="bg-slate-800/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-              <span>{zeroExpTotal} sin experiencia previa</span>
-            </div>
-            <div className="bg-slate-800/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 font-medium">
-              <span>🇨🇴 {spanishTotal} en Español</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Search & Category Navigation */}
       <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-4">
@@ -337,8 +333,47 @@ export function ColombiaGeneralRemoteBoard() {
         </div>
 
         {/* Detailed Filter Selectors */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-2 border-t border-slate-100 text-xs">
           
+          {/* Ubicación */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Ubicación</label>
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value as LocationFilter)}
+              className={`w-full py-1.5 px-2.5 border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                selectedLocation !== 'all' ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-900' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <option value="all">Toda Colombia</option>
+              <option value="remoto">100% Remoto</option>
+              <option value="bogota">Bogotá, D.C.</option>
+              <option value="medellin">Medellín</option>
+              <option value="cali">Cali</option>
+              <option value="barranquilla">Barranquilla</option>
+              <option value="bucaramanga">Bucaramanga</option>
+              <option value="ibague">Ibagué / Tolima</option>
+              <option value="eje_cafetero">Eje Cafetero</option>
+            </select>
+          </div>
+
+          {/* Modalidad */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Modalidad</label>
+            <select
+              value={selectedModality}
+              onChange={(e) => setSelectedModality(e.target.value as ModalityFilter)}
+              className={`w-full py-1.5 px-2.5 border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                selectedModality !== 'all' ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-900' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <option value="all">Todas modalidades</option>
+              <option value="remote">100% Remoto</option>
+              <option value="hybrid">Híbrido</option>
+              <option value="on_site">Presencial</option>
+            </select>
+          </div>
+
           {/* Experience Filter */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Experiencia</label>
@@ -363,7 +398,9 @@ export function ColombiaGeneralRemoteBoard() {
             <select
               value={selectedContract}
               onChange={(e) => setSelectedContract(e.target.value as ContractFilter)}
-              className="w-full py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className={`w-full py-1.5 px-2.5 border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                selectedContract !== 'all' ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-900' : 'bg-slate-50 border-slate-200'
+              }`}
             >
               <option value="all">Todos los contratos</option>
               <option value="indefinido">Término Indefinido</option>

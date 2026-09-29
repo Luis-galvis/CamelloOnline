@@ -23,6 +23,30 @@ export default function robots(): MetadataRoute.Robots {
           '/admin',
           '/admin/*',
           '/api/',
+          '/candidate/*',
+          '/messages/*',
+        ],
+      },
+      {
+        userAgent: 'Bingbot',
+        allow: '/',
+        disallow: [
+          '/admin',
+          '/admin/*',
+          '/api/',
+          '/candidate/*',
+          '/messages/*',
+        ],
+      },
+      {
+        userAgent: 'Applebot',
+        allow: '/',
+        disallow: [
+          '/admin',
+          '/admin/*',
+          '/api/',
+          '/candidate/*',
+          '/messages/*',
         ],
       },
       {

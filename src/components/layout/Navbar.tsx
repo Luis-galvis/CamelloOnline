@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   RefreshCw, 
-  Zap, 
   CheckCircle2, 
   Sparkles,
   Laptop,
@@ -12,6 +11,7 @@ import {
   Store,
   LogOut
 } from 'lucide-react';
+import { CamelloIcon } from '@/components/brand/CamelloIcon';
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -62,7 +62,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
           <span className="inline-flex items-center gap-1.5 font-medium text-white text-[11px] sm:text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-            <span>🇨🇴 Bolsa de Empleo Colombia & Ibagué</span>
+            <span>🇨🇴 Ofertas de Empleo & Trabajo en Colombia e Ibagué</span>
           </span>
           <span className="hidden sm:inline text-slate-600">|</span>
           <span className="text-slate-400 hidden md:inline text-[11px] truncate">
@@ -94,8 +94,8 @@ export function Navbar() {
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-white font-black">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-white p-1">
+              <CamelloIcon className="w-6 h-6 text-white drop-shadow-xs" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -106,7 +106,7 @@ export function Navbar() {
                   🇨🇴
                 </span>
               </div>
-              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium leading-none hidden sm:block">Bolsa de Empleo Colombia</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium leading-none hidden sm:block">Trabajos y Empleos en Colombia</p>
             </div>
           </Link>
 

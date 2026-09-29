@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import { useAppStore } from '@/lib/store';
 import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
+import { detectContractType } from '@/lib/services/scrapers/contract-detector';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'highest_salary' | 'lowest_salary' | 'ibague_first';
@@ -135,8 +136,14 @@ export function ColombiaSalesCommercialBoard() {
 
       // 4. Tipo de Contrato
       if (selectedContract !== 'all') {
-        const cType = job.contractType || 'indefinido';
-        if (selectedContract !== cType) return false;
+        const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+        if (selectedContract === 'indefinido') {
+          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
+            return false;
+          }
+        } else {
+          if (selectedContract !== cType) return false;
+        }
       }
 
       // 5. Búsqueda por texto libre
@@ -225,77 +232,8 @@ export function ColombiaSalesCommercialBoard() {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-2">
       <JobPostingJsonLd jobs={sortedJobs} />
-      
-      {/* Hero Banner Especial Ventas, Comercial & Contabilidad */}
-      <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl relative overflow-hidden">
-        <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Sección Especial: Ventas, Coordinación Comercial, Contabilidad & Finanzas</span>
-          </div>
-
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-            Camello en Ventas, Canales TAT, Puntos de Venta & Contabilidad
-          </h1>
-
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Ofertas reales y verificadas en <strong>Computrabajo</strong>, <strong>Jobleads</strong>, <strong>LinkedIn</strong> y empresas directas para <strong>Jefes y Coordinadores de Canal Mixto y TAT</strong>, <strong>Supervisión de Puntos de Venta</strong>, <strong>Contadoras Públicas (Costos y Presupuestos)</strong> y <strong>Gerencia Comercial</strong> en <strong>Ibagué - Tolima</strong>.
-          </p>
-
-          {/* Quick Stats Pills */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <button
-              onClick={() => { setSelectedLocation('ibague'); setSelectedCategory('all'); }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                selectedLocation === 'ibague'
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-md scale-105'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-amber-300 border-amber-500/30'
-              }`}
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>📍 Ibagué / Tolima ({totalIbagueCount} ofertas reales)</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCategory('tat_mixto')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                selectedCategory === 'tat_mixto'
-                  ? 'bg-indigo-500 text-white border-indigo-400 shadow-md'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-              }`}
-            >
-              <Store className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Canal TAT, Mixto & Distributivo</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCategory('punto_venta')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                selectedCategory === 'punto_venta'
-                  ? 'bg-purple-500 text-white border-purple-400 shadow-md'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 text-purple-400" />
-              <span>Puntos de Venta & Tiendas</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCategory('contabilidad_finanzas')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-                selectedCategory === 'contabilidad_finanzas'
-                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-md'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-              }`}
-            >
-              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Contabilidad & Costos</span>
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Subcategory Navigation Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -356,7 +294,7 @@ export function ColombiaSalesCommercialBoard() {
           </div>
 
           {/* Modality Selector */}
-          <div className="w-full md:w-44">
+          <div className="w-full md:w-40">
             <select
               value={selectedModality}
               onChange={(e) => setSelectedModality(e.target.value as ModalityFilter)}
@@ -364,8 +302,26 @@ export function ColombiaSalesCommercialBoard() {
             >
               <option value="all">🏢 Modalidad</option>
               <option value="on_site">Presencial</option>
-              <option value="hybrid">Híbrido / Home Office</option>
+              <option value="hybrid">Híbrido / Casa</option>
               <option value="remote">Remoto 100%</option>
+            </select>
+          </div>
+
+          {/* Contract Selector */}
+          <div className="w-full md:w-44">
+            <select
+              value={selectedContract}
+              onChange={(e) => setSelectedContract(e.target.value as ContractFilter)}
+              className={`w-full px-3 py-2.5 rounded-xl border text-xs font-semibold focus:outline-none transition-all cursor-pointer ${
+                selectedContract !== 'all' ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              <option value="all">📝 Todos Contratos</option>
+              <option value="indefinido">Término Indefinido</option>
+              <option value="fijo">Término Fijo</option>
+              <option value="prestacion_servicios">Prestación Servicios</option>
+              <option value="obra_labor">Obra o Labor</option>
+              <option value="aprendizaje">Aprendizaje</option>
             </select>
           </div>
 

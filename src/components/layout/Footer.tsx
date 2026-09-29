@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Heart, Zap, MapPin, CheckCircle2, Globe, Briefcase, Users, HelpCircle, ShieldCheck } from 'lucide-react';
+import { Heart, MapPin, CheckCircle2, Globe, Briefcase, Users, HelpCircle, ShieldCheck } from 'lucide-react';
+import { CamelloIcon } from '@/components/brand/CamelloIcon';
 
 export function Footer() {
   return (
@@ -8,8 +9,8 @@ export function Footer() {
         {/* Brand & Mission */}
         <div className="md:col-span-2 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center text-white shadow-xs font-black">
-              <Zap className="w-4 h-4 fill-white" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center text-white shadow-xs p-1">
+              <CamelloIcon className="w-6 h-6 text-white" />
             </div>
             <span className="font-extrabold text-slate-900 text-lg tracking-tight">
               CAMELLO<span className="text-amber-600">ONLINE</span>
@@ -20,7 +21,7 @@ export function Footer() {
           </div>
           
           <p className="text-xs text-slate-600 max-w-md leading-relaxed">
-            La bolsa de empleo moderna para Colombia y trabajo remoto internacional. Centralizamos oportunidades reales y verificadas en Tech, Ventas, IA y Operaciones con transparencia en salarios y beneficios.
+            El portal de empleo inteligente para Colombia y trabajo remoto internacional. Centralizamos oportunidades reales y verificadas en Tech, Ventas, IA y Operaciones con transparencia en salarios y beneficios.
           </p>
 
           <div className="flex flex-wrap gap-2 pt-1">
@@ -165,7 +166,7 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="max-w-7xl mx-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-        <p>© 2026 CamelloOnline (camelloonline.com) - Bolsa de Empleo y Trabajo Remoto en Colombia.</p>
+        <p>© 2026 CamelloOnline (camelloonline.com) - Portal de Empleo y Trabajo Remoto en Colombia.</p>
         <p className="flex items-center gap-1">
           Hecho con pasión para el talento colombiano <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
         </p>
