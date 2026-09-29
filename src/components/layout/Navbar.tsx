@@ -56,36 +56,6 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
-      
-      {/* Top Context Banner */}
-      <div className="bg-slate-900 py-1.5 px-3 sm:px-6 lg:px-8 text-xs text-slate-300 flex items-center justify-between border-b border-slate-800">
-        <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
-          <span className="inline-flex items-center gap-1.5 font-medium text-white text-[11px] sm:text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-            <span>🇨🇴 Ofertas de Empleo & Trabajo en Colombia e Ibagué</span>
-          </span>
-          <span className="hidden sm:inline text-slate-600">|</span>
-          <span className="text-slate-400 hidden md:inline text-[11px] truncate">
-            Ofertas verificadas en Tech, Remoto No-Tech, Ventas, TAT y Contabilidad
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] sm:text-[11px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60 hidden sm:inline-flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            {jobs.length} Vacantes Verificadas
-          </span>
-          <button
-            onClick={handleTriggerSync}
-            disabled={isSyncing || isLoadingSupabase}
-            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-slate-700 transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-3 h-3 ${isSyncing || isLoadingSupabase ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
-            <span className="hidden xs:inline">{isSyncing || isLoadingSupabase ? 'Actualizando...' : 'Actualizar'}</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         
@@ -164,8 +134,17 @@ export function Navbar() {
             </Link>
           </nav>
 
-          {/* User Auth Section */}
+          {/* User Auth Section & Refresh */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <button
+              onClick={handleTriggerSync}
+              disabled={isSyncing || isLoadingSupabase}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Actualizar vacantes en vivo"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing || isLoadingSupabase ? 'animate-spin text-amber-600' : 'text-slate-500'}`} />
+            </button>
+
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
