@@ -35,9 +35,9 @@ async function reprocessAndCleanJobs() {
       continue;
     }
 
-    // Descartar enlace 404 conocido de WeRemoto
-    if (job.id === 'weremoto-ykk617fe') {
-      rejectedReasons['weremoto_dead_link'] = (rejectedReasons['weremoto_dead_link'] || 0) + 1;
+    // Descartar enlace 404 conocido de WeRemoto o LinkedIn expirado
+    if (job.id === 'weremoto-ykk617fe' || job.id === 'linkedin-4472459200') {
+      rejectedReasons['dead_link'] = (rejectedReasons['dead_link'] || 0) + 1;
       continue;
     }
 
@@ -46,6 +46,16 @@ async function reprocessAndCleanJobs() {
     if (!locNorm.isColombiaValid) {
       rejectedReasons['foreign_location'] = (rejectedReasons['foreign_location'] || 0) + 1;
       continue;
+    }
+
+    // Corregir descripciones que solo tenían la fecha (ej. "Hace 17 horas")
+    if (job.id === 'computrabajo-663239A2FD46020961373E686DCF3405' || /emtelco/i.test(job.companyName)) {
+      job.description = `Oportunidad de empleo en emtelco para Asesor de soporte técnico con o sin experiencia. Salario: $2.000.000 COP mensual con todas las prestaciones sociales. Tipo de contrato: Contrato de Obra o labor. Modalidad: Presencial en Medellín, teletrabajo después del primer mes.`;
+      job.displayLocation = 'Medellín · Híbrido';
+      job.workModality = 'hybrid';
+      job.isRemote = true;
+    } else if (!job.description || job.description.startsWith('Hace ') || job.description.length < 25) {
+      job.description = `Convocatoria laboral para el cargo de ${title} en ${job.companyName || 'Empresa Verificada'}. Ubicación: ${job.displayLocation || job.locationCity || 'Colombia'}. Salario: ${job.salaryDisplayText || 'No especificado en la oferta'}.`;
     }
 
     // 2. Re-evaluar con los detectores mejorados

@@ -100,6 +100,14 @@ export function ColombiaJobBoard() {
     if (!url || url.includes('{{') || url.includes('undefined')) {
       return `https://www.google.com/search?q=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || '') + ' vacante empleo Colombia')}`;
     }
+    // Clean recruiter post search URLs on LinkedIn to ensure matches
+    if (url.includes('linkedin.com/search/results/')) {
+      const cleanKeywords = (job.postAuthor ? `${job.postAuthor} ${job.companyName}` : `${job.companyName} ${job.title}`)
+        .replace(/[&()#|]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(cleanKeywords)}&origin=GLOBAL_SEARCH_HEADER`;
+    }
     // Standardize co.linkedin.com to www.linkedin.com for max compatibility
     if (url.includes('co.linkedin.com/jobs/view/')) {
       return url.replace('co.linkedin.com', 'www.linkedin.com');

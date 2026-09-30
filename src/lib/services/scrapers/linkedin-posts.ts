@@ -454,8 +454,12 @@ export async function scrapeLinkedInPosts(): Promise<ColombiaScrapedJob[]> {
     const displayLoc = isRemoteFinal ? 'Remoto (Colombia)' : (locNorm.displayLocation || 'Colombia');
     const postedDate = new Date(Date.now() - post.postedDaysAgo * 86400000);
 
-    // Working LinkedIn search URL fallback showing actual recruiter content
-    const verifiedLinkedinUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(post.companyName + ' ' + post.roleTitle)}&origin=GLOBAL_SEARCH_HEADER`;
+    // Clean, high-match LinkedIn query using recruiter name + company or short title (no parens or special chars)
+    const cleanSearchQuery = (post.authorName ? `${post.authorName} ${post.companyName}` : `${post.companyName} ${post.roleTitle}`)
+      .replace(/[&()#|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const verifiedLinkedinUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(cleanSearchQuery)}&origin=GLOBAL_SEARCH_HEADER`;
 
     const isZeroExp = Boolean(post.isZeroExperience || expRes.isZeroExperience);
 

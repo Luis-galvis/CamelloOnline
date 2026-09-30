@@ -148,19 +148,23 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
                          articleHtml.match(/<p[^>]*class="[^"]*fs14[^"]*">\s*<span[^>]*>([\s\S]*?)<\/span>/i);
         const rawLocation = locMatch ? decodeHtmlEntities(locMatch[1].replace(/<[^>]*>/g, '').trim()) : (isUrlRemote ? 'Remoto (Colombia)' : 'Colombia');
 
-        const descMatch = articleHtml.match(/<p[^>]*class="[^"]*text-show-more[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
-                          articleHtml.match(/<p[^>]*class="[^"]*fs13[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
-        const snippet = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
+        const descMatch = articleHtml.match(/<p[^>]*class="[^"]*(?:build_text|text-show-more|dFlx|mb10|fc_base)[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
+                          articleHtml.match(/<p[^>]*class="[^"]*fs14[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        let snippet = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]*>/g, '').trim()) : '';
+        if (!snippet || snippet.startsWith('Hace ') || snippet.length < 20) {
+          const stripped = decodeHtmlEntities(articleHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+          snippet = stripped.slice(0, 300);
+        }
 
         // Determine remote modality accurately
         const isLocationExplicitRemote = /remot[oa]|teletrabajo|desde\s*casa|home\s*office|wfh/i.test(rawLocation);
-        const hasRemoteInText = /remot[oa]|remote|teletrabajo|desde\s*casa|home\s*office|100%\s*remot[oa]|wfh/i.test(`${title} ${snippet}`);
+        const hasRemoteInText = /remot[oa]|remote|teletrabajo|desde\s*casa|home\s*office|100%\s*remot[oa]|wfh/i.test(`${title} ${snippet} ${articleHtml}`);
         const isRemoteFinal = isLocationExplicitRemote || hasRemoteInText || (isUrlRemote && !/bogot|medell|cali|barranquilla|ibagu|bucaramanga|cartagena|pereira|manizales|armenia|neiva|cucuta|estrella|bello|itagui|envigado/i.test(rawLocation));
 
         const locationNorm = normalizeLocation(rawLocation, `${title} ${snippet}`);
         if (!locationNorm.isColombiaValid && !isRemoteFinal) continue;
 
-        const expResult = detectExperience(title, snippet, { isZeroExpSearch: isUrlZeroExp, query: url });
+        const expResult = detectExperience(title, `${snippet} ${articleHtml}`, { isZeroExpSearch: isUrlZeroExp, query: url });
         if (!expResult.isEligible) continue;
 
         const isZeroExpFinal = isUrlZeroExp || expResult.isZeroExperience;
@@ -168,9 +172,10 @@ export async function scrapeComputrabajoColombia(): Promise<ColombiaScrapedJob[]
 
         const salaryResult = extractSalary(articleHtml, title);
         const englishResult = detectEnglishRequirement(title, `${snippet} ${articleHtml}`);
-        const contractResult = detectContractType(title, articleHtml, salaryResult.displayText || salaryResult.salaryDisplayText);
+        const fullOfferText = `${title} ${snippet} ${articleHtml}`;
+        const contractResult = detectContractType(title, fullOfferText, salaryResult.displayText || salaryResult.salaryDisplayText);
         
-        const catResult = detectJobCategory(title, snippet);
+        const catResult = detectJobCategory(title, `${snippet} ${articleHtml}`);
 
         const dateResult = extractPostedDate(articleHtml, `${title} ${snippet}`);
         const skills = extractSkills(`${title} ${snippet}`);
