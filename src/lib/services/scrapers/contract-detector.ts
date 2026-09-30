@@ -22,7 +22,7 @@ export function detectContractType(
 ): ContractDetectionResult {
   const combined = `${title} ${description} ${extraInfo}`.toLowerCase();
 
-  // 1. Contrato de Aprendizaje / Prácticas / SENA / Pasante / Trainee
+  // 1. Contrato de Aprendizaje / Prácticas / SENA / Pasantía (estrictamente etapa formativa)
   const isSeniorTitle = /\b(senior|sr\.?|lead|principal|staff|architect|director|manager|gerente)\b/i.test(title);
   if (
     !isSeniorTitle && (
@@ -37,8 +37,8 @@ export function detectContractType(
       combined.includes('sena') ||
       combined.includes('etapa productiva') ||
       combined.includes('estudiante en practica') ||
-      /\b(internship|intern|interns|becario|trainee)\b/i.test(combined) ||
-      combined.includes('semillero')
+      combined.includes('estudiante en práctica') ||
+      /\b(internship|intern|interns|becario)\b/i.test(title)
     )
   ) {
     return {
@@ -60,7 +60,8 @@ export function detectContractType(
     combined.includes('obra / labor') ||
     combined.includes('mision') ||
     combined.includes('misión') ||
-    combined.includes('temporal')
+    combined.includes('temporal') ||
+    combined.includes('servicios temporales')
   ) {
     return {
       contractType: 'obra_labor',
@@ -109,39 +110,12 @@ export function detectContractType(
     };
   }
 
-  // 5. Término Indefinido (directo, indefinido, nómina, prestaciones de ley, planta)
-  // NOTA: No incluimos "full time" o "tiempo completo" porque eso es jornada, no tipo de contrato
-  if (
-    combined.includes('termino indefinido') ||
-    combined.includes('término indefinido') ||
-    combined.includes('a termino indefinido') ||
-    combined.includes('a término indefinido') ||
-    combined.includes('contrato a término indefinido') ||
-    combined.includes('contrato a termino indefinido') ||
-    combined.includes('contrato indefinido') ||
-    combined.includes('plazo indefinido') ||
-    combined.includes('tiempo indefinido') ||
-    combined.includes('indefinido') ||
-    combined.includes('indefinida') ||
-    combined.includes('directo con la empresa') ||
-    combined.includes('contratacion directa') ||
-    combined.includes('contratación directa') ||
-    combined.includes('vinculacion directa') ||
-    combined.includes('vinculación directa') ||
-    combined.includes('de planta') ||
-    combined.includes('indefinite') ||
-    combined.includes('permanent')
-  ) {
-    return {
-      contractType: 'indefinido',
-      contractTypeLabel: 'Término Indefinido'
-    };
-  }
-
-  // Si no está especificado explícitamente en el texto de la vacante, marcar como No especificado
+  // 5. Término Indefinido
+  // En el mercado laboral formal en Colombia, las vacantes profesionales, tecnológicas y corporativas
+  // representan vinculación directa a término indefinido por defecto legal.
   return {
-    contractType: 'no_especificado',
-    contractTypeLabel: 'A convenir / No especificado'
+    contractType: 'indefinido',
+    contractTypeLabel: 'Término Indefinido'
   };
 }
 
