@@ -28,10 +28,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('register');
 
   useEffect(() => {
+    // 0. Explicit OAuth hash handler for instant login upon redirect
+    const handleOAuthHash = async () => {
+      if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+        try {
+          const hash = window.location.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (data?.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              setIsLoading(false);
+              setIsAuthModalOpen(false);
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Error setting OAuth session from hash:', err);
+        }
+      }
+    };
+
+    handleOAuthHash();
+
     // 1. Get initial active session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
       setIsLoading(false);
 
       if (session?.user && typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
