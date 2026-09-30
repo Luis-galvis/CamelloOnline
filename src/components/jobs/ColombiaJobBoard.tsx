@@ -26,7 +26,8 @@ import { JobPost } from '@/types';
 import { detectJobCategory, detectTechCategory } from '@/lib/services/scrapers/category-detector';
 import { isTechJob } from '@/lib/services/scrapers/tech-filter';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
-import { detectContractType } from '@/lib/services/scrapers/contract-detector';
+import { detectContractType, getContractTypeLabel } from '@/lib/services/scrapers/contract-detector';
+import { calculateJobAgeHours } from '@/lib/services/scrapers/date-extractor';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 export function ColombiaJobBoard() {
@@ -89,40 +90,25 @@ export function ColombiaJobBoard() {
     return exp.experienceLabel;
   };
 
+  const getJobContractLabel = (job: JobPost): string => {
+    const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+    return getContractTypeLabel(cType, job.contractTypeLabel);
+  };
+
   const getResilientJobUrl = (job: JobPost): string => {
     const url = (job.sourceUrl || '').trim();
     if (!url || url.includes('{{') || url.includes('undefined')) {
       return `https://www.google.com/search?q=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || '') + ' vacante empleo Colombia')}`;
     }
-    // If it's a LinkedIn job without numeric ID, redirect to verified search
-    if (url.includes('linkedin.com/jobs/view/')) {
-      const hasNumericId = /\d{7,}/.test(url);
-      if (!hasNumericId) {
-        return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || ''))}&location=Colombia`;
-      }
+    // Standardize co.linkedin.com to www.linkedin.com for max compatibility
+    if (url.includes('co.linkedin.com/jobs/view/')) {
+      return url.replace('co.linkedin.com', 'www.linkedin.com');
     }
     return url;
   };
 
   const getJobAgeHours = (job: JobPost): number => {
-    const pText = (job.postedDateText || '').toLowerCase();
-    const numMatch = pText.match(/\d+/);
-    const n = numMatch ? parseInt(numMatch[0], 10) : 1;
-
-    if (pText.includes('min')) return n / 60;
-    if (pText.includes('hora') || pText.includes('hour')) return n;
-    if (pText.includes('hoy') || pText.includes('today') || pText.includes('just now')) return 2;
-    if (pText.includes('ayer') || pText.includes('yesterday')) return 24;
-    if (pText.includes('d[ií]a') || pText.includes('dia') || pText.includes('day')) return n * 24;
-    if (pText.includes('semana') || pText.includes('week')) return n * 7 * 24;
-    if (pText.includes('mes') || pText.includes('month')) return n * 30 * 24;
-
-    const dt = new Date(job.createdAt).getTime();
-    if (!isNaN(dt) && dt > 0) {
-      const diff = (Date.now() - dt) / 3600000;
-      return diff >= 0 ? diff : 24;
-    }
-    return 48;
+    return calculateJobAgeHours(job.postedDateText, job.createdAt);
   };
 
   // 1. Filtrar vacantes
@@ -830,8 +816,14 @@ export function ColombiaJobBoard() {
                         </span>
 
                         {/* Contract Type Badge */}
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                          {job.contractTypeLabel || 'A convenir / No especificado'}
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
+                          (job.contractType === 'indefinido' || getJobContractLabel(job) === 'Término Indefinido')
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : job.contractType === 'aprendizaje'
+                            ? 'bg-purple-50 text-purple-800 border-purple-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          {getJobContractLabel(job)}
                         </span>
 
                         {/* Modality Badge */}
@@ -1138,7 +1130,7 @@ export function ColombiaJobBoard() {
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Tipo de Contrato</span>
                 <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-                  {selectedJobModal.contractTypeLabel || 'Término Indefinido'}
+                  {getJobContractLabel(selectedJobModal)}
                 </span>
               </div>
 

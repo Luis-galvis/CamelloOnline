@@ -144,3 +144,24 @@ export function detectContractType(
     contractTypeLabel: 'A convenir / No especificado'
   };
 }
+
+export function getContractTypeLabel(contractType?: string, explicitLabel?: string): string {
+  if (explicitLabel && explicitLabel !== 'A convenir / No especificado' && explicitLabel.trim() !== '') {
+    return explicitLabel;
+  }
+  switch (contractType) {
+    case 'indefinido':
+      return 'Término Indefinido';
+    case 'fijo':
+      return 'Término Fijo';
+    case 'aprendizaje':
+      return 'Contrato de Aprendizaje (Prácticas)';
+    case 'prestacion_servicios':
+      return 'Prestación de Servicios';
+    case 'obra_labor':
+      return 'Obra o Labor';
+    case 'no_especificado':
+    default:
+      return 'A convenir / No especificado';
+  }
+}

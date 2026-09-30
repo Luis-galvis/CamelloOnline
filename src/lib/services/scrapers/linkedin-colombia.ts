@@ -233,9 +233,9 @@ function parseLinkedInHtml(
     const isZeroExpFinal = expResult.isZeroExperience;
     const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
 
-    const isLearningContract = /aprendiz|practicante|sena/i.test(title);
-    const contractType = isLearningContract ? 'aprendizaje' : 'indefinido';
-    const contractTypeLabel = isLearningContract ? 'Contrato de Aprendizaje (Prácticas)' : 'A convenir / No especificado';
+    const contractResult = detectContractType(title, cardHtml);
+    const contractType = contractResult.contractType;
+    const contractTypeLabel = contractResult.contractTypeLabel;
 
     const salaryResult = extractSalary(cardHtml, title);
     const englishResult = detectEnglishRequirement(title, `${companyName} ${rawLocation}`);
@@ -243,7 +243,7 @@ function parseLinkedInHtml(
     const applicantResult = extractApplicantCount(cardHtml);
     const skills = extractSkills(`${title} ${query}`);
 
-    const cleanSourceUrl = `https://co.linkedin.com/jobs/view/${sourceJobId}`;
+    const cleanSourceUrl = `https://www.linkedin.com/jobs/view/${sourceJobId}`;
 
     jobs.push({
       id: `linkedin-${sourceJobId}`,
@@ -276,7 +276,7 @@ function parseLinkedInHtml(
       englishLevel: englishResult.englishLevel,
       englishLevelLabel: englishResult.levelLabel,
       englishBadgeText: englishResult.badgeText,
-      seniority: isZeroExpFinal ? (isLearningContract ? 'intern' : 'trainee') : expResult.seniority,
+      seniority: isZeroExpFinal ? (contractType === 'aprendizaje' ? 'intern' : 'trainee') : expResult.seniority,
       maxYearsExperience: maxExpFinal,
       minYearsExperience: isZeroExpFinal ? 0 : (expResult.minYears ?? 0),
       isZeroExperience: isZeroExpFinal,

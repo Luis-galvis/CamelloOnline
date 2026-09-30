@@ -20,10 +20,11 @@ import { supabase } from './supabase';
 import { detectEnglishRequirement } from './services/scrapers/english-detector';
 import { extractSalary } from './services/scrapers/salary-extractor';
 import { normalizeLocation } from './services/scrapers/location-normalizer';
-import { detectContractType } from './services/scrapers/contract-detector';
+import { detectContractType, getContractTypeLabel } from './services/scrapers/contract-detector';
 import { detectJobCategory, detectTechCategory } from './services/scrapers/category-detector';
 import { detectExperience } from './services/scrapers/experience-detector';
 import { extractSkills } from './services/ats-ingestion';
+import { extractPostedDate } from './services/scrapers/date-extractor';
 
 const STORAGE_KEYS = {
   CANDIDATES: 'realjobs_colombia_cand_v10',
@@ -250,7 +251,7 @@ export function useAppStore() {
             displayLocation: cleanDisplayLoc,
             locationFilterKey: locResult.filterKey,
             contractType: contractRes.contractType,
-            contractTypeLabel: contractRes.contractTypeLabel,
+            contractTypeLabel: getContractTypeLabel(contractRes.contractType, contractRes.contractTypeLabel),
             category: catResult.category as any,
             categoryLabel: catResult.categoryLabel,
             experienceTier: expRes.experienceTier,
@@ -263,6 +264,7 @@ export function useAppStore() {
             isDirectRecruiterPost: isLiPost,
             applicantCountText: isLiPost ? '💬 Post Directo de Reclutador' : (isZeroExp ? '🌱 Sin Experiencia / Trainee' : 'Menos de 20 postulantes'),
             applicantTier: 'low',
+            postedDateText: extractPostedDate('', j.description || '').postedDateText || 'Reciente',
             createdAt: j.created_at
           };
         });

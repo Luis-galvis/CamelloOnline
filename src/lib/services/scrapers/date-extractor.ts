@@ -28,32 +28,32 @@ export function extractPostedDate(cardHtml: string = '', fullText: string = ''):
   let postedDate = new Date();
 
   if (rawText) {
-    const pLower = rawText.toLowerCase();
-    const numMatch = pLower.match(/\d+/);
+    const pNorm = rawText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const numMatch = pNorm.match(/\d+/);
     const n = numMatch ? parseInt(numMatch[0], 10) : 1;
 
-    if (pLower.includes('hora') || pLower.includes('hour')) {
+    if (pNorm.includes('hora') || pNorm.includes('hour')) {
       postedDate = new Date(Date.now() - n * 3600 * 1000);
       rawText = n === 1 ? 'Hace 1 hora' : `Hace ${n} horas`;
-    } else if (pLower.includes('d[ií]a') || pLower.includes('dia') || pLower.includes('day')) {
+    } else if (pNorm.includes('dia') || pNorm.includes('day')) {
       postedDate = new Date(Date.now() - n * 24 * 3600 * 1000);
       rawText = n === 1 ? 'Hace 1 día' : `Hace ${n} días`;
-    } else if (pLower.includes('semana') || pLower.includes('week')) {
+    } else if (pNorm.includes('semana') || pNorm.includes('week')) {
       postedDate = new Date(Date.now() - n * 7 * 24 * 3600 * 1000);
       rawText = n === 1 ? 'Hace 1 semana' : `Hace ${n} semanas`;
-    } else if (pLower.includes('mes') || pLower.includes('month')) {
+    } else if (pNorm.includes('mes') || pNorm.includes('month')) {
       postedDate = new Date(Date.now() - n * 30 * 24 * 3600 * 1000);
       rawText = n === 1 ? 'Hace 1 mes' : `Hace ${n} meses`;
-    } else if (pLower.includes('a[ñn]o') || pLower.includes('year')) {
+    } else if (pNorm.includes('ano') || pNorm.includes('year')) {
       postedDate = new Date(Date.now() - n * 365 * 24 * 3600 * 1000);
       rawText = n === 1 ? 'Hace 1 año' : `Hace ${n} años`;
-    } else if (pLower.includes('minut') || pLower.includes('min')) {
+    } else if (pNorm.includes('minut') || pNorm.includes('min')) {
       postedDate = new Date(Date.now() - n * 60 * 1000);
       rawText = `Hace ${n} min`;
-    } else if (pLower.includes('hoy') || pLower.includes('today') || pLower.includes('just now')) {
+    } else if (pNorm.includes('hoy') || pNorm.includes('today') || pNorm.includes('just now')) {
       postedDate = new Date(Date.now() - 2 * 3600 * 1000);
       rawText = 'Hoy';
-    } else if (pLower.includes('ayer') || pLower.includes('yesterday')) {
+    } else if (pNorm.includes('ayer') || pNorm.includes('yesterday')) {
       postedDate = new Date(Date.now() - 24 * 3600 * 1000);
       rawText = 'Ayer';
     }
@@ -89,4 +89,32 @@ export function extractPostedDate(cardHtml: string = '', fullText: string = ''):
     postedDate: postedDate,
     ageDays: ageDays
   };
+}
+
+/**
+ * Calcula con precisión matemática las horas de antigüedad de una vacante
+ * para garantizar un ordenamiento estricto de más reciente a más antigua.
+ */
+export function calculateJobAgeHours(postedDateText?: string, createdAt?: string | Date): number {
+  const pNorm = (postedDateText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const numMatch = pNorm.match(/\d+/);
+  const n = numMatch ? parseInt(numMatch[0], 10) : 1;
+
+  if (pNorm.includes('min')) return n / 60;
+  if (pNorm.includes('hora') || pNorm.includes('hour')) return n;
+  if (pNorm.includes('hoy') || pNorm.includes('today') || pNorm.includes('just now')) return 2;
+  if (pNorm.includes('ayer') || pNorm.includes('yesterday')) return 24;
+  if (pNorm.includes('dia') || pNorm.includes('day')) return n * 24;
+  if (pNorm.includes('semana') || pNorm.includes('week')) return n * 7 * 24;
+  if (pNorm.includes('mes') || pNorm.includes('month')) return n * 30 * 24;
+  if (pNorm.includes('ano') || pNorm.includes('year')) return n * 365 * 24;
+
+  if (createdAt) {
+    const dt = new Date(createdAt).getTime();
+    if (!isNaN(dt) && dt > 0) {
+      const diff = (Date.now() - dt) / 3600000;
+      return diff >= 0 ? diff : 24;
+    }
+  }
+  return 48;
 }

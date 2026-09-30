@@ -25,11 +25,12 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import { useAppStore } from '@/lib/store';
 import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
-import { detectContractType } from '@/lib/services/scrapers/contract-detector';
+import { detectContractType, getContractTypeLabel } from '@/lib/services/scrapers/contract-detector';
 import { detectNonTechCategory } from '@/lib/services/scrapers/non-tech-remote-colombia';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
 import { detectEnglishRequirement } from '@/lib/services/scrapers/english-detector';
 import { extractApplicantCount } from '@/lib/services/scrapers/applicant-extractor';
+import { calculateJobAgeHours } from '@/lib/services/scrapers/date-extractor';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'oldest' | 'highest_salary' | 'lowest_salary' | 'zero_exp_first';
@@ -197,31 +198,10 @@ export function ColombiaGeneralRemoteBoard() {
 
       return true;
     }).sort((a, b) => {
-      const getAgeHours = (j: any): number => {
-        const pText = (j.postedDateText || '').toLowerCase();
-        const numMatch = pText.match(/\d+/);
-        const n = numMatch ? parseInt(numMatch[0], 10) : 1;
-
-        if (pText.includes('min')) return n / 60;
-        if (pText.includes('hora') || pText.includes('hour')) return n;
-        if (pText.includes('hoy') || pText.includes('today') || pText.includes('just now')) return 2;
-        if (pText.includes('ayer') || pText.includes('yesterday')) return 24;
-        if (pText.includes('d[ií]a') || pText.includes('dia') || pText.includes('day')) return n * 24;
-        if (pText.includes('semana') || pText.includes('week')) return n * 7 * 24;
-        if (pText.includes('mes') || pText.includes('month')) return n * 30 * 24;
-
-        const dt = new Date(j.createdAt || j.scrapedAt).getTime();
-        if (!isNaN(dt) && dt > 0) {
-          const diff = (Date.now() - dt) / 3600000;
-          return diff >= 0 ? diff : 24;
-        }
-        return 48;
-      };
-
       if (sortBy === 'zero_exp_first') {
         if (a.isZeroExperience && !b.isZeroExperience) return -1;
         if (!a.isZeroExperience && b.isZeroExperience) return 1;
-        return getAgeHours(a) - getAgeHours(b);
+        return calculateJobAgeHours(a.postedDateText, a.createdAt || a.scrapedAt) - calculateJobAgeHours(b.postedDateText, b.createdAt || b.scrapedAt);
       }
       if (sortBy === 'highest_salary') {
         return (b.salaryMaxUsdEquivalent || 0) - (a.salaryMaxUsdEquivalent || 0);
@@ -230,14 +210,14 @@ export function ColombiaGeneralRemoteBoard() {
         return (a.salaryMinUsdEquivalent || 99999) - (b.salaryMinUsdEquivalent || 99999);
       }
       if (sortBy === 'oldest') {
-        const ageA = getAgeHours(a);
-        const ageB = getAgeHours(b);
+        const ageA = calculateJobAgeHours(a.postedDateText, a.createdAt || a.scrapedAt);
+        const ageB = calculateJobAgeHours(b.postedDateText, b.createdAt || b.scrapedAt);
         if (Math.abs(ageA - ageB) > 0.1) return ageB - ageA;
         return new Date(a.createdAt || a.scrapedAt || 0).getTime() - new Date(b.createdAt || b.scrapedAt || 0).getTime();
       }
       // newest
-      const ageA = getAgeHours(a);
-      const ageB = getAgeHours(b);
+      const ageA = calculateJobAgeHours(a.postedDateText, a.createdAt || a.scrapedAt);
+      const ageB = calculateJobAgeHours(b.postedDateText, b.createdAt || b.scrapedAt);
       if (Math.abs(ageA - ageB) > 0.1) return ageA - ageB;
       return new Date(b.createdAt || b.scrapedAt || 0).getTime() - new Date(a.createdAt || a.scrapedAt || 0).getTime();
     });

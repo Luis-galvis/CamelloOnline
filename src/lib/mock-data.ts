@@ -1,9 +1,10 @@
 import { CandidateProfile, JobPost, InboundRequest, Conversation, Company } from '@/types';
 import rawColombiaJobs from './scraped-colombia-jobs.json';
-import { detectContractType } from './services/scrapers/contract-detector';
+import { detectContractType, getContractTypeLabel } from './services/scrapers/contract-detector';
 import { detectJobCategory } from './services/scrapers/category-detector';
 import { detectExperience } from './services/scrapers/experience-detector';
 import { detectEnglishRequirement } from './services/scrapers/english-detector';
+import { calculateJobAgeHours } from './services/scrapers/date-extractor';
 
 function slugify(text: string): string {
   return (text || '')
@@ -102,31 +103,12 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
   // Calculate precise relative timestamp from postedDateText for consistent sorting
   const postedText = (job as any).postedDateText || 'Reciente';
   const BASE_TIME = 1758231700000; // Deterministic reference timestamp
-  let calculatedTimestamp = BASE_TIME - (idx * 60000);
-
-  if (postedText) {
-    const pLower = postedText.toLowerCase();
-    const numMatch = pLower.match(/\d+/);
-    const n = numMatch ? parseInt(numMatch[0], 10) : 1;
-
-    if (pLower.includes('min')) {
-      calculatedTimestamp = BASE_TIME - (n * 60 * 1000) - (idx * 1000);
-    } else if (pLower.includes('hora') || pLower.includes('hour')) {
-      calculatedTimestamp = BASE_TIME - (n * 3600 * 1000) - (idx * 1000);
-    } else if (pLower.includes('hoy') || pLower.includes('today') || pLower.includes('just now')) {
-      calculatedTimestamp = BASE_TIME - (2 * 3600 * 1000) - (idx * 1000);
-    } else if (pLower.includes('ayer') || pLower.includes('yesterday')) {
-      calculatedTimestamp = BASE_TIME - (24 * 3600 * 1000) - (idx * 1000);
-    } else if (pLower.includes('d[ií]a') || pLower.includes('dia') || pLower.includes('day')) {
-      calculatedTimestamp = BASE_TIME - (n * 24 * 3600 * 1000) - (idx * 1000);
-    } else if (pLower.includes('semana') || pLower.includes('week')) {
-      calculatedTimestamp = BASE_TIME - (n * 7 * 24 * 3600 * 1000) - (idx * 1000);
-    } else if (pLower.includes('mes') || pLower.includes('month')) {
-      calculatedTimestamp = BASE_TIME - (n * 30 * 24 * 3600 * 1000) - (idx * 1000);
-    }
-  }
-
+  const ageHours = calculateJobAgeHours(postedText);
+  const calculatedTimestamp = BASE_TIME - Math.round(ageHours * 3600 * 1000) - (idx * 1000);
   const finalCreatedAt = new Date(calculatedTimestamp).toISOString();
+
+  const finalContractType = job.contractType || contractRes.contractType;
+  const finalContractLabel = getContractTypeLabel(finalContractType, job.contractTypeLabel || contractRes.contractTypeLabel);
 
   return {
     id: job.id || `job-co-${idx}`,
@@ -166,8 +148,8 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     englishBadgeText: englishBadgeTextFinal,
     displayLocation: rawDisplayLoc,
     locationFilterKey: job.locationFilterKey || (isJobRem ? 'remoto_colombia' : 'colombia'),
-    contractType: job.contractType || contractRes.contractType,
-    contractTypeLabel: job.contractTypeLabel || contractRes.contractTypeLabel,
+    contractType: finalContractType,
+    contractTypeLabel: finalContractLabel,
     category: job.category || catRes.category,
     categoryLabel: job.categoryLabel || catRes.categoryLabel,
     experienceTier: isZeroExp ? 'zero_exp' : (job.experienceTier || expRes.experienceTier),
