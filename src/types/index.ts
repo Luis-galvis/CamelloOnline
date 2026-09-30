@@ -5,7 +5,9 @@ export type JuniorSeniorityLevel =
   | 'intern'        // Pasantías / Prácticas profesionales
   | 'junior'        // 0 - 1 año de experiencia
   | 'entry_level'   // 1 - 2 años de experiencia
-  | 'early_mid';    // Hasta 2 años de experiencia sólida
+  | 'early_mid'     // 2 - 4 años de experiencia
+  | 'mid'           // 3 - 4 años de experiencia
+  | 'senior';       // 5+ años de experiencia (Senior / Lead)
 
 export type EnglishLevel = 
   | 'no_english'

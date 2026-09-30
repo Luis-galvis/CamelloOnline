@@ -34,6 +34,7 @@ const STORAGE_KEYS = {
   ACTIVE_ROLE: 'realjobs_colombia_role_v10',
   ACTIVE_CANDIDATE_ID: 'realjobs_colombia_active_cand_v10',
   APPLIED_JOB_IDS: 'realjobs_colombia_applied_v10',
+  VIEWED_JOB_IDS: 'realjobs_colombia_viewed_v10',
 };
 
 export function useAppStore() {
@@ -45,6 +46,7 @@ export function useAppStore() {
   const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
   const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+  const [viewedJobIds, setViewedJobIds] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
 
@@ -73,6 +75,9 @@ export function useAppStore() {
 
       const savedApplied = localStorage.getItem(STORAGE_KEYS.APPLIED_JOB_IDS);
       if (savedApplied) setAppliedJobIds(JSON.parse(savedApplied));
+
+      const savedViewed = localStorage.getItem(STORAGE_KEYS.VIEWED_JOB_IDS);
+      if (savedViewed) setViewedJobIds(JSON.parse(savedViewed));
     } catch (e) {
       console.warn('LocalStorage error:', e);
       setJobs(INITIAL_JOB_POSTS);
@@ -164,8 +169,8 @@ export function useAppStore() {
           const emailMatch = (j.description || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
           const detectedEmail = emailMatch ? emailMatch[0] : undefined;
 
-          const isZeroExp = Boolean(j.is_zero_experience || expRes.isZeroExperience || expRes.maxYearsExperience === 0);
-          const expYears = isZeroExp ? 0 : (Number(j.max_years_experience_required) || expRes.maxYearsExperience || 1);
+          const isZeroExp = expRes.isZeroExperience;
+          const expYears = isZeroExp ? 0 : (expRes.maxYearsExperience || Number(j.max_years_experience_required) || 1);
 
           let roleSkills = skills;
           if (roleSkills.length === 0) {
@@ -222,7 +227,7 @@ export function useAppStore() {
             salaryMinUsd: Number(j.salary_min_usd) || 700,
             salaryMaxUsd: Number(j.salary_max_usd) || 1500,
             currency: j.currency || 'COP',
-            seniorityRequired: isZeroExp ? (j.seniority_required === 'intern' ? 'intern' : 'trainee') : (j.seniority_required || expRes.seniority || 'junior'),
+            seniorityRequired: isZeroExp ? (j.seniority_required === 'intern' ? 'intern' : 'trainee') : (expRes.seniority || j.seniority_required || 'junior'),
             englishRequired: j.english_required || 'no_english',
             maxYearsExperienceRequired: expYears,
             isZeroExperience: isZeroExp,
@@ -248,8 +253,8 @@ export function useAppStore() {
             contractTypeLabel: contractRes.contractTypeLabel,
             category: catResult.category as any,
             categoryLabel: catResult.categoryLabel,
-            experienceTier: isZeroExp ? 'zero_exp' : expRes.experienceTier,
-            experienceLabel: isZeroExp ? 'Sin experiencia previa' : expRes.experienceLabel,
+            experienceTier: expRes.experienceTier,
+            experienceLabel: expRes.experienceLabel,
             sourceName: sourceName,
             isLinkedInPost: isLiPost,
             postAuthor: isLiPost ? compName : undefined,
@@ -313,6 +318,18 @@ export function useAppStore() {
     }
   };
 
+  const markJobAsViewed = useCallback((jobId: string) => {
+    if (!jobId) return;
+    setViewedJobIds(prev => {
+      if (prev.includes(jobId)) return prev;
+      const updated = [...prev, jobId];
+      try {
+        localStorage.setItem(STORAGE_KEYS.VIEWED_JOB_IDS, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  }, []);
+
   const resetToSeed = () => {
     localStorage.clear();
     setCandidates(INITIAL_CANDIDATES);
@@ -321,6 +338,7 @@ export function useAppStore() {
     setConversations(INITIAL_CONVERSATIONS);
     setCompanies(INITIAL_COMPANIES);
     setAppliedJobIds([]);
+    setViewedJobIds([]);
     setActiveRole('candidate');
     setActiveCandidateId(INITIAL_CANDIDATES[0].id);
     refreshJobsFromSupabase();
@@ -368,7 +386,9 @@ export function useAppStore() {
     conversations,
     companies,
     appliedJobIds,
+    viewedJobIds,
     applyToJob,
+    markJobAsViewed,
     createInboundRequest,
     acceptInboundRequest,
     declineInboundRequest,

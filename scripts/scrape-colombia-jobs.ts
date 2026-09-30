@@ -57,6 +57,7 @@ async function runColombiaScraperPipeline() {
   console.log(`   - ATSs Directos (Rappi, Nubank, EPAM, Bitso, Scotiabank, etc.): ${report.sourcesBreakdown.ats}`);
   console.log(`   - Ventas, TAT, Puntos de Venta & Contabilidad: ${report.sourcesBreakdown.salesCommercial}`);
   console.log(`   - Jooble Colombia: ${report.sourcesBreakdown.jooble}`);
+  console.log(`   - Luk Colombia (takealuk.com): ${report.sourcesBreakdown.luk || 0}`);
   console.log(`   - Cajas Locales (Comfatolima, Comfenalco, Sena APE): ${report.sourcesBreakdown.localBoards}`);
   console.log(`   - ✨ Total Deduplicado en Colombia: ${report.totalDeduplicatedColombiaJobs}`);
   console.log(`   - 🏠 Vacantes 100% Remotas: ${report.remoteCount}`);

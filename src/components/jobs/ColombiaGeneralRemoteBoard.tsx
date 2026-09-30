@@ -35,7 +35,7 @@ import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 type SortOption = 'newest' | 'oldest' | 'highest_salary' | 'lowest_salary' | 'zero_exp_first';
 type NonTechCategoryFilter = 'all' | 'customer_service' | 'sales_commercial' | 'marketing_digital' | 'virtual_assistant_ops' | 'hr_recruiting' | 'finance_accounting' | 'writing_content';
 type ExperienceFilter = 'all' | 'zero_exp' | 'six_months' | 'one_year' | 'two_to_three' | 'three_to_four' | 'more_than_five';
-type ContractFilter = 'all' | 'indefinido' | 'fijo' | 'aprendizaje' | 'prestacion_servicios' | 'obra_labor';
+type ContractFilter = 'all' | 'indefinido' | 'fijo' | 'aprendizaje' | 'prestacion_servicios' | 'obra_labor' | 'no_especificado';
 type LanguageFilter = 'all' | 'spanish_only' | 'requires_english';
 type SalaryFilter = 'all' | 'disclosed_only';
 type ApplicantTierFilter = 'all' | 'low' | 'medium' | 'high';
@@ -56,7 +56,7 @@ type ModalityFilter = 'all' | 'remote' | 'hybrid' | 'on_site';
 
 export function ColombiaGeneralRemoteBoard() {
   const { user, openAuthModal, signInWithGoogle } = useAuth();
-  const { jobs: storeJobs } = useAppStore();
+  const { jobs: storeJobs, appliedJobIds, viewedJobIds, markJobAsViewed } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NonTechCategoryFilter>('all');
@@ -99,11 +99,11 @@ export function ColombiaGeneralRemoteBoard() {
           contractTypeLabel: job.contractTypeLabel || contractRes.contractTypeLabel,
           category: nonTechCat.category,
           categoryLabel: nonTechCat.categoryLabel,
-          isZeroExperience: job.isZeroExperience ?? expRes.isZeroExperience,
-          maxYearsExperience: job.isZeroExperience ? 0 : (job.maxYearsExperience ?? expRes.maxYearsExperience),
-          experienceTier: job.experienceTier || expRes.experienceTier,
-          experienceLabel: job.experienceLabel || expRes.experienceLabel,
-          seniority: job.seniority || expRes.seniority,
+          isZeroExperience: expRes.isZeroExperience,
+          maxYearsExperience: expRes.maxYearsExperience,
+          experienceTier: expRes.experienceTier,
+          experienceLabel: expRes.experienceLabel,
+          seniority: expRes.seniority,
           requiresEnglish: job.requiresEnglish ?? engRes.requiresEnglish,
           englishBadgeText: job.englishBadgeText || engRes.badgeText,
           applicantCountText: job.applicantCountText || appRes.applicantCountText,
@@ -162,17 +162,21 @@ export function ColombiaGeneralRemoteBoard() {
 
       // Experience Granular
       if (selectedExp !== 'all') {
-        const tier = job.experienceTier || (job.isZeroExperience ? 'zero_exp' : job.maxYearsExperience <= 0.7 ? 'six_months' : job.maxYearsExperience <= 1.5 ? 'one_year' : job.maxYearsExperience <= 3.0 ? 'two_to_three' : job.maxYearsExperience <= 4.5 ? 'three_to_four' : 'more_than_five');
-        if (tier !== selectedExp) return false;
+        if (selectedExp === 'zero_exp') {
+          if (!job.isZeroExperience) return false;
+        } else {
+          const tier = job.experienceTier || detectExperience(job.title, job.description || '').experienceTier;
+          if (tier !== selectedExp) return false;
+        }
       }
 
       // Contract
       if (selectedContract !== 'all') {
         const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
         if (selectedContract === 'indefinido') {
-          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
-            return false;
-          }
+          if (cType !== 'indefinido') return false;
+        } else if (selectedContract === 'no_especificado') {
+          if (cType !== 'no_especificado') return false;
         } else {
           if (selectedContract !== cType) return false;
         }
@@ -405,9 +409,10 @@ export function ColombiaGeneralRemoteBoard() {
               <option value="all">Todos los contratos</option>
               <option value="indefinido">Término Indefinido</option>
               <option value="fijo">Término Fijo</option>
-              <option value="aprendizaje">Aprendizaje / Prácticas</option>
-              <option value="prestacion_servicios">Prestación de Servicios</option>
               <option value="obra_labor">Obra o Labor</option>
+              <option value="prestacion_servicios">Prestación de Servicios</option>
+              <option value="aprendizaje">Aprendizaje / Prácticas</option>
+              <option value="no_especificado">A convenir / No especificado</option>
             </select>
           </div>
 
@@ -485,123 +490,160 @@ export function ColombiaGeneralRemoteBoard() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredJobs.slice(0, displayCount).map((job) => (
-              <div 
-                key={job.id}
-                className="bg-white rounded-2xl border border-slate-200/90 p-5 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group"
-              >
-                <div className="space-y-3">
-                  {/* Header: Company & Location */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
-                        {job.companyName?.slice(0, 2).toUpperCase() || 'EM'}
+            {filteredJobs.slice(0, displayCount).map((job) => {
+              const isApplied = appliedJobIds?.includes(job.id);
+              const isViewed = viewedJobIds?.includes(job.id);
+
+              return (
+                <div 
+                  key={job.id}
+                  className={`rounded-2xl border p-5 transition-all flex flex-col justify-between group ${
+                    isApplied
+                      ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-400 hover:shadow-md'
+                      : isViewed
+                      ? 'border-emerald-200/90 bg-emerald-50/25 hover:border-emerald-300 hover:shadow-sm'
+                      : 'bg-white border-slate-200/90 hover:border-emerald-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Header: Company & Location */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-10 h-10 rounded-xl font-bold flex items-center justify-center text-sm shrink-0 shadow-xs ${
+                          isApplied ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'
+                        }`}>
+                          {job.companyName?.slice(0, 2).toUpperCase() || 'EM'}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                            {job.companyName}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>100% Remoto (Colombia)</span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                          {job.companyName}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>100% Remoto (Colombia)</span>
-                        </p>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isApplied ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                            <span>Postulado</span>
+                          </span>
+                        ) : isViewed ? (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>Revisada</span>
+                          </span>
+                        ) : null}
+
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {job.categoryLabel || 'Remoto'}
+                        </span>
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                      {job.categoryLabel || 'Remoto'}
-                    </span>
-                  </div>
-
-                  {/* Badges Strip */}
-                  <div className="flex flex-wrap gap-1.5 text-[10px] font-medium">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200">
-                      {job.contractTypeLabel || 'Término Indefinido'}
-                    </span>
-
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                      100% Remoto
-                    </span>
-
-                    {/* Experience Badge */}
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
-                      {job.experienceLabel || (job.isZeroExperience ? 'Sin experiencia previa' : `${job.maxYearsExperience || 1} años de exp`)}
-                    </span>
-
-                    {/* English Badge */}
-                    <span className={`px-2 py-0.5 rounded-md font-semibold ${
-                      job.requiresEnglish 
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {job.requiresEnglish ? '🇬🇧 Requiere inglés' : '🇨🇴 Español'}
-                    </span>
-
-                    {/* Verified Applicant Count Badge */}
-                    {job.applicantCountText && (
-                      <span className={`px-2 py-0.5 rounded-md font-bold ${
-                        job.applicantTier === 'low' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {job.applicantCountText}
+                    {/* Badges Strip */}
+                    <div className="flex flex-wrap gap-1.5 text-[10px] font-medium">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                        {job.contractTypeLabel || 'A convenir / No especificado'}
                       </span>
-                    )}
 
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      {job.postedDateText || 'Reciente'}
-                    </span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+                        100% Remoto
+                      </span>
+
+                      {/* Experience Badge */}
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
+                        {job.experienceLabel || (job.isZeroExperience ? 'Sin experiencia previa' : `${job.maxYearsExperience || 1} años de exp`)}
+                      </span>
+
+                      {/* English Badge */}
+                      <span className={`px-2 py-0.5 rounded-md font-semibold ${
+                        job.requiresEnglish 
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {job.requiresEnglish ? '🇬🇧 Requiere inglés' : '🇨🇴 Español'}
+                      </span>
+
+                      {/* Verified Applicant Count Badge */}
+                      {job.applicantCountText && (
+                        <span className={`px-2 py-0.5 rounded-md font-bold ${
+                          job.applicantTier === 'low' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {job.applicantCountText}
+                        </span>
+                      )}
+
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        {job.postedDateText || 'Reciente'}
+                      </span>
+                    </div>
+
+                    {/* Job Title */}
+                    <div>
+                      <h3 
+                        onClick={() => {
+                          markJobAsViewed(job.id);
+                          setSelectedJob(job);
+                        }}
+                        className="font-bold text-slate-900 text-sm leading-snug group-hover:text-emerald-800 transition-colors cursor-pointer"
+                      >
+                        {job.title}
+                      </h3>
+                    </div>
+
+                    {/* Salary Snippet */}
+                    <div className="text-xs">
+                      {job.salaryDisclosed ? (
+                        <div className="font-bold text-emerald-700 flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5" />
+                          <span>{job.salaryDisplayText}</span>
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 text-[11px]">
+                          Salario: No especificado en la oferta
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Brief description */}
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      {job.description}
+                    </p>
                   </div>
 
-                  {/* Job Title */}
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm leading-snug group-hover:text-emerald-800 transition-colors">
-                      {job.title}
-                    </h3>
-                  </div>
+                  {/* Action Buttons */}
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => {
+                        markJobAsViewed(job.id);
+                        setSelectedJob(job);
+                      }}
+                      className="text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer py-1 px-2"
+                    >
+                      Ver detalle
+                    </button>
 
-                  {/* Salary Snippet */}
-                  <div className="text-xs">
-                    {job.salaryDisclosed ? (
-                      <div className="font-bold text-emerald-700 flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5" />
-                        <span>{job.salaryDisplayText}</span>
-                      </div>
-                    ) : (
-                      <div className="text-slate-400 text-[11px]">
-                        Salario: No especificado en la oferta
-                      </div>
-                    )}
+                    <a
+                      href={job.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => markJobAsViewed(job.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <span>Postularme</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
-
-                  {/* Brief description */}
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                    {job.description}
-                  </p>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedJob(job)}
-                    className="text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer py-1 px-2"
-                  >
-                    Ver detalle
-                  </button>
-
-                  <a
-                    href={job.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>Postularme</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Subtle Candidate Visibility Banner */}

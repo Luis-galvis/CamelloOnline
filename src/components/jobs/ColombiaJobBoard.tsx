@@ -30,7 +30,7 @@ import { detectContractType } from '@/lib/services/scrapers/contract-detector';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 export function ColombiaJobBoard() {
-  const { jobs } = useAppStore();
+  const { jobs, appliedJobIds, viewedJobIds, markJobAsViewed } = useAppStore();
   const { user, openAuthModal, signInWithGoogle } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,13 +68,8 @@ export function ColombiaJobBoard() {
   };
 
   const isJobZeroExp = (job: JobPost): boolean => {
-    if (job.isZeroExperience) return true;
-    if (job.experienceTier === 'zero_exp') return true;
     if (job.contractType === 'aprendizaje') return true;
     if (job.seniorityRequired === 'trainee' || job.seniorityRequired === 'intern') return true;
-    if (Number(job.maxYearsExperienceRequired) === 0) return true;
-    
-    // Evaluate via comprehensive detector
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.isZeroExperience;
   };
@@ -85,31 +80,19 @@ export function ColombiaJobBoard() {
   };
 
   const getJobExperienceTier = (job: JobPost): string => {
-    if (isJobZeroExp(job)) return 'zero_exp';
-    if (job.experienceTier && job.experienceTier !== 'zero_exp') return job.experienceTier;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.experienceTier;
   };
 
   const getJobExperienceLabel = (job: JobPost): string => {
-    if (isJobZeroExp(job)) return 'Sin experiencia previa';
-    if (job.experienceLabel && job.experienceLabel !== 'Sin experiencia previa') return job.experienceLabel;
-    const tier = getJobExperienceTier(job);
-    switch (tier) {
-      case 'zero_exp': return 'Sin experiencia previa';
-      case 'six_months': return '6 meses de exp';
-      case 'one_year': return '1 año de exp';
-      case 'two_to_three': return '2 a 3 años de exp';
-      case 'three_to_four': return '3 a 4 años de exp';
-      case 'more_than_five': return '5+ años de exp';
-      default: return '1 año de exp';
-    }
+    const exp = detectExperience(job.title || '', job.description || '');
+    return exp.experienceLabel;
   };
 
   const getResilientJobUrl = (job: JobPost): string => {
     const url = (job.sourceUrl || '').trim();
     if (!url || url.includes('{{') || url.includes('undefined')) {
-      return `https://www.google.com/search?q=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || '') + ' empleo Colombia')}`;
+      return `https://www.google.com/search?q=${encodeURIComponent((job.companyName || '') + ' ' + (job.title || '') + ' vacante empleo Colombia')}`;
     }
     // If it's a LinkedIn job without numeric ID, redirect to verified search
     if (url.includes('linkedin.com/jobs/view/')) {
@@ -144,12 +127,9 @@ export function ColombiaJobBoard() {
 
   // 1. Filtrar vacantes
   const filteredJobs = useMemo(() => {
-    const now = Date.now();
-
     return jobs.filter(job => {
       const isRemote = isJobRemote(job);
       const isZero = isJobZeroExp(job);
-      const yoe = Number(job.maxYearsExperienceRequired) || 0;
       const cat = getJobCategory(job);
 
       // 1. Filtro de Categoría / Especialidad Tech (Data, AI, QA, Dev, etc.)
@@ -190,17 +170,21 @@ export function ColombiaJobBoard() {
 
       // 4. Filtro de Experiencia Granular (0 exp, 6 meses, 1 año, 2-3 años, 3-4 años, 5+ años)
       if (selectedExperience !== 'all') {
-        const tier = getJobExperienceTier(job);
-        if (selectedExperience !== tier) return false;
+        if (selectedExperience === 'zero_exp') {
+          if (!isZero) return false;
+        } else {
+          const tier = getJobExperienceTier(job);
+          if (selectedExperience !== tier) return false;
+        }
       }
 
       // 5. Filtro de Tipo de Contrato
       if (selectedContract !== 'all') {
         const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
         if (selectedContract === 'indefinido') {
-          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
-            return false;
-          }
+          if (cType !== 'indefinido') return false;
+        } else if (selectedContract === 'no_especificado') {
+          if (cType !== 'no_especificado') return false;
         } else {
           if (selectedContract !== cType) return false;
         }
@@ -221,19 +205,13 @@ export function ColombiaJobBoard() {
         if (selectedApplicantTier !== tier) return false;
       }
 
-      // 9. Filtro de Fecha de publicación (máximo 21 días / 3 semanas)
-      if (job.postedDateText) {
-        const pL = job.postedDateText.toLowerCase();
-        if (pL.includes('mes') || pL.includes('month') || pL.includes('año') || pL.includes('year')) {
-          return false;
-        }
+      // 9. Filtro de Fecha de publicación
+      if (selectedFreshness !== 'all') {
+        const ageHours = getJobAgeHours(job);
+        if (selectedFreshness === 'today' && ageHours > 24) return false;
+        if (selectedFreshness === '3days' && ageHours > 72) return false;
+        if (selectedFreshness === '7days' && ageHours > 168) return false;
       }
-      const ageHours = getJobAgeHours(job);
-      if (ageHours > 21 * 24) return false;
-
-      if (selectedFreshness === 'today' && ageHours > 24) return false;
-      if (selectedFreshness === '3days' && ageHours > 72) return false;
-      if (selectedFreshness === '7days' && ageHours > 168) return false;
 
       // 10. Filtro de Tipo de Publicación (Posts de Reclutadores / LinkedIn vs Tableros Tradicionales)
       if (selectedPostType === 'posts_only') {
@@ -490,9 +468,10 @@ export function ColombiaJobBoard() {
               <option value="all">Todos los contratos</option>
               <option value="indefinido">Término Indefinido</option>
               <option value="fijo">Término Fijo</option>
-              <option value="aprendizaje">Aprendizaje / Prácticas</option>
-              <option value="prestacion_servicios">Prestación de Servicios</option>
               <option value="obra_labor">Obra o Labor</option>
+              <option value="prestacion_servicios">Prestación de Servicios</option>
+              <option value="aprendizaje">Aprendizaje / Prácticas</option>
+              <option value="no_especificado">A convenir / No especificado</option>
             </select>
           </div>
 
@@ -756,17 +735,22 @@ export function ColombiaJobBoard() {
           <div className="space-y-3">
             {visibleJobs.map((job) => {
               const isRem = isJobRemote(job);
-              const isZero = isJobZeroExp(job);
               const cat = getJobCategory(job);
               const isLiPost = isJobLinkedInPost(job);
+              const isApplied = appliedJobIds?.includes(job.id);
+              const isViewed = viewedJobIds?.includes(job.id);
 
               return (
                 <div
                   key={job.id}
-                  className={`bg-white rounded-xl p-5 border transition-all duration-150 flex flex-col justify-between gap-4 ${
-                    isLiPost 
-                      ? 'border-indigo-200/80 bg-gradient-to-r from-white via-indigo-50/20 to-white hover:border-indigo-300 hover:shadow-md' 
-                      : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  className={`rounded-xl p-5 border transition-all duration-150 flex flex-col justify-between gap-4 ${
+                    isApplied
+                      ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-400 hover:shadow-md'
+                      : isViewed
+                      ? 'border-emerald-200/90 bg-emerald-50/25 hover:border-emerald-300 hover:shadow-sm'
+                      : isLiPost 
+                      ? 'bg-white border-indigo-200/80 bg-gradient-to-r from-white via-indigo-50/20 to-white hover:border-indigo-300 hover:shadow-md' 
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
                   }`}
                 >
                   <div className="space-y-3">
@@ -776,7 +760,7 @@ export function ColombiaJobBoard() {
                       
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 shadow-xs ${
-                          isLiPost ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-white'
+                          isApplied ? 'bg-emerald-600 text-white' : isLiPost ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-white'
                         }`}>
                           {job.companyName ? job.companyName.charAt(0).toUpperCase() : 'E'}
                         </div>
@@ -811,6 +795,19 @@ export function ColombiaJobBoard() {
                       {/* Tag Badges */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         
+                        {/* Status Badge: Postulado / Ya Revisada */}
+                        {isApplied ? (
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1 shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Postulado</span>
+                          </span>
+                        ) : isViewed ? (
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Revisada</span>
+                          </span>
+                        ) : null}
+
                         {/* LinkedIn Post Distinct Badge */}
                         {isLiPost && (
                           <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 flex items-center gap-1 shadow-2xs">
@@ -834,7 +831,7 @@ export function ColombiaJobBoard() {
 
                         {/* Contract Type Badge */}
                         <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                          {job.contractTypeLabel || 'Término Indefinido'}
+                          {job.contractTypeLabel || 'A convenir / No especificado'}
                         </span>
 
                         {/* Modality Badge */}
@@ -889,7 +886,10 @@ export function ColombiaJobBoard() {
                     {/* Job Title */}
                     <div>
                       <h2 
-                        onClick={() => setSelectedJobModal(job)}
+                        onClick={() => {
+                          markJobAsViewed(job.id);
+                          setSelectedJobModal(job);
+                        }}
                         className="text-base sm:text-lg font-bold text-slate-900 hover:text-indigo-600 cursor-pointer transition-colors"
                       >
                         {job.title}
@@ -945,7 +945,10 @@ export function ColombiaJobBoard() {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setSelectedJobModal(job)}
+                        onClick={() => {
+                          markJobAsViewed(job.id);
+                          setSelectedJobModal(job);
+                        }}
                         className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
                       >
                         Ver detalle
@@ -955,6 +958,7 @@ export function ColombiaJobBoard() {
                       {job.contactEmail && (
                         <a
                           href={`mailto:${job.contactEmail}?subject=${encodeURIComponent(`[Postulación RealJobs] ${job.title} - Hoja de Vida`)}`}
+                          onClick={() => markJobAsViewed(job.id)}
                           className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
                         >
                           <Mail className="w-3.5 h-3.5" />
@@ -967,22 +971,25 @@ export function ColombiaJobBoard() {
                           href={getResilientJobUrl(job)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => markJobAsViewed(job.id)}
                           className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
                         >
                           <span>
                             {isLiPost 
                               ? 'Ver Post en LinkedIn' 
-                              : ((job.sourceUrl || '').toLowerCase().includes('linkedin.com') 
-                                ? 'Ver en LinkedIn' 
-                                : ((job.sourceUrl || '').toLowerCase().includes('computrabajo') 
-                                  ? 'Ver en Computrabajo' 
-                                  : ((job.sourceUrl || '').toLowerCase().includes('elempleo') 
-                                    ? 'Ver en ElEmpleo' 
-                                    : ((job.sourceUrl || '').toLowerCase().includes('torre.ai') 
-                                      ? 'Ver en Torre' 
-                                      : ((job.sourceUrl || '').toLowerCase().includes('getonbrd') 
-                                        ? 'Ver en Get on Board' 
-                                        : 'Postularme')))))}
+                              : ((job.sourceUrl || '').toLowerCase().includes('takealuk') || (job.sourceUrl || '').toLowerCase().includes('luk')
+                                ? 'Ver en Luk'
+                                : ((job.sourceUrl || '').toLowerCase().includes('linkedin.com') 
+                                  ? 'Ver en LinkedIn' 
+                                  : ((job.sourceUrl || '').toLowerCase().includes('computrabajo') 
+                                    ? 'Ver en Computrabajo' 
+                                    : ((job.sourceUrl || '').toLowerCase().includes('elempleo') 
+                                      ? 'Ver en ElEmpleo' 
+                                      : ((job.sourceUrl || '').toLowerCase().includes('torre.ai') 
+                                        ? 'Ver en Torre' 
+                                        : ((job.sourceUrl || '').toLowerCase().includes('getonbrd') 
+                                          ? 'Ver en Get on Board' 
+                                          : 'Postularme'))))))}
                           </span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>

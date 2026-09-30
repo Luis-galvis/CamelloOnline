@@ -14,16 +14,18 @@ export interface EnglishDetectionResult {
 
 const STRONG_ENGLISH_PATTERNS = [
   /\b(bilingual|bilingüe|bilingue)\b/i,
-  /\b(english\s*(?:level|level:)?\s*(?:c1|c2|b2|b1|advanced|fluent|proficient|conversational|intermediate|required))\b/i,
-  /\b(ingl[eé]s\s*(?:requerido|obligatorio|avanzado|fluido|conversacional|intermedio\s*alto|intermedio|b1|b2|c1|c2))\b/i,
+  /\b(?:ingl[eé]s|english)\s*[:\-\–\—]?\s*(?:c1|c2|b2|b1|advanced|avanzado|fluent|fluido|proficient|conversational|conversacional|intermediate|intermedio|required|requerido|obligatorio|indispensable)\b/i,
+  /\b(?:nivel\s+de\s+ingl[eé]s|english\s+level)\s*[:\-\–\—]?\s*(?:c1|c2|b2|b1|advanced|avanzado|fluent|fluido|proficient|conversational|intermediate|intermedio)\b/i,
+  /\b(?:b1|b2|c1|c2)\s*(?:ingl[eé]s|english|level|nivel)\b/i,
+  /\b(?:m[ií]nimo|requiere|requerido|excluyente)\s*(?:un\s+nivel\s+de\s+)?ingl[eé]s\s*(?:b1|b2|c1|c2|avanzado|intermedio|fluido)\b/i,
   /\b(fluent\s*in\s*(?:written\s*and\s*spoken\s*)?english)\b/i,
   /\b(english\s*(?:and|y|&|\/)\s*spanish|spanish\s*(?:and|y|&|\/)\s*english)\b/i,
   /\b(communicate\s*in\s*english|communication\s*in\s*english|written\s*and\s*verbal\s*english)\b/i,
-  /\b(english\s*fluency|fluent\s*english|proficiency\s*in\s*english|good\s*command\s*of\s*english|english\s*skills)\b/i,
-  /\b(dominio\s*(?:del\s*)?ingl[eé]s|manejo\s*(?:del\s*)?ingl[eé]s|nivel\s*(?:de\s*)?ingl[eé]s)\b/i,
-  /\b(100%\s*english|100%\s*bilingual|ingl[eé]s\s*80%|ingl[eé]s\s*85%|ingl[eé]s\s*90%|ingl[eé]s\s*100%)\b/i,
+  /\b(english\s*fluency|fluent\s*english|proficiency\s*in\s*english|good\s*command\s*of\s*english|english\s*skills|strong\s*english)\b/i,
+  /\b(dominio\s*(?:del\s*)?ingl[eé]s|manejo\s*(?:del\s*)?ingl[eé]s|nivel\s*(?:de\s*)?ingl[eé]s\s*(?:alto|medio|avanzado|intermedio))\b/i,
+  /\b(100%\s*english|100%\s*bilingual|ingl[eé]s\s*(?:al\s*)?(?:70%|75%|80%|85%|90%|95%|100%))\b/i,
   /\b(spoken\s*and\s*written\s*english|written\s*and\s*verbal\s*english|english\s*speaker)\b/i,
-  /\b(b2\s*english|c1\s*english|b2\s*ingl[eé]s|c1\s*ingl[eé]s)\b/i
+  /\b(b2\s*english|c1\s*english|b2\s*ingl[eé]s|c1\s*ingl[eé]s|b1\s*ingl[eé]s|b1\s*english)\b/i
 ];
 
 const EXPLICIT_NO_ENGLISH_PATTERNS = [

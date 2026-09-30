@@ -12,6 +12,7 @@ import { scrapeNonTechRemoteColombia } from './non-tech-remote-colombia';
 import { scrapeSalesAndCommercialColombia } from './sales-commercial-colombia';
 import { scrapeJoobleColombia } from './jooble-colombia';
 import { scrapeLocalBoardsColombia } from './local-boards-colombia';
+import { scrapeLukColombia } from './luk-colombia';
 import { deduplicateColombiaJobs } from './deduplicator';
 
 export * from './types';
@@ -23,6 +24,7 @@ export * from './sales-commercial-colombia';
 export * from './linkedin-posts';
 export * from './weremoto-colombia';
 export * from './non-tech-remote-colombia';
+export * from './luk-colombia';
 
 export interface ScrapeAggregationReport {
   timestamp: string;
@@ -42,6 +44,7 @@ export interface ScrapeAggregationReport {
     salesCommercial: number;
     jooble: number;
     localBoards: number;
+    luk: number;
   };
   englishBreakdown: {
     requiresEnglish: number;
@@ -56,7 +59,7 @@ export interface ScrapeAggregationReport {
 }
 
 export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationReport> {
-  console.log('🇨🇴 [REALJOBS] Iniciando agregación masiva expandida de vacantes (LinkedIn + Computrabajo + ElEmpleo + WeRemoto + Torre + NonTech Remote + ATSs)...');
+  console.log('🇨🇴 [REALJOBS] Iniciando agregación masiva expandida de vacantes (LinkedIn + Computrabajo + ElEmpleo + WeRemoto + Torre + Luk + NonTech Remote + ATSs)...');
 
   const [
     linkedinJobs, 
@@ -71,7 +74,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     nonTechJobs,
     salesJobs,
     joobleJobs,
-    localBoardsJobs
+    localBoardsJobs,
+    lukJobs
   ] = await Promise.allSettled([
     scrapeLinkedInColombia(),
     scrapeLinkedInPosts(),
@@ -85,7 +89,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     scrapeNonTechRemoteColombia(),
     scrapeSalesAndCommercialColombia(),
     scrapeJoobleColombia(),
-    scrapeLocalBoardsColombia()
+    scrapeLocalBoardsColombia(),
+    scrapeLukColombia()
   ]);
 
   const rawLinkedin = linkedinJobs.status === 'fulfilled' ? linkedinJobs.value : [];
@@ -101,6 +106,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
   const rawSales = salesJobs.status === 'fulfilled' ? salesJobs.value : [];
   const rawJooble = joobleJobs.status === 'fulfilled' ? joobleJobs.value : [];
   const rawLocalBoards = localBoardsJobs.status === 'fulfilled' ? localBoardsJobs.value : [];
+  const rawLuk = lukJobs.status === 'fulfilled' ? lukJobs.value : [];
 
   const combinedRaw = [
     ...rawLinkedin, 
@@ -109,13 +115,14 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     ...rawComputrabajo, 
     ...rawElEmpleo, 
     ...rawGetOnBrd, 
-    ...rawRemotive,
+    ...rawRemotive, 
     ...rawTorre, 
     ...rawAts,
     ...rawNonTech,
     ...rawSales,
     ...rawJooble,
-    ...rawLocalBoards
+    ...rawLocalBoards,
+    ...rawLuk
   ];
   
   console.log(`📦 Vacantes brutas recolectadas en total: ${combinedRaw.length}`);
@@ -169,7 +176,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
       nonTechRemote: rawNonTech.length,
       salesCommercial: rawSales.length,
       jooble: rawJooble.length,
-      localBoards: rawLocalBoards.length
+      localBoards: rawLocalBoards.length,
+      luk: rawLuk.length
     },
     englishBreakdown: {
       requiresEnglish: reqEng,

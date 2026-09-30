@@ -24,13 +24,15 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { useAppStore } from '@/lib/store';
 import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
 import { detectContractType } from '@/lib/services/scrapers/contract-detector';
+import { detectExperience, ExperienceTier } from '@/lib/services/scrapers/experience-detector';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'highest_salary' | 'lowest_salary' | 'ibague_first';
 type SalesSubCategory = 'all' | 'tat_mixto' | 'punto_venta' | 'contabilidad_finanzas' | 'gerencia_proyectos' | 'b2b_empresarial';
 type LocationFilter = 'all' | 'ibague' | 'remoto' | 'bogota' | 'medellin' | 'cali';
 type ModalityFilter = 'all' | 'on_site' | 'hybrid' | 'remote';
-type ContractFilter = 'all' | 'indefinido' | 'fijo' | 'prestacion_servicios' | 'obra_labor';
+type ContractFilter = 'all' | 'indefinido' | 'fijo' | 'prestacion_servicios' | 'obra_labor' | 'aprendizaje' | 'no_especificado';
+type ExperienceFilter = 'all' | ExperienceTier;
 
 const SALES_CATEGORIES = [
   { id: 'all', label: 'Todos los Cargos', icon: Layers },
@@ -43,13 +45,14 @@ const SALES_CATEGORIES = [
 
 export function ColombiaSalesCommercialBoard() {
   const { user, signInWithGoogle, openAuthModal } = useAuth();
-  const { jobs: storeJobs } = useAppStore();
+  const { jobs: storeJobs, appliedJobIds, viewedJobIds, markJobAsViewed } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<SalesSubCategory>('all');
   const [selectedLocation, setSelectedLocation] = useState<LocationFilter>('all');
   const [selectedModality, setSelectedModality] = useState<ModalityFilter>('all');
   const [selectedContract, setSelectedContract] = useState<ContractFilter>('all');
+  const [selectedExp, setSelectedExp] = useState<ExperienceFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('ibague_first');
   const [displayCount, setDisplayCount] = useState<number>(24);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
@@ -103,7 +106,16 @@ export function ColombiaSalesCommercialBoard() {
   // Base list from live store or fresh scraped JSON
   const allBaseSalesJobs = useMemo(() => {
     const sourceList = storeJobs && storeJobs.length > 0 ? storeJobs : (rawColombiaJobs as any[]);
-    return sourceList.filter(isSalesCommercialTarget);
+    return sourceList.filter(isSalesCommercialTarget).map(job => {
+      const expRes = detectExperience(job.title || '', job.description || '');
+      return {
+        ...job,
+        experienceTier: expRes.experienceTier,
+        experienceLabel: expRes.experienceLabel,
+        isZeroExperience: expRes.isZeroExperience,
+        maxYearsExperience: expRes.maxYearsExperience
+      };
+    });
   }, [storeJobs]);
 
   // Filtrado reactivo
@@ -134,19 +146,24 @@ export function ColombiaSalesCommercialBoard() {
       if (selectedModality === 'hybrid' && (isRem || job.workModality !== 'hybrid')) return false;
       if (selectedModality === 'on_site' && (isRem || job.workModality === 'hybrid')) return false;
 
-      // 4. Tipo de Contrato
+      // 4. Experiencia
+      if (selectedExp !== 'all' && job.experienceTier !== selectedExp) {
+        return false;
+      }
+
+      // 5. Tipo de Contrato
       if (selectedContract !== 'all') {
         const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
         if (selectedContract === 'indefinido') {
-          if (cType !== 'indefinido' && cType !== 'no_especificado' && ['fijo', 'aprendizaje', 'prestacion_servicios', 'obra_labor'].includes(cType)) {
-            return false;
-          }
+          if (cType !== 'indefinido') return false;
+        } else if (selectedContract === 'no_especificado') {
+          if (cType !== 'no_especificado') return false;
         } else {
           if (selectedContract !== cType) return false;
         }
       }
 
-      // 5. Búsqueda por texto libre
+      // 6. Búsqueda por texto libre
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const mTitle = (job.title || '').toLowerCase().includes(q);
@@ -159,7 +176,7 @@ export function ColombiaSalesCommercialBoard() {
 
       return true;
     });
-  }, [selectedCategory, selectedLocation, selectedModality, selectedContract, searchQuery]);
+  }, [allBaseSalesJobs, selectedCategory, selectedLocation, selectedModality, selectedExp, selectedContract, searchQuery]);
 
   // Ordenamiento
   const sortedJobs = useMemo(() => {
@@ -227,6 +244,7 @@ export function ColombiaSalesCommercialBoard() {
     setSelectedCategory('all');
     setSelectedLocation('all');
     setSelectedModality('all');
+    setSelectedExp('all');
     setSelectedContract('all');
     setSortBy('ibague_first');
   };
@@ -294,7 +312,7 @@ export function ColombiaSalesCommercialBoard() {
           </div>
 
           {/* Modality Selector */}
-          <div className="w-full md:w-40">
+          <div className="w-full md:w-36">
             <select
               value={selectedModality}
               onChange={(e) => setSelectedModality(e.target.value as ModalityFilter)}
@@ -307,8 +325,27 @@ export function ColombiaSalesCommercialBoard() {
             </select>
           </div>
 
+          {/* Experience Selector */}
+          <div className="w-full md:w-40">
+            <select
+              value={selectedExp}
+              onChange={(e) => setSelectedExp(e.target.value as ExperienceFilter)}
+              className={`w-full px-3 py-2.5 rounded-xl border text-xs font-semibold focus:outline-none transition-all cursor-pointer ${
+                selectedExp !== 'all' ? 'bg-indigo-50 border-indigo-300 text-indigo-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              <option value="all">🎯 Experiencia</option>
+              <option value="zero_exp">🌱 0 años (Sin exp)</option>
+              <option value="six_months">⚡ 6 meses de exp</option>
+              <option value="one_year">🎯 1 año de exp</option>
+              <option value="two_to_three">🚀 2 a 3 años</option>
+              <option value="three_to_four">💼 3 a 4 años</option>
+              <option value="more_than_five">⭐ 5+ años (Senior/Líder)</option>
+            </select>
+          </div>
+
           {/* Contract Selector */}
-          <div className="w-full md:w-44">
+          <div className="w-full md:w-40">
             <select
               value={selectedContract}
               onChange={(e) => setSelectedContract(e.target.value as ContractFilter)}
@@ -322,17 +359,18 @@ export function ColombiaSalesCommercialBoard() {
               <option value="prestacion_servicios">Prestación Servicios</option>
               <option value="obra_labor">Obra o Labor</option>
               <option value="aprendizaje">Aprendizaje</option>
+              <option value="no_especificado">A convenir / No especificado</option>
             </select>
           </div>
 
           {/* Sort By */}
-          <div className="w-full md:w-48">
+          <div className="w-full md:w-44">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-none transition-all cursor-pointer"
             >
-              <option value="ibague_first">📍 Ibagué / Tolima primero</option>
+              <option value="ibague_first">📍 Ibagué / Tolima 1°</option>
               <option value="highest_salary">💰 Mayor salario</option>
               <option value="lowest_salary">💵 Menor salario</option>
               <option value="newest">⚡ Más recientes</option>
@@ -347,7 +385,7 @@ export function ColombiaSalesCommercialBoard() {
             <span>ofertas de empleo verificadas</span>
           </div>
 
-          {(searchQuery || selectedCategory !== 'all' || selectedLocation !== 'all' || selectedModality !== 'all' || selectedContract !== 'all') && (
+          {(searchQuery || selectedCategory !== 'all' || selectedLocation !== 'all' || selectedModality !== 'all' || selectedExp !== 'all' || selectedContract !== 'all') && (
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer"
@@ -365,18 +403,36 @@ export function ColombiaSalesCommercialBoard() {
           const isIbague = ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase().includes('ibag') ||
                            ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase().includes('tolima');
           const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide');
+          const isApplied = appliedJobIds?.includes(job.id);
+          const isViewed = isApplied || viewedJobIds?.includes(job.id);
 
           return (
             <article
               key={job.id}
-              onClick={() => setSelectedJob(job)}
-              className="bg-white rounded-2xl border border-slate-200/90 p-5 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+              onClick={() => {
+                markJobAsViewed(job.id);
+                setSelectedJob(job);
+              }}
+              className={`bg-white rounded-2xl border p-5 transition-all cursor-pointer flex flex-col justify-between group ${
+                isViewed
+                  ? 'border-emerald-300 bg-emerald-50/40 shadow-xs'
+                  : 'border-slate-200/90 hover:border-indigo-400 hover:shadow-md'
+              }`}
             >
               <div className="space-y-3">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      {isApplied ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-bold">
+                          ✨ Postulado
+                        </span>
+                      ) : isViewed ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
+                          ✅ Revisada
+                        </span>
+                      ) : null}
                       {isIbague && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-extrabold">
                           📍 Ibagué / Tolima
@@ -629,6 +685,7 @@ export function ColombiaSalesCommercialBoard() {
               {selectedJob.sourceUrl?.startsWith('mailto:') || selectedJob.contactEmail ? (
                 <a
                   href={selectedJob.sourceUrl?.startsWith('mailto:') ? selectedJob.sourceUrl : `mailto:${selectedJob.contactEmail}?subject=${encodeURIComponent(`Postulación: ${selectedJob.title} - ${selectedJob.companyName}`)}`}
+                  onClick={() => markJobAsViewed(selectedJob.id)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <span>✉️ Enviar HV por Correo ({selectedJob.contactEmail || selectedJob.sourceUrl?.replace('mailto:', '').split('?')[0]})</span>
@@ -638,6 +695,7 @@ export function ColombiaSalesCommercialBoard() {
                   href={selectedJob.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => markJobAsViewed(selectedJob.id)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <span>Postularme en la fuente oficial</span>

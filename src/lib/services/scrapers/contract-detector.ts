@@ -47,10 +47,35 @@ export function detectContractType(
     };
   }
 
-  // 2. Prestación de Servicios / OPS / Freelance / Contractor / Honorarios
+  // 2. Obra o Labor (detect before generic terms)
+  if (
+    combined.includes('obra o labor') ||
+    combined.includes('obra labor') ||
+    combined.includes('por obra') ||
+    combined.includes('por labor') ||
+    combined.includes('obra o labor determinada') ||
+    combined.includes('labor determinada') ||
+    combined.includes('contrato de obra') ||
+    combined.includes('obra/labor') ||
+    combined.includes('obra / labor') ||
+    combined.includes('mision') ||
+    combined.includes('misión') ||
+    combined.includes('temporal')
+  ) {
+    return {
+      contractType: 'obra_labor',
+      contractTypeLabel: 'Obra o Labor'
+    };
+  }
+
+  // 3. Prestación de Servicios / OPS / Freelance / Contractor / Honorarios
   if (
     combined.includes('prestacion de servicios') ||
     combined.includes('prestación de servicios') ||
+    combined.includes('prestacion servicios') ||
+    combined.includes('prestación servicios') ||
+    combined.includes('por prestacion') ||
+    combined.includes('por prestación') ||
     combined.includes('honorarios') ||
     combined.includes('por horas') ||
     combined.includes('ops') ||
@@ -62,24 +87,6 @@ export function detectContractType(
     return {
       contractType: 'prestacion_servicios',
       contractTypeLabel: 'Prestación de Servicios'
-    };
-  }
-
-  // 3. Obra o Labor
-  if (
-    combined.includes('obra o labor') ||
-    combined.includes('obra labor') ||
-    combined.includes('por obra') ||
-    combined.includes('por labor') ||
-    combined.includes('obra o labor determinada') ||
-    combined.includes('labor determinada') ||
-    combined.includes('mision') ||
-    combined.includes('misión') ||
-    combined.includes('temporal')
-  ) {
-    return {
-      contractType: 'obra_labor',
-      contractTypeLabel: 'Obra o Labor'
     };
   }
 
@@ -102,32 +109,28 @@ export function detectContractType(
     };
   }
 
-  // 5. Término Indefinido (directo, indefinido, nómina, prestaciones de ley, full time, planta)
+  // 5. Término Indefinido (directo, indefinido, nómina, prestaciones de ley, planta)
+  // NOTA: No incluimos "full time" o "tiempo completo" porque eso es jornada, no tipo de contrato
   if (
-    combined.includes('indefinido') ||
-    combined.includes('indefinida') ||
     combined.includes('termino indefinido') ||
     combined.includes('término indefinido') ||
     combined.includes('a termino indefinido') ||
     combined.includes('a término indefinido') ||
+    combined.includes('contrato a término indefinido') ||
+    combined.includes('contrato a termino indefinido') ||
     combined.includes('contrato indefinido') ||
     combined.includes('plazo indefinido') ||
     combined.includes('tiempo indefinido') ||
+    combined.includes('indefinido') ||
+    combined.includes('indefinida') ||
     combined.includes('directo con la empresa') ||
     combined.includes('contratacion directa') ||
     combined.includes('contratación directa') ||
     combined.includes('vinculacion directa') ||
     combined.includes('vinculación directa') ||
     combined.includes('de planta') ||
-    combined.includes('nomina') ||
-    combined.includes('nómina') ||
-    combined.includes('prestaciones de ley') ||
-    combined.includes('todas las prestaciones') ||
-    combined.includes('permanent') ||
     combined.includes('indefinite') ||
-    combined.includes('tiempo completo') ||
-    combined.includes('full time') ||
-    combined.includes('full-time')
+    combined.includes('permanent')
   ) {
     return {
       contractType: 'indefinido',
@@ -135,9 +138,9 @@ export function detectContractType(
     };
   }
 
-  // Si no está especificado explícitamente en el texto, por defecto en empleos formales en Colombia es indefinido/directo
+  // Si no está especificado explícitamente en el texto de la vacante, marcar como No especificado
   return {
-    contractType: 'indefinido',
-    contractTypeLabel: 'Término Indefinido / Directo'
+    contractType: 'no_especificado',
+    contractTypeLabel: 'A convenir / No especificado'
   };
 }
