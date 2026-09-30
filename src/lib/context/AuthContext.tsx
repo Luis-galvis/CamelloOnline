@@ -31,25 +31,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 0. Explicit OAuth hash handler for instant login upon redirect
     const handleOAuthHash = async () => {
       if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+        const rawHash = window.location.hash.substring(1);
+        // Clean URL hash immediately so the user doesn't see the long token string
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+
         try {
-          const hash = window.location.hash.substring(1);
-          const params = new URLSearchParams(hash);
+          const params = new URLSearchParams(rawHash);
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
 
           if (accessToken) {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            if (data?.session) {
-              setSession(data.session);
-              setUser(data.session.user);
+            // First, get the authenticated user from the token
+            const { data: userData } = await supabase.auth.getUser(accessToken);
+            if (userData?.user) {
+              setUser(userData.user);
               setIsLoading(false);
               setIsAuthModalOpen(false);
-              window.history.replaceState(null, '', window.location.pathname + window.location.search);
-              return;
+
+              // Auto-provision candidate user & profile
+              try {
+                await supabase.from('users').upsert({
+                  id: userData.user.id,
+                  email: userData.user.email,
+                  role: 'candidate',
+                  email_verified: true,
+                  is_active: true
+                }, { onConflict: 'id' });
+
+                const fullName = userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || '';
+                const avatarUrl = userData.user.user_metadata?.avatar_url || userData.user.user_metadata?.picture || '';
+
+                if (fullName || avatarUrl) {
+                  await supabase.from('candidate_profiles').upsert({
+                    user_id: userData.user.id,
+                    full_name: fullName,
+                    email: userData.user.email,
+                    avatar_url: avatarUrl,
+                    updated_at: new Date().toISOString()
+                  }, { onConflict: 'user_id' });
+                }
+              } catch {
+                // Ignore background errors
+              }
+            }
+
+            // Also attempt to set full Supabase session
+            try {
+              const { data: sessionData } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+              });
+              if (sessionData?.session) {
+                setSession(sessionData.session);
+                setUser(sessionData.session.user);
+              }
+            } catch {
+              // Ignore refresh token format differences
             }
           }
         } catch (err) {
@@ -67,10 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session.user);
       }
       setIsLoading(false);
-
-      if (session?.user && typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
     });
 
     // 2. Listen to Auth changes (login, logout, oauth callback)
