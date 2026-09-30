@@ -48,12 +48,25 @@ async function reprocessAndCleanJobs() {
       continue;
     }
 
-    // Corregir descripciones que solo tenían la fecha (ej. "Hace 17 horas")
+    // Corregir descripciones que solo tenían la fecha (ej. "Hace 17 horas") o datos truncados
     if (job.id === 'computrabajo-663239A2FD46020961373E686DCF3405' || /emtelco/i.test(job.companyName)) {
       job.description = `Oportunidad de empleo en emtelco para Asesor de soporte técnico con o sin experiencia. Salario: $2.000.000 COP mensual con todas las prestaciones sociales. Tipo de contrato: Contrato de Obra o labor. Modalidad: Presencial en Medellín, teletrabajo después del primer mes.`;
       job.displayLocation = 'Medellín · Híbrido';
       job.workModality = 'hybrid';
       job.isRemote = true;
+    } else if (/covisian/i.test(job.companyName)) {
+      job.description = `Convocatoria laboral en COVISIAN COLOMBIA S.A.S para el cargo de ${title}. Salario: SMMLV ($1.750.905) + prestaciones de ley + comisiones prestacionales. Tipo de contrato: Contrato de Obra o labor directamente con la empresa. Modalidad: 100% Presencial en Bogotá.`;
+      job.displayLocation = 'Bogotá, D.C.';
+      job.locationCity = 'Bogotá, D.C.';
+      job.workModality = 'on_site';
+      job.isRemote = false;
+    } else if (/worldpanel/i.test(job.companyName) || title.toLowerCase().includes('panel voice research')) {
+      job.description = `Position: Jr Data Analyst - Panel Voice Research Analyst en Worldpanel by Numerator (Bogotá - Híbrido). Requisitos: Más de 1 año de experiencia laboral en análisis de datos, SQL, Python, JavaScript, JSON. Nivel de inglés intermedio.`;
+      job.displayLocation = 'Bogotá, D.C. · Híbrido';
+      job.workModality = 'hybrid';
+      job.isRemote = true;
+      job.requiresEnglish = true;
+      job.englishBadgeText = '🇬🇧 Requiere inglés';
     } else if (!job.description || job.description.startsWith('Hace ') || job.description.length < 25) {
       job.description = `Convocatoria laboral para el cargo de ${title} en ${job.companyName || 'Empresa Verificada'}. Ubicación: ${job.displayLocation || job.locationCity || 'Colombia'}. Salario: ${job.salaryDisplayText || 'No especificado en la oferta'}.`;
     }

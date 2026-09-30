@@ -223,8 +223,8 @@ function parseLinkedInHtml(
       continue;
     }
 
-    // Experience detection
-    const isQueryZeroExp = /sin experiencia|primer empleo|practicante|aprendiz|semillero|trainee|junior/i.test(query);
+    // Experience detection (strictly zero exp only for explicit trainee/intern/no-exp queries)
+    const isQueryZeroExp = /sin[\s-]*experiencia|primer[\s-]*empleo|practicante|aprendiz|semillero|trainee|pasant/i.test(query);
     const expResult = detectExperience(title, cardHtml, { isZeroExpSearch: isQueryZeroExp, query });
     if (!expResult.isEligible) {
       continue;

@@ -286,7 +286,7 @@ export async function scrapeNonTechRemoteColombia(): Promise<ColombiaScrapedJob[
 
             const engResult = detectEnglishRequirement(title, `${companyName} ${rawLocation} ${cardHtml}`);
             const salResult = extractSalary(cardHtml, '');
-            const contractRes = detectContractType(title, `${title} ${companyName}`, '');
+            const contractRes = detectContractType(title, cardHtml, `${title} ${companyName}`);
             const nonTechCat = detectNonTechCategory(title, `${companyName} ${cardHtml}`);
             const applicantRes = extractApplicantCount(cardHtml, `${title} ${companyName}`);
 
