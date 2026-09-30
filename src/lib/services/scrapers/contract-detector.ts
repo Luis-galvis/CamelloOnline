@@ -110,12 +110,31 @@ export function detectContractType(
     };
   }
 
-  // 5. Término Indefinido
-  // En el mercado laboral formal en Colombia, las vacantes profesionales, tecnológicas y corporativas
-  // representan vinculación directa a término indefinido por defecto legal.
+  // 5. Término Indefinido (mencionado explícitamente)
+  if (
+    combined.includes('termino indefinido') ||
+    combined.includes('término indefinido') ||
+    combined.includes('a termino indefinido') ||
+    combined.includes('a término indefinido') ||
+    combined.includes('indefinido') ||
+    combined.includes('vinculacion directa') ||
+    combined.includes('vinculación directa') ||
+    combined.includes('contrato directo') ||
+    combined.includes('planta directa') ||
+    combined.includes('todas las prestaciones de ley') ||
+    combined.includes('prestaciones sociales de ley') ||
+    combined.includes('contrato indefinido')
+  ) {
+    return {
+      contractType: 'indefinido',
+      contractTypeLabel: 'Término Indefinido'
+    };
+  }
+
+  // 6. No especificado — la vacante no indica el tipo de contrato
   return {
-    contractType: 'indefinido',
-    contractTypeLabel: 'Término Indefinido'
+    contractType: 'no_especificado',
+    contractTypeLabel: 'No especificado'
   };
 }
 

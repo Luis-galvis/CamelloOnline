@@ -72,5 +72,6 @@ export interface ColombiaScrapedJob {
   postAuthorHeadline?: string;
   contactEmail?: string;
   applicationEmail?: string;
+  applicationUrl?: string;
   postHashtags?: string[];
 }
