@@ -1,13 +1,13 @@
 /**
- * Detector de Experiencia Requerida & ClasificaciÛn Granular de Seniority
+ * Detector de Experiencia Requerida & Clasificaci¬æn Granular de Seniority
  *
  * Rangos soportados:
- * 1. 0 aÒos (Sin experiencia / Trainee / Practicante / Semillero / ADSO)
- * 2. 6 meses de experiencia (0.5 aÒos / 6 meses)
- * 3. 1 aÒo de experiencia (12 meses / 1 aÒo)
- * 4. 2 a 3 aÒos de experiencia (Junior avanzado / Mid inicial)
- * 5. 3 a 4 aÒos de experiencia (Mid level)
- * 6. M·s de 5 aÒos de experiencia (Senior / Lead)
+ * 1. 0 a¬±os (Sin experiencia / Trainee / Practicante / Semillero / ADSO)
+ * 2. 6 meses de experiencia (0.5 a¬±os / 6 meses)
+ * 3. 1 a¬±o de experiencia (12 meses / 1 a¬±o)
+ * 4. 2 a 3 a¬±os de experiencia (Junior avanzado / Mid inicial)
+ * 5. 3 a 4 a¬±os de experiencia (Mid level)
+ * 6. M√üs de 5 a¬±os de experiencia (Senior / Lead)
  */
 
 export type ExperienceTier =
@@ -29,30 +29,30 @@ export interface ExperienceResult {
   isEligible: boolean;
 }
 
-const ZERO_EXP_EXPLICIT_REGEX = /\b(con\s+o\s+sin\s+experiencia|sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia\s+laboral|sin\s+experiencia|no\s+requiere\s+experiencia|no\s+se\s+requiere\s+experiencia|no\s+exigimos\s+experiencia|no\s+necesita\s+experiencia|no\s+requerimos\s+experiencia|no\s+pedimos\s+experiencia|experiencia\s+no\s+requerida|experiencia\s+no\s+necesaria|experiencia\s+no\s+indispensable|no\s+tener\s+experiencia|sin\s+experiencia\s+necesaria|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|0\s*a[Òn]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|0\s*(?:a|-|to)\s*1\s*a[Òn]o|0\s*(?:a|-|to)\s*6\s*meses|de\s+0\s+a\s+1\s+a[Òn]o|cero\s+experiencia|primer\s+empleo|primer\s+trabajo|primera\s+oportunidad|primer\s+paso\s+laboral|reci[eÈ]n\s+egresad[oa]\s+sin\s+experiencia|reci[eÈ]n\s+graduad[oa]\s+sin\s+experiencia|bachiller\s+sin\s+experiencia|te\s+capacitamos|te\s+formamos|capacitaci[oÛ]n\s+paga|semillero\s+de\s+talento|semillero\s+tech)\b/i;
+const ZERO_EXP_EXPLICIT_REGEX = /\b(con\s+o\s+sin\s+experiencia|sin\s+experiencia\s+previa|sin\s+experiencia\s+requerida|sin\s+experiencia\s+laboral|sin\s+experiencia|no\s+requiere\s+experiencia|no\s+se\s+requiere\s+experiencia|no\s+exigimos\s+experiencia|no\s+necesita\s+experiencia|no\s+requerimos\s+experiencia|no\s+pedimos\s+experiencia|experiencia\s+no\s+requerida|experiencia\s+no\s+necesaria|experiencia\s+no\s+indispensable|no\s+tener\s+experiencia|sin\s+experiencia\s+necesaria|no\s+experience\s+required|no\s+experience\s+needed|no\s+prior\s+experience|0\s*a[¬±n]os?\s*(?:de\s+)?experiencia|0\s*years?\s*(?:of\s+)?experience|0\s*(?:a|-|to)\s*1\s*a[¬±n]o|0\s*(?:a|-|to)\s*6\s*meses|de\s+0\s+a\s+1\s+a[¬±n]o|cero\s+experiencia|primer\s+empleo|primer\s+trabajo|primera\s+oportunidad|primer\s+paso\s+laboral|reci[e√ö]n\s+egresad[oa]\s+sin\s+experiencia|reci[e√ö]n\s+graduad[oa]\s+sin\s+experiencia|bachiller\s+sin\s+experiencia|te\s+capacitamos|te\s+formamos|capacitaci[o¬æ]n\s+paga|semillero\s+de\s+talento|semillero\s+tech)\b/i;
 
-const INTERN_OR_TRAINEE_REGEX = /\b(practicante|aprendiz|aprendiz\s+sena|pasant[iÌ]a|pasante|intern\b|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso|etapa\s+productiva|early[\s-]*career|primer\s+empleo)\b/i;
+const INTERN_OR_TRAINEE_REGEX = /\b(practicante|aprendiz|aprendiz\s+sena|pasant[i√ù]a|pasante|intern\b|internship|contrato\s+de\s+aprendizaje|semillero|trainee|adso|etapa\s+productiva|early[\s-]*career|primer\s+empleo)\b/i;
 
-const SIX_MONTHS_REGEX = /\b(6\s*meses|seis\s*meses|medio\s*a[Òn]o|0\.5\s*a[Òn]os?|6\s*months?|six\s*months?)\b/i;
+const SIX_MONTHS_REGEX = /\b(6\s*meses|seis\s*meses|medio\s*a[¬±n]o|0\.5\s*a[¬±n]os?|6\s*months?|six\s*months?)\b/i;
 
-const SENIOR_OR_LEAD_TITLE_REGEX = /\b(senior|sr\.?|lead|principal|staff|architect|arquitecto|director|gerente|manager|head\s+of|vp|jefe\s+de|lider\s+t[eÈ]cnico|tech\s+lead)\b/i;
+const SENIOR_OR_LEAD_TITLE_REGEX = /\b(senior|sr\.?|lead|principal|staff|architect|arquitecto|director|gerente|manager|head\s+of|vp|jefe\s+de|lider\s+t[e√ö]cnico|tech\s+lead)\b/i;
 
-// Regex para capturar rangos y n˙meros de aÒos soportando guiones est·ndar, en-dash (ñ), em-dash (ó) y palabras
+// Regex para capturar rangos y n¬∑meros de a¬±os soportando guiones est√ündar, en-dash (√ª), em-dash (√π) y palabras
 const EXP_YEARS_PATTERNS = [
-  // "Experience: 2ñ6 Years", "experiencia: 2 a 6 aÒos", "2-6 years", "2 ñ 6 aÒos", "2 to 6 years"
-  /(?:experience|experiencia)?\s*[:\-\ñ\ó]?\s*(\d+(?:\.\d+)?)\s*(?:a|-|ñ|ó|to)\s*(\d+(?:\.\d+)?)\s*(a[Òn]os?|years?|meses|months?)/i,
-  // "mÌnimo 2 aÒos", "al menos 3 aÒos", "experiencia mÌnima de 1 aÒo", "6 meses"
-  /(?:m[iÌ]nimo|al\s+menos|experiencia\s+m[iÌ]nima\s+de|con\s+m[iÌ]nimo|requerid[oa]\s+m[iÌ]nimo|m[iÌ]nimo\s+de|con\s+experiencia\s+de|experiencia\s+de|m[a·]s\s+de|mayor\s+a)\s+(\d+(?:\.\d+)?)\s*(a[Òn]os?|meses|years?|months?)/i,
-  // "2+ aÒos de experiencia", "3+ years", "2+ years of experience"
-  /(\d+(?:\.\d+)?)\+\s*(a[Òn]os?|years?)\s*(?:de\s+)?(?:experiencia|experience)?/i,
-  // "ï M·s de 3 aÒos de experiencia laboral"
-  /[ï\*\-]?\s*m[a·]s\s+de\s+(\d+(?:\.\d+)?)\s*(a[Òn]os?|years?|meses|months?)/i,
-  // "3 aÒos de experiencia", "5 years of experience"
-  /(\d+(?:\.\d+)?)\s*(a[Òn]os?|years?)\s*(?:de\s+)?(?:experiencia|experience)/i,
-  // "experiencia de 2 aÒos / 6 meses"
-  /experiencia\s+(?:laboral\s+|profesional\s+)?(?:m[iÌ]nima\s+)?de\s+(\d+(?:\.\d+)?)\s*(a[Òn]os?|meses|years?|months?)/i,
-  // "1 aÒo de experiencia", "1 year"
-  /(\d+(?:\.\d+)?)\s*(a[Òn]o|year)\s+(?:de\s+experiencia|experience)/i
+  // "Experience: 2√ª6 Years", "experiencia: 2 a 6 a¬±os", "2-6 years", "2 √ª 6 a¬±os", "2 to 6 years"
+  /(?:experience|experiencia)?\s*[:\-\√ª\√π]?\s*(\d+(?:\.\d+)?)\s*(?:a|-|√ª|√π|to)\s*(\d+(?:\.\d+)?)\s*(a[¬±n]os?|years?|meses|months?)/i,
+  // "m√ùnimo 2 a¬±os", "al menos 3 a¬±os", "experiencia m√ùnima de 1 a¬±o", "6 meses"
+  /(?:m[i√ù]nimo|al\s+menos|experiencia\s+m[i√ù]nima\s+de|con\s+m[i√ù]nimo|requerid[oa]\s+m[i√ù]nimo|m[i√ù]nimo\s+de|con\s+experiencia\s+de|experiencia\s+de|m[a√ü]s\s+de|mayor\s+a)\s+(\d+(?:\.\d+)?)\s*(a[¬±n]os?|meses|years?|months?)/i,
+  // "2+ a¬±os de experiencia", "3+ years", "2+ years of experience"
+  /(\d+(?:\.\d+)?)\+\s*(a[¬±n]os?|years?)\s*(?:de\s+)?(?:experiencia|experience)?/i,
+  // "√≤ M√üs de 3 a¬±os de experiencia laboral"
+  /[√≤\*\-]?\s*m[a√ü]s\s+de\s+(\d+(?:\.\d+)?)\s*(a[¬±n]os?|years?|meses|months?)/i,
+  // "3 a¬±os de experiencia", "5 years of experience"
+  /(\d+(?:\.\d+)?)\s*(a[¬±n]os?|years?)\s*(?:de\s+)?(?:experiencia|experience)/i,
+  // "experiencia de 2 a¬±os / 6 meses"
+  /experiencia\s+(?:laboral\s+|profesional\s+)?(?:m[i√ù]nima\s+)?de\s+(\d+(?:\.\d+)?)\s*(a[¬±n]os?|meses|years?|months?)/i,
+  // "1 a¬±o de experiencia", "1 year"
+  /(\d+(?:\.\d+)?)\s*(a[¬±n]o|year)\s+(?:de\s+experiencia|experience)/i
 ];
 
 export interface DetectExperienceOptions {
@@ -70,8 +70,8 @@ export function detectExperience(
   const fullText = `${cleanTitle} ${cleanDesc}`;
 
   // -----------------------------------------------------------------------
-  // PASO 1: Extraer cifras numÈricas de experiencia (prioridad m·xima)
-  //   Esto evita que heurÌsticas de tÌtulo sobreescriban un "2ñ6 aÒos" real.
+  // PASO 1: Extraer cifras num√öricas de experiencia (prioridad m√üxima)
+  //   Esto evita que heur√ùsticas de t√ùtulo sobreescriban un "2√ª6 a¬±os" real.
   // -----------------------------------------------------------------------
   let minDetectedYears: number | null = null;
   let maxDetectedYears: number | null = null;
@@ -80,7 +80,7 @@ export function detectExperience(
     const match = fullText.match(pattern);
     if (match) {
       if (match[2] && !isNaN(parseFloat(match[2])) && match[3]) {
-        // Rango: "2-6 years", "2 ñ 6 aÒos", "1 a 2 aÒos"
+        // Rango: "2-6 years", "2 √ª 6 a¬±os", "1 a 2 a¬±os"
         let minVal = parseFloat(match[1]);
         let maxVal = parseFloat(match[2]);
         const unit = (match[3] || '').toLowerCase();
@@ -106,13 +106,13 @@ export function detectExperience(
     }
   }
 
-  // DetecciÛn directa de 6 meses si no se especificÛ numÈricamente
+  // Detecci¬æn directa de 6 meses si no se especific¬æ num√öricamente
   if (minDetectedYears === null && SIX_MONTHS_REGEX.test(fullText)) {
     minDetectedYears = 0.5;
     maxDetectedYears = 0.5;
   }
 
-  // Comprobar frases explÌcitas de sin experiencia
+  // Comprobar frases expl√ùcitas de sin experiencia
   const isExplicitZero = ZERO_EXP_EXPLICIT_REGEX.test(fullText);
   const isZeroContext = Boolean(
     options?.isZeroExpSearch ||
@@ -120,8 +120,8 @@ export function detectExperience(
   );
 
   // -----------------------------------------------------------------------
-  // PASO 2: Senior / Lead explÌcito por tÌtulo ? siempre 5+ aÒos
-  //   (incluso si la descripciÛn tiene frases de "sin experiencia")
+  // PASO 2: Senior / Lead expl√ùcito por t√ùtulo ? siempre 5+ a¬±os
+  //   (incluso si la descripci¬æn tiene frases de "sin experiencia")
   // -----------------------------------------------------------------------
   if (SENIOR_OR_LEAD_TITLE_REGEX.test(cleanTitle)) {
     return {
@@ -130,15 +130,15 @@ export function detectExperience(
       minYears: 5.0,
       maxYears: 8.0,
       experienceTier: 'more_than_five',
-      experienceLabel: '5+ aÒos de experiencia (Senior / Lead)',
+      experienceLabel: '5+ a¬±os de experiencia (Senior / Lead)',
       seniority: 'senior',
       isEligible: true
     };
   }
 
   // -----------------------------------------------------------------------
-  // PASO 3: Si hay n˙mero detectado > 0, ese n˙mero manda siempre.
-  //   NUNCA marcar como "sin experiencia" si la vacante pide 2+ aÒos.
+  // PASO 3: Si hay n¬∑mero detectado > 0, ese n¬∑mero manda siempre.
+  //   NUNCA marcar como "sin experiencia" si la vacante pide 2+ a¬±os.
   // -----------------------------------------------------------------------
   if (minDetectedYears !== null && minDetectedYears > 0) {
     if (minDetectedYears <= 0.5 && (maxDetectedYears || 0) <= 0.7) {
@@ -161,7 +161,7 @@ export function detectExperience(
         minYears: minDetectedYears,
         maxYears: maxDetectedYears || 1.0,
         experienceTier: 'one_year',
-        experienceLabel: '1 aÒo de experiencia',
+        experienceLabel: '1 a¬±o de experiencia',
         seniority: 'junior',
         isEligible: true
       };
@@ -169,8 +169,8 @@ export function detectExperience(
 
     if (minDetectedYears <= 3.0) {
       const label = maxDetectedYears && maxDetectedYears > minDetectedYears
-        ? `${minDetectedYears} a ${maxDetectedYears} aÒos de experiencia`
-        : `${minDetectedYears} a 3 aÒos de experiencia`;
+        ? `${minDetectedYears} a ${maxDetectedYears} a¬±os de experiencia`
+        : `${minDetectedYears} a 3 a¬±os de experiencia`;
       return {
         isZeroExperience: false,
         maxYearsExperience: maxDetectedYears || minDetectedYears,
@@ -190,7 +190,7 @@ export function detectExperience(
         minYears: minDetectedYears,
         maxYears: maxDetectedYears || minDetectedYears,
         experienceTier: 'three_to_four',
-        experienceLabel: '3 a 4 aÒos de experiencia',
+        experienceLabel: '3 a 4 a¬±os de experiencia',
         seniority: 'early_mid',
         isEligible: true
       };
@@ -202,14 +202,14 @@ export function detectExperience(
       minYears: minDetectedYears,
       maxYears: maxDetectedYears || minDetectedYears,
       experienceTier: 'more_than_five',
-      experienceLabel: '5+ aÒos de experiencia (Senior)',
+      experienceLabel: '5+ a¬±os de experiencia (Senior)',
       seniority: 'senior',
       isEligible: true
     };
   }
 
   // -----------------------------------------------------------------------
-  // PASO 4: N˙mero = 0 explÌcitamente detectado (ej: "0 a 1 aÒo")
+  // PASO 4: N¬∑mero = 0 expl√ùcitamente detectado (ej: "0 a 1 a¬±o")
   // -----------------------------------------------------------------------
   if (minDetectedYears !== null && minDetectedYears === 0) {
     return {
@@ -225,7 +225,7 @@ export function detectExperience(
   }
 
   // -----------------------------------------------------------------------
-  // PASO 5: Intern / Trainee / Practicante en el TÕTULO (sin n˙mero)
+  // PASO 5: Intern / Trainee / Practicante en el T‚ïêTULO (sin n¬∑mero)
   // -----------------------------------------------------------------------
   if (INTERN_OR_TRAINEE_REGEX.test(cleanTitle)) {
     const seniority = (
@@ -248,7 +248,7 @@ export function detectExperience(
   }
 
   // -----------------------------------------------------------------------
-  // PASO 6: Frases explÌcitas de "sin experiencia" en el texto
+  // PASO 6: Frases expl√ùcitas de "sin experiencia" en el texto
   // -----------------------------------------------------------------------
   if (isExplicitZero || isZeroContext) {
     return {
@@ -262,26 +262,26 @@ export function detectExperience(
   }
 
   // -----------------------------------------------------------------------
-  // PASO 7: HeurÌsticas por tÌtulo (sin datos de experiencia en el texto)
-  //   Marcadas como "(estimado)" ó NUNCA activan isZeroExperience.
+  // PASO 7: Heur√ùsticas por t√ùtulo (sin datos de experiencia en el texto)
+  //   Marcadas como "(estimado)" √π NUNCA activan isZeroExperience.
   // -----------------------------------------------------------------------
   if (/\b(semi[\s-]*senior|ssr|mid[\s-]*level|intermedio|especialista)\b/i.test(cleanTitle)) {
     return {
       isZeroExperience: false,
       maxYearsExperience: 3.5,
       experienceTier: 'three_to_four',
-      experienceLabel: '3 a 4 aÒos de experiencia (estimado)',
+      experienceLabel: '3 a 4 a¬±os de experiencia (estimado)',
       seniority: 'early_mid',
       isEligible: true
     };
   }
 
-  if (/\b(junior|jr|auxiliar|asistente|tecn[oÛ]logo|t[eÈ]cnico|soporte|entry)\b/i.test(cleanTitle)) {
+  if (/\b(junior|jr|auxiliar|asistente|tecn[o¬æ]logo|t[e√ö]cnico|soporte|entry)\b/i.test(cleanTitle)) {
     return {
       isZeroExperience: false,
       maxYearsExperience: 1.0,
       experienceTier: 'one_year',
-      experienceLabel: '1 aÒo de experiencia (estimado)',
+      experienceLabel: '1 a¬±o de experiencia (estimado)',
       seniority: 'junior',
       isEligible: true
     };
@@ -292,7 +292,7 @@ export function detectExperience(
       isZeroExperience: false,
       maxYearsExperience: 2.0,
       experienceTier: 'two_to_three',
-      experienceLabel: '2 a 3 aÒos de experiencia (estimado)',
+      experienceLabel: '2 a 3 a¬±os de experiencia (estimado)',
       seniority: 'junior',
       isEligible: true
     };
