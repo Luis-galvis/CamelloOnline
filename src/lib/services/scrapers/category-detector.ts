@@ -16,6 +16,8 @@ export type NonTechCategory =
   | 'finance_accounting'
   | 'virtual_assistant_ops'
   | 'marketing_digital'
+  | 'community_manager'
+  | 'video_editor'
   | 'hr_recruiting'
   | 'writing_content'
   | 'logistics_operations'
@@ -31,7 +33,7 @@ export interface CategoryDetectionResult {
 }
 
 // Regex estrictos para roles expresamente no tecnológicos
-const NON_TECH_ROLES_REGEX = /\b(ventas|asesor\s+comercial|ejecutivo\s+comercial|vendedor|promotor|impulsador|mercaimpulsador|tat|telemercadeo|cobranza|retenci[oó]n|punto\s+de\s+venta|cajero|servicio\s+al\s+cliente|atenci[oó]n\s+al\s+cliente|customer\s+service|customer\s+support|call\s+center|pqr|chat\s+sac|agente\s+sac|recepci[oó]n\s+de\s+llamadas|contad|contable|auxiliar\s+contable|t[eé]cnico\s+contable|analista\s+de\s+pagos|facturaci[oó]n|n[oó]mina|tesorer[ií]a|bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n\s+alimentos|operario|enfermer|m[eé]dico|dietas|salud|asistente\s+virtual|digitador|auxiliar\s+administrativo|recepcionista|secretaria|recursos\s+humanos|talento\s+humano|reclutador|headhunter|community\s+manager|redactor|copywriter|editor\s+de\s+video)\b/i;
+const NON_TECH_ROLES_REGEX = /\b(ventas|asesor\s+comercial|ejecutivo\s+comercial|vendedor|promotor|impulsador|mercaimpulsador|tat|telemercadeo|cobranza|retenci[oó]n|punto\s+de\s+venta|cajero|servicio\s+al\s+cliente|atenci[oó]n\s+al\s+cliente|customer\s+service|customer\s+support|call\s+center|pqr|chat\s+sac|agente\s+sac|recepci[oó]n\s+de\s+llamadas|contad|contable|auxiliar\s+contable|t[eé]cnico\s+contable|analista\s+de\s+pagos|facturaci[oó]n|n[oó]mina|tesorer[ií]a|bodega|log[ií]stica|almac[eé]n|despachos|producci[oó]n\s+alimentos|operario|enfermer|m[eé]dico|dietas|salud|asistente\s+virtual|digitador|auxiliar\s+administrativo|recepcionista|secretaria|recursos\s+humanos|talento\s+humano|reclutador|headhunter|community\s+manager|gestor\s+de\s+redes|redes\s+sociales|social\s+media|content\s+creator|creador\s+de\s+contenido|editor\s+de\s+video|video\s+editor|edici[oó]n\s+de\s+video|producci[oó]n\s+audiovisual|motion\s+graphics|after\s+effects|premiere|davinci\s+resolve|capcut|redactor|copywriter)\b/i;
 
 // Regex para Data & IA (requiere contexto real, NO simple palabra "datos" legal)
 const DATA_AI_REGEX = /\b(data\s+analyst[s]?|analista\s+de\s+datos|data\s+engineer[s]?|ingenier[oa/]*\s*(?:de\s+)?datos|cient[ií]fic[oa/]*\s*(?:de\s+)?datos|data\s+scientist[s]?|machine\s+learning|inteligencia\s+artificial|ai\s+engineer|ai\s+transformation|power\s*bi|tableau|business\s+intelligence|analista\s+bi|bi\s+analyst|etl|big\s+data|sql\s+developer|dba|database|deep\s+learning|nlp|anal[ií]tica|analytics|ciencia\s+de\s+datos|data\s+science)\b/i;
@@ -112,8 +114,18 @@ export function detectJobCategory(title: string = '', description: string = ''):
       return { category: 'hr_recruiting', categoryLabel: 'Recursos Humanos', isTech: false };
     }
 
-    // 1.8 Marketing & Creativo
-    if (/\b(marketing|community\s+manager|redes\s+sociales|social\s+media|content\s+creator|creador\s+de\s+contenido|copywriter|editor\s+de\s+video|dise[ñn]ador\s+gr[aá]fico|graphic\s+designer|digital\s+designer)\b/i.test(cleanTitle)) {
+    // 1.8 Community Manager & Redes Sociales
+    if (/\b(community\s+manager|gestor\s+de\s+redes|social\s+media\s+manager|instagram\s+manager|tiktok\s+manager)\b/i.test(cleanTitle)) {
+      return { category: 'community_manager', categoryLabel: 'Community Manager', isTech: false };
+    }
+
+    // 1.9 Editor de Video & Produccion Audiovisual
+    if (/\b(editor\s+de\s+video|video\s+editor|edicion\s+de\s+video|video\s+editing|produccion\s+audiovisual|motion\s+graphics|after\s+effects|premiere|davinci|capcut|audiovisual)\b/i.test(cleanTitle)) {
+      return { category: 'video_editor', categoryLabel: 'Editor de Video', isTech: false };
+    }
+
+    // 1.10 Marketing Digital (generico)
+    if (/\b(marketing|mercadeo|content\s+creator|creador\s+de\s+contenido|redes\s+sociales|social\s+media|seo|sem|copywriter|graphic\s+designer|digital\s+designer)\b/i.test(cleanTitle)) {
       return { category: 'marketing_digital', categoryLabel: 'Marketing Digital', isTech: false };
     }
 
@@ -161,7 +173,13 @@ export function detectJobCategory(title: string = '', description: string = ''):
   if (/\b(asistente\s+virtual|virtual\s+assistant|executive\s+assistant|administrative\s+assistant|legal\s+assistant|digitador|data\s+entry|secretari|recepcionista|coordinator|coordinador)\b/i.test(combinedText)) {
     return { category: 'virtual_assistant_ops', categoryLabel: 'Operaciones & Asistente', isTech: false };
   }
-  if (/\b(marketing|social\s+media|content\s+creator|creador\s+de\s+contenido|redes\s+sociales|copywriter|dise[ñn]ador\s+gr[aá]fico|graphic\s+designer|growth\s+strategist|digital\s+designer)\b/i.test(combinedText)) {
+  if (/\b(community\s+manager|gestor\s+de\s+redes|social\s+media\s+manager|instagram\s+manager|tiktok\s+manager)\b/i.test(combinedText)) {
+    return { category: 'community_manager', categoryLabel: 'Community Manager', isTech: false };
+  }
+  if (/\b(editor\s+de\s+video|video\s+editor|edicion\s+de\s+video|video\s+editing|produccion\s+audiovisual|motion\s+graphics|after\s+effects|premiere|davinci|capcut)\b/i.test(combinedText)) {
+    return { category: 'video_editor', categoryLabel: 'Editor de Video', isTech: false };
+  }
+  if (/\b(marketing|social\s+media|content\s+creator|creador\s+de\s+contenido|redes\s+sociales|copywriter|graphic\s+designer|growth\s+strategist|digital\s+designer|seo|sem)\b/i.test(combinedText)) {
     return { category: 'marketing_digital', categoryLabel: 'Marketing Digital', isTech: false };
   }
   if (/\b(recursos\s+humanos|talento\s+humano|reclutador|headhunter|recruiter|hr\s+generalist|hr\s+specialist|human\s+resources)\b/i.test(combinedText)) {

@@ -9,6 +9,7 @@ import { extractPostedDate } from './date-extractor';
 import { extractApplicantCount } from './applicant-extractor';
 
 const SALES_SEARCH_URLS = [
+  // Ventas & Comercial
   'https://co.computrabajo.com/trabajo-de-asesor-comercial-sin-experiencia',
   'https://co.computrabajo.com/trabajo-de-asesor-comercial-junior',
   'https://co.computrabajo.com/trabajo-de-ventas-tat-sin-experiencia',
@@ -18,7 +19,22 @@ const SALES_SEARCH_URLS = [
   'https://co.computrabajo.com/trabajo-de-cajero-sin-experiencia',
   'https://co.computrabajo.com/trabajo-de-punto-de-venta-sin-experiencia',
   'https://co.computrabajo.com/trabajo-de-ventas-en-ibague',
-  'https://co.computrabajo.com/trabajo-de-asesor-comercial-en-ibague'
+  'https://co.computrabajo.com/trabajo-de-asesor-comercial-en-ibague',
+  // Community Manager & Redes Sociales
+  'https://co.computrabajo.com/trabajo-de-community-manager-junior',
+  'https://co.computrabajo.com/trabajo-de-community-manager-sin-experiencia',
+  'https://co.computrabajo.com/trabajo-de-community-manager-remoto',
+  'https://co.computrabajo.com/trabajo-de-social-media-junior',
+  'https://co.computrabajo.com/trabajo-de-gestor-redes-sociales',
+  // Editor de Video & Audiovisual
+  'https://co.computrabajo.com/trabajo-de-editor-de-video-junior',
+  'https://co.computrabajo.com/trabajo-de-editor-de-video-sin-experiencia',
+  'https://co.computrabajo.com/trabajo-de-editor-de-video-remoto',
+  'https://co.computrabajo.com/trabajo-de-editor-audiovisual',
+  // Backend C# / .NET Junior
+  'https://co.computrabajo.com/trabajo-de-desarrollador-c-sharp-junior',
+  'https://co.computrabajo.com/trabajo-de-desarrollador-net-junior',
+  'https://co.computrabajo.com/trabajo-de-programador-c-sharp'
 ];
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 4000): Promise<string | null> {
