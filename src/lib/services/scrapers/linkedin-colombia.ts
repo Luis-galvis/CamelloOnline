@@ -80,7 +80,34 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'cloud engineer junior', remote: true },
   { q: 'auxiliar de sistemas junior', remote: false },
 
-  // 6. Principales Ciudades & Regiones (Bogotá, Medellín, Cali, Tolima/Ibagué)
+  // 6. Community Manager & Redes Sociales
+  { q: 'community manager junior colombia', remote: true },
+  { q: 'community manager junior colombia', remote: false },
+  { q: 'community manager remoto colombia', remote: true },
+  { q: 'social media junior colombia', remote: true },
+  { q: 'social media manager junior', remote: true },
+  { q: 'practicante community manager colombia', remote: false },
+  { q: 'gestor redes sociales junior colombia', remote: false },
+
+  // 7. Editor de Video & Produccion Audiovisual
+  { q: 'editor de video junior colombia', remote: true },
+  { q: 'editor de video junior colombia', remote: false },
+  { q: 'video editor junior remote colombia', remote: true },
+  { q: 'editor audiovisual junior colombia', remote: false },
+  { q: 'practicante edicion video colombia', remote: false },
+  { q: 'editor video remoto colombia', remote: true },
+  { q: 'motion graphics junior colombia', remote: true },
+
+  // 8. Backend C# / .NET Junior
+  { q: 'c# developer junior colombia', remote: true },
+  { q: 'c# developer junior colombia', remote: false },
+  { q: 'dotnet junior developer colombia', remote: true },
+  { q: 'net developer junior colombia', remote: false },
+  { q: 'backend c# junior colombia', remote: true },
+  { q: 'desarrollador c# junior colombia', remote: false },
+  { q: 'asp net junior colombia', remote: true },
+
+  // 9. Principales Ciudades & Regiones (Bogota, Medellin, Cali, Tolima/Ibague)
   { q: 'desarrollador junior bogota', remote: false },
   { q: 'desarrollador junior medellin', remote: false },
   { q: 'desarrollador junior cali', remote: false },

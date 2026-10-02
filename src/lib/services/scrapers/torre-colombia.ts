@@ -48,6 +48,12 @@ const TORRE_NON_TECH_SKILLS = [
   { term: 'Sales', experience: 'potential-to-develop', maxPages: 3 },
   { term: 'Appointment setting', experience: 'potential-to-develop', maxPages: 3 },
   { term: 'Lead generation', experience: 'potential-to-develop', maxPages: 3 },
+  // Community Manager & Redes Sociales
+  { term: 'Community management', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Content creation', experience: 'potential-to-develop', maxPages: 3 },
+  // Video Editing & Produccion Audiovisual
+  { term: 'Video editing', experience: 'potential-to-develop', maxPages: 3 },
+  { term: 'Video production', experience: 'potential-to-develop', maxPages: 2 },
 ];
 
 const TORRE_SKILLS = [...TORRE_TECH_SKILLS, ...TORRE_NON_TECH_SKILLS];

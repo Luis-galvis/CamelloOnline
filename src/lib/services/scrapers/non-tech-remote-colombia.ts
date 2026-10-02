@@ -13,6 +13,8 @@ export type NonTechCategory =
   | 'customer_service'
   | 'sales_commercial'
   | 'marketing_digital'
+  | 'community_manager'
+  | 'video_editor'
   | 'virtual_assistant_ops'
   | 'hr_recruiting'
   | 'finance_accounting'
@@ -66,12 +68,41 @@ export function detectNonTechCategory(title: string = '', description: string = 
     return { category: 'sales_commercial', categoryLabel: 'Ventas & Comercial' };
   }
 
-  // 3. Marketing Digital & Redes Sociales
+  // 3. Community Manager & Redes Sociales
+  if (
+    text.includes('community manager') ||
+    text.includes('gestor de redes') ||
+    text.includes('social media manager') ||
+    text.includes('redes sociales') ||
+    text.includes('instagram') ||
+    text.includes('tiktok') ||
+    text.includes('content creator') ||
+    text.includes('creador de contenido')
+  ) {
+    return { category: 'community_manager', categoryLabel: 'Community Manager' };
+  }
+
+  // 4. Editor de Video & Produccion Audiovisual
+  if (
+    text.includes('editor de video') ||
+    text.includes('video editor') ||
+    text.includes('edicion de video') ||
+    text.includes('video editing') ||
+    text.includes('produccion audiovisual') ||
+    text.includes('motion graphics') ||
+    text.includes('after effects') ||
+    text.includes('premiere') ||
+    text.includes('davinci') ||
+    text.includes('capcut') ||
+    text.includes('audiovisual')
+  ) {
+    return { category: 'video_editor', categoryLabel: 'Editor de Video' };
+  }
+
+  // 6. Marketing Digital & Redes Sociales
   if (
     text.includes('marketing') ||
     text.includes('mercadeo') ||
-    text.includes('community manager') ||
-    text.includes('social media') ||
     text.includes('seo') ||
     text.includes('sem') ||
     text.includes('growth') ||
@@ -85,7 +116,7 @@ export function detectNonTechCategory(title: string = '', description: string = 
     return { category: 'marketing_digital', categoryLabel: 'Marketing Digital' };
   }
 
-  // 4. Asistente Virtual & Operaciones
+  // 7. Asistente Virtual & Operaciones
   if (
     text.includes('asistente virtual') ||
     text.includes('virtual assistant') ||
@@ -102,7 +133,7 @@ export function detectNonTechCategory(title: string = '', description: string = 
     return { category: 'virtual_assistant_ops', categoryLabel: 'Operaciones & Asistente' };
   }
 
-  // 5. Recursos Humanos & Reclutamiento
+  // 8. Recursos Humanos & Reclutamiento
   if (
     text.includes('recursos humanos') ||
     text.includes('talento humano') ||
@@ -117,7 +148,7 @@ export function detectNonTechCategory(title: string = '', description: string = 
     return { category: 'hr_recruiting', categoryLabel: 'Recursos Humanos' };
   }
 
-  // 6. Finanzas, Contabilidad & Facturación
+  // 8. Finanzas, Contabilidad & Facturacion
   if (
     text.includes('contad') ||
     text.includes('contable') ||
@@ -133,7 +164,7 @@ export function detectNonTechCategory(title: string = '', description: string = 
     return { category: 'finance_accounting', categoryLabel: 'Finanzas & Contabilidad' };
   }
 
-  // 7. Redacción, Traducción & Contenido
+  // 9. Redaccion, Traduccion & Contenido
   if (
     text.includes('redactor') ||
     text.includes('copywriter') ||
@@ -151,7 +182,7 @@ export function detectNonTechCategory(title: string = '', description: string = 
 }
 
 const NON_TECH_REMOTE_QUERIES = [
-  // Atención al Cliente & BPO
+  // Atencion al Cliente & BPO
   'atencion al cliente remoto colombia',
   'servicio al cliente remoto colombia',
   'customer support remote colombia',
@@ -182,6 +213,24 @@ const NON_TECH_REMOTE_QUERIES = [
   'social media manager remote colombia',
   'copywriter remoto colombia',
   'redactor remoto colombia',
+  // Community Manager especifico
+  'community manager junior colombia',
+  'gestor redes sociales remoto colombia',
+  'content creator remoto colombia',
+  'creador de contenido remoto colombia',
+  'social media junior remoto',
+  // Editor de Video & Audiovisual
+  'editor de video remoto colombia',
+  'video editor remote colombia',
+  'editor audiovisual remoto colombia',
+  'editor video junior colombia',
+  'motion graphics junior remoto',
+  'produccion audiovisual remoto colombia',
+  // Backend C# / .NET Junior
+  'desarrollador c# junior colombia',
+  'c# developer junior remoto colombia',
+  'backend dotnet junior colombia',
+  'asp net junior colombia remoto',
   // Recursos Humanos & Finanzas
   'reclutador remoto colombia',
   'analista contable remoto colombia',
