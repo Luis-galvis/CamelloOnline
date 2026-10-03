@@ -257,7 +257,11 @@ function parseLinkedInHtml(
       continue;
     }
 
-    const isZeroExpFinal = expResult.isZeroExperience;
+    // GUARDIA ESTRICTA: si el título NO tiene indicadores explícitos de junior/trainee/intern
+    // Y la query NO es de zero-exp, el job NUNCA puede ser clasificado como sin experiencia.
+    // Esto evita falsos positivos como "Full Stack Developer (.NET/Angular)" marcado como zero-exp.
+    const titleHasJuniorIndicator = /\b(junior|jr\.?|trainee|practicante|aprendiz|pasante|semillero|intern|entry[\s-]*level|sin[\s-]*exp|0[\s-]*a[\s-]*1)\b/i.test(title);
+    const isZeroExpFinal = expResult.isZeroExperience && (isQueryZeroExp || titleHasJuniorIndicator);
     const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
 
     const contractResult = detectContractType(title, cardHtml);
@@ -265,7 +269,8 @@ function parseLinkedInHtml(
     const contractTypeLabel = contractResult.contractTypeLabel;
 
     const salaryResult = extractSalary(cardHtml, title);
-    const englishResult = detectEnglishRequirement(title, `${companyName} ${rawLocation}`);
+    // Detectar inglés usando el HTML completo del card para mayor precisión
+    const englishResult = detectEnglishRequirement(title, `${cardHtml} ${companyName} ${rawLocation}`);
     const catResult = detectJobCategory(title, cardHtml);
     const applicantResult = extractApplicantCount(cardHtml);
     const skills = extractSkills(`${title} ${query}`);

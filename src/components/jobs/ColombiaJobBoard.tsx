@@ -70,7 +70,21 @@ export function ColombiaJobBoard() {
 
   const isJobZeroExp = (job: JobPost): boolean => {
     if (job.contractType === 'aprendizaje') return true;
-    if (job.seniorityRequired === 'trainee' || job.seniorityRequired === 'intern') return true;
+    if (job.seniorityRequired === 'trainee' || job.seniorityRequired === 'intern') {
+      // Doble verificacion: si el titulo NO tiene indicador de junior/trainee
+      // y el seniority fue asignado erroneamente, no marcamos como zero-exp
+      const titleHasJuniorIndicator = /\b(junior|jr\.?|trainee|practicante|aprendiz|pasante|semillero|intern|entry)\b/i.test(job.title || '');
+      const titleHasSeniorWords = /\b(senior|sr\.?|lead|principal|staff|architect|director|manager|gerente)\b/i.test(job.title || '');
+      if (titleHasSeniorWords) return false; // Senior siempre false
+      if (!titleHasJuniorIndicator) {
+        // Re-evaluar con el titulo como unica fuente de verdad
+        const exp = detectExperience(job.title || '', '');
+        return exp.isZeroExperience;
+      }
+      return true;
+    }
+    // Si el job trae is_zero_experience desde Supabase, usarlo directamente
+    if (typeof (job as any).isZeroExperience === 'boolean') return (job as any).isZeroExperience;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.isZeroExperience;
   };
@@ -81,11 +95,15 @@ export function ColombiaJobBoard() {
   };
 
   const getJobExperienceTier = (job: JobPost): string => {
+    // Usar campo pre-calculado si existe (mas confiable que re-evaluar sobre descripcion corta)
+    if ((job as any).experienceTier) return (job as any).experienceTier;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.experienceTier;
   };
 
   const getJobExperienceLabel = (job: JobPost): string => {
+    // Usar campo pre-calculado si existe
+    if ((job as any).experienceLabel) return (job as any).experienceLabel;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.experienceLabel;
   };

@@ -105,6 +105,7 @@ async function runColombiaScraperPipeline() {
   const companyIdMap = new Map<string, string>();
 
   // Upsert companies in chunks of 50
+  const allSlugsInserted: string[] = companyList.map(c => c.slug);
   for (let i = 0; i < companyList.length; i += 50) {
     const chunk = companyList.slice(i, i + 50);
     const { data: inserted, error: cErr } = await supabase
@@ -112,11 +113,33 @@ async function runColombiaScraperPipeline() {
       .upsert(chunk, { onConflict: 'slug' })
       .select('id, slug');
 
-    if (inserted) {
+    if (inserted && inserted.length > 0) {
       for (const c of inserted) {
         companyIdMap.set(c.slug, c.id);
       }
+    } else if (cErr) {
+      console.warn(`[Companies] Error en upsert lote ${Math.floor(i/50)+1}:`, cErr.message);
     }
+  }
+
+  // Si algún company_id no fue recuperado por el upsert (conflicto sin .select()),
+  // hacer un SELECT adicional por slugs para garantizar 100% de cobertura (crucial para LUK y seed data)
+  const missingSlugs = allSlugsInserted.filter(slug => !companyIdMap.has(slug));
+  if (missingSlugs.length > 0) {
+    console.log(`⚡ Recuperando ${missingSlugs.length} company IDs faltantes por SELECT directo...`);
+    for (let i = 0; i < missingSlugs.length; i += 50) {
+      const slugChunk = missingSlugs.slice(i, i + 50);
+      const { data: existing } = await supabase
+        .from('companies')
+        .select('id, slug')
+        .in('slug', slugChunk);
+      if (existing) {
+        for (const c of existing) {
+          companyIdMap.set(c.slug, c.id);
+        }
+      }
+    }
+    console.log(`✅ Company map completo: ${companyIdMap.size}/${allSlugsInserted.length} empresas con ID`);
   }
 
   // 4. Batch insert job posts in chunks of 50
