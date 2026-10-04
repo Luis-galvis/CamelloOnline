@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { 
@@ -720,7 +720,7 @@ export function ColombiaGeneralRemoteBoard() {
                 100% Remoto
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
-                {selectedJob.contractTypeLabel || 'Término Indefinido'}
+                {selectedJob.contractTypeLabel || 'No especificado'}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
                 {selectedJob.experienceLabel || (selectedJob.isZeroExperience ? 'Sin experiencia previa' : `${selectedJob.maxYearsExperience || 1} años de experiencia`)}

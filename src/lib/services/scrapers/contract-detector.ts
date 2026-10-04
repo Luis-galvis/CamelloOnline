@@ -34,7 +34,7 @@ export function detectContractType(
       combined.includes('pasantia') ||
       combined.includes('pasantía') ||
       combined.includes('aprendiz') ||
-      combined.includes('sena') ||
+      /\bsena\b/.test(combined) ||
       combined.includes('etapa productiva') ||
       combined.includes('estudiante en practica') ||
       combined.includes('estudiante en práctica') ||
@@ -79,7 +79,7 @@ export function detectContractType(
     combined.includes('por prestación') ||
     combined.includes('honorarios') ||
     combined.includes('por horas') ||
-    combined.includes('ops') ||
+    /\bops\b/.test(combined) ||
     combined.includes('freelance') ||
     combined.includes('contractor') ||
     combined.includes('cuenta de cobro') ||

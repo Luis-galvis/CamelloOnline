@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { 
@@ -447,7 +447,7 @@ export function ColombiaSalesCommercialBoard() {
 
                   <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium flex items-center gap-1">
                     <Briefcase className="w-3 h-3 text-slate-400" />
-                    <span>{job.contractTypeLabel || 'Indefinido'}</span>
+                    <span>{job.contractTypeLabel || 'No especificado'}</span>
                   </span>
 
                   {isRem && (
@@ -601,7 +601,7 @@ export function ColombiaSalesCommercialBoard() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-amber-900">
                   <div><strong>Salario:</strong> {selectedJob.salaryDisplayText}</div>
-                  <div><strong>Contrato:</strong> {selectedJob.contractTypeLabel || 'Indefinido'}</div>
+                  <div><strong>Contrato:</strong> {selectedJob.contractTypeLabel || 'No especificado'}</div>
                   <div><strong>Experiencia:</strong> {selectedJob.experienceLabel || '2-4 años'}</div>
                   <div><strong>Ubicación:</strong> {selectedJob.displayLocation}</div>
                 </div>

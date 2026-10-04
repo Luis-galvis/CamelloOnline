@@ -17,6 +17,10 @@ export interface ColombiaScrapedJob {
   locationCountry: string;
   displayLocation: string;
   locationFilterKey: string;
+  /** Ubicación textual original de la fuente (sin inferencias) */
+  rawLocation?: string;
+  /** true si la vacante fue abierta y validada en su página de detalle */
+  verified?: boolean;
   isRemote: boolean;
   workModality: 'remote_worldwide' | 'remote_country' | 'hybrid' | 'on_site';
   

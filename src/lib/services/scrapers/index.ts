@@ -14,6 +14,7 @@ import { scrapeJoobleColombia } from './jooble-colombia';
 import { scrapeLocalBoardsColombia } from './local-boards-colombia';
 import { scrapeLukColombia } from './luk-colombia';
 import { deduplicateColombiaJobs } from './deduplicator';
+import { verifyAndEnrichJobs } from './job-verifier';
 
 export * from './types';
 export * from './english-detector';
@@ -61,9 +62,10 @@ export interface ScrapeAggregationReport {
 export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationReport> {
   console.log('🇨🇴 [REALJOBS] Iniciando agregación masiva expandida de vacantes (LinkedIn + Computrabajo + ElEmpleo + WeRemoto + Torre + Luk + NonTech Remote + ATSs)...');
 
+  // NOTA: Jooble, Luk y LinkedIn Posts se desactivan: generaban vacantes inventadas / semilla
+  // (títulos, salarios y contratos fabricados) que no existen realmente en la fuente.
   const [
     linkedinJobs, 
-    linkedinPostsJobs,
     weremotoJobs,
     computrabajoJobs, 
     elempleoJobs, 
@@ -73,12 +75,9 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     atsJobs,
     nonTechJobs,
     salesJobs,
-    joobleJobs,
-    localBoardsJobs,
-    lukJobs
+    localBoardsJobs
   ] = await Promise.allSettled([
     scrapeLinkedInColombia(),
-    scrapeLinkedInPosts(),
     scrapeWeRemotoColombia(),
     scrapeComputrabajoColombia(),
     scrapeElEmpleoColombia(),
@@ -88,10 +87,11 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     scrapeAtsColombiaJobs(),
     scrapeNonTechRemoteColombia(),
     scrapeSalesAndCommercialColombia(),
-    scrapeJoobleColombia(),
-    scrapeLocalBoardsColombia(),
-    scrapeLukColombia()
+    scrapeLocalBoardsColombia()
   ]);
+  const linkedinPostsJobs = { status: 'fulfilled' as const, value: [] as ColombiaScrapedJob[] };
+  const joobleJobs = { status: 'fulfilled' as const, value: [] as ColombiaScrapedJob[] };
+  const lukJobs = { status: 'fulfilled' as const, value: [] as ColombiaScrapedJob[] };
 
   const rawLinkedin = linkedinJobs.status === 'fulfilled' ? linkedinJobs.value : [];
   const rawLinkedinPosts = linkedinPostsJobs.status === 'fulfilled' ? linkedinPostsJobs.value : [];
@@ -128,8 +128,12 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
   console.log(`📦 Vacantes brutas recolectadas en total: ${combinedRaw.length}`);
 
   // Deduplication
-  const deduplicated = deduplicateColombiaJobs(combinedRaw);
-  console.log(`✨ Vacantes únicas deduplicadas para Colombia: ${deduplicated.length}`);
+  const dedupedRaw = deduplicateColombiaJobs(combinedRaw);
+  console.log(`✨ Vacantes únicas deduplicadas para Colombia: ${dedupedRaw.length}`);
+
+  // Verificación en página de detalle: descarta cerradas y corrige experiencia/modalidad/contrato
+  const verification = await verifyAndEnrichJobs(dedupedRaw);
+  const deduplicated = verification.jobs;
 
   // Calculate Breakdown metrics
   const locMap: Record<string, number> = {};

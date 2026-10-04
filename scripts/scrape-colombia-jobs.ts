@@ -72,6 +72,11 @@ async function runColombiaScraperPipeline() {
   fs.writeFileSync(dataPath, JSON.stringify(report.jobs, null, 2), 'utf-8');
   console.log(`💾 Respaldo JSON actualizado con ${report.jobs.length} vacantes en: ${dataPath}`);
 
+  if (process.env.SKIP_DB === '1') {
+    console.log('⏭️  SKIP_DB=1: se omite la sincronización con Supabase (solo JSON local).');
+    return;
+  }
+
   // 2. Limpiar vacantes anteriores en Supabase
   console.log('🧹 Sincronizando vacantes en Supabase...');
   try {
@@ -171,8 +176,8 @@ async function runColombiaScraperPipeline() {
     const maxSal = Math.max(minSal, Number(job.salaryMaxUsdEquivalent || job.salaryMaxUsd) || 1500);
 
     const isZeroExp = Boolean(job.isZeroExperience || job.experienceTier === 'zero_exp' || Number(job.maxYearsExperience) === 0);
-    const rawExp = Number(job.maxYearsExperience);
-    // Strict clamp between 0.0 and 2.0 to always satisfy check constraint job_posts_max_years_experience_required_check
+    const rawExp = Number(job.minYearsExperience ?? job.maxYearsExperience);
+    // Clamp 0.0-2.0 (check constraint job_posts_max_years_experience_required_check). Las vacantes que piden >2 años ya se descartaron en el verificador.
     const expReq = isZeroExp ? 0 : Math.min(2.0, Math.max(0, isNaN(rawExp) ? 1.0 : rawExp));
 
     let mappedSeniority = 'junior';

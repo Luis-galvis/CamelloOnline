@@ -115,6 +115,18 @@ const LINKEDIN_TECH_QUERIES = [
   { q: 'junior developer colombia', remote: false }
 ];
 
+// Búsquedas ampliadas con filtro de nivel de LinkedIn (f_E=1 Prácticas, f_E=2 Sin experiencia / Entry level)
+// Estas traen vacantes que no tienen "junior" en el título pero sí son de nivel inicial.
+const ENTRY_LEVEL_TERMS = [
+  'desarrollador', 'developer', 'software engineer', 'analista de datos', 'data analyst', 'data engineer',
+  'qa', 'soporte ti', 'devops', 'analista de sistemas', 'ingeniero de sistemas', 'power bi', 'python',
+  'java', 'react', 'sql', 'ux ui', 'ciberseguridad', 'cloud', 'programador'
+];
+const LINKEDIN_ENTRY_LEVEL_QUERIES: { q: string; remote: boolean; lvl: string }[] = ENTRY_LEVEL_TERMS.flatMap(q => ([
+  { q, remote: true, lvl: '1%2C2' },
+  { q, remote: false, lvl: '1%2C2' }
+]));
+
 async function fetchWithTimeout(url: string, timeoutMs: number = 6000, retryCount: number = 0): Promise<string | null> {
   try {
     const controller = new AbortController();
@@ -161,24 +173,30 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
 
-  console.log(`[LinkedIn Scraper] Consultando ${LINKEDIN_TECH_QUERIES.length} queries prioritarias de LinkedIn Jobs Colombia...`);
+  const allQueries: { q: string; remote: boolean; lvl?: string }[] = [...LINKEDIN_TECH_QUERIES, ...LINKEDIN_ENTRY_LEVEL_QUERIES];
+  console.log(`[LinkedIn Scraper] Consultando ${allQueries.length} queries de LinkedIn Jobs Colombia...`);
 
   // Batch execution with controlled concurrency to prevent HTTP 429
   const chunkSize = 2;
-  for (let i = 0; i < LINKEDIN_TECH_QUERIES.length; i += chunkSize) {
-    const chunk = LINKEDIN_TECH_QUERIES.slice(i, i + chunkSize);
+  for (let i = 0; i < allQueries.length; i += chunkSize) {
+    const chunk = allQueries.slice(i, i + chunkSize);
     
     await Promise.allSettled(chunk.map(async (item) => {
-      // Query page 0 and page 25 for deep retrieval without f_E restriction
-      for (const offset of [0, 25]) {
+      // Paginas 0, 25 y 50 (hasta 75 resultados por query)
+      for (const offset of [0, 25, 50]) {
         const encodedQuery = encodeURIComponent(item.q);
         const remoteParam = item.remote ? '&f_WT=2' : '';
-        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}&start=${offset}`;
+        const levelParam = item.lvl ? `&f_E=${item.lvl}` : '';
+        // f_TPR=r2592000 => publicadas en los últimos 30 días (evita vacantes viejas/cerradas)
+        const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedQuery}&location=Colombia&geoId=100876405${remoteParam}${levelParam}&f_TPR=r2592000&start=${offset}`;
 
         const html = await fetchWithTimeout(url, 6000);
-        if (html) {
-          parseLinkedInHtml(html, encodedQuery, item.q, jobs, seenIds, item.remote);
-        }
+        if (!html) break;
+        const before = jobs.length;
+        parseLinkedInHtml(html, encodedQuery, item.q, jobs, seenIds, item.remote);
+        // Sin tarjetas => no hay más páginas
+        if (!/base-search-card|base-card/i.test(html)) break;
+        void before;
       }
     }));
 
@@ -186,7 +204,7 @@ export async function scrapeLinkedInColombia(): Promise<ColombiaScrapedJob[]> {
     await new Promise(r => setTimeout(r, 450));
   }
 
-  console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes verificadas de LinkedIn Jobs.`);
+  console.log(`[LinkedIn Scraper] Encontradas ${jobs.length} vacantes candidatas de LinkedIn Jobs (pendientes de verificación de detalle).`);
   return jobs;
 }
 
@@ -262,7 +280,7 @@ function parseLinkedInHtml(
     // Esto evita falsos positivos como "Full Stack Developer (.NET/Angular)" marcado como zero-exp.
     const titleHasJuniorIndicator = /\b(junior|jr\.?|trainee|practicante|aprendiz|pasante|semillero|intern|entry[\s-]*level|sin[\s-]*exp|0[\s-]*a[\s-]*1)\b/i.test(title);
     const isZeroExpFinal = expResult.isZeroExperience && (isQueryZeroExp || titleHasJuniorIndicator);
-    const maxExpFinal = isZeroExpFinal ? 0 : Math.min(2.0, expResult.maxYearsExperience || 1.0);
+    const maxExpFinal = isZeroExpFinal ? 0 : (expResult.maxYearsExperience || 1.0);
 
     const contractResult = detectContractType(title, cardHtml);
     const contractType = contractResult.contractType;
@@ -289,6 +307,7 @@ function parseLinkedInHtml(
       description: `Oportunidad laboral verificada en LinkedIn Colombia para el cargo de ${title} en ${companyName}. Ubicación: ${locationNorm.displayLocation}. Modalidad: ${isRemote ? 'Remoto' : 'Presencial / Híbrido'}.${isZeroExpFinal ? ' Vacante apta para talento sin experiencia previa.' : ''}`,
       locationCity: isRemote ? 'Remoto (Colombia)' : locationNorm.city,
       locationDepartment: locationNorm.department,
+      rawLocation,
       locationCountry: 'CO',
       displayLocation: isRemote ? `Remoto · ${locationNorm.city || 'Colombia'}` : locationNorm.displayLocation,
       locationFilterKey: isRemote ? 'remoto_colombia' : locationNorm.filterKey,
