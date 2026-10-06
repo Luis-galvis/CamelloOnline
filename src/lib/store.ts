@@ -116,7 +116,6 @@ export function useAppStore() {
           source_url,
           source_job_id,
           is_claimed,
-          claim_token,
           views_count,
           applications_count,
           created_at,
@@ -238,7 +237,6 @@ export function useAppStore() {
             sourceAts: isLiPost ? 'linkedin_post' : (j.source_ats || 'manual'),
             sourceUrl: j.source_url,
             isClaimed: Boolean(j.is_claimed),
-            claimToken: j.claim_token,
             viewsCount: j.views_count || 0,
             applicationsCount: j.applications_count || 0,
             requiredSkills: roleSkills,
@@ -363,9 +361,24 @@ export function useAppStore() {
     setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, ...updates } : c));
   };
 
-  const claimJobPost = (claimToken: string, companyName: string, recruiterEmail: string) => {
-    const job = jobs.find(j => j.claimToken === claimToken);
-    return job || null;
+  const claimJobPost = async (claimToken: string, companyName: string, recruiterEmail: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/jobs/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: claimToken, companyName, recruiterEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.jobId) {
+          setJobs(prev => prev.map(j => j.id === data.jobId ? { ...j, isClaimed: true } : j));
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const sendMessage = (conversationId: string, content: string, senderRole: UserRole, senderName: string) => {

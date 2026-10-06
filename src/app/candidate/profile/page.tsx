@@ -290,10 +290,25 @@ export default function CandidateProfilePage() {
           }
 
           if (data.cv_url) {
-            setResumePublicUrl(data.cv_url);
+            let directUrl = data.cv_url;
+            try {
+              if (data.cv_url.includes('resumes/')) {
+                const storagePath = data.cv_url.split('resumes/').pop()?.split('?')[0];
+                if (storagePath) {
+                  const { data: signed } = await supabase.storage.from('resumes').createSignedUrl(storagePath, 60 * 60 * 24);
+                  if (signed?.signedUrl) directUrl = signed.signedUrl;
+                }
+              } else if (data.cv_url.startsWith(`${user.id}/`)) {
+                const { data: signed } = await supabase.storage.from('resumes').createSignedUrl(data.cv_url, 60 * 60 * 24);
+                if (signed?.signedUrl) directUrl = signed.signedUrl;
+              }
+            } catch {
+              // fallback to directUrl
+            }
+            setResumePublicUrl(directUrl);
             if (data.cv_url.startsWith('http')) {
-              setResumeFileName(data.cv_url.split('/').pop() || 'Hoja_De_Vida.pdf');
-              setResumeFileSize('Guardado en la nube');
+              setResumeFileName(data.cv_url.split('/').pop()?.split('?')[0] || 'Hoja_De_Vida.pdf');
+              setResumeFileSize('Guardado seguro en nube');
             } else {
               setResumeFileName(data.cv_url.replace('CV_', ''));
             }
@@ -510,13 +525,16 @@ export default function CandidateProfilePage() {
           });
 
         if (!uploadError && uploadData) {
-          const { data: publicUrlData } = supabase.storage
+          // Generar signed URL seguro con expiración de 24h para el candidato autenticado
+          const { data: signedUrlData } = await supabase.storage
             .from('resumes')
-            .getPublicUrl(cleanFileName);
+            .createSignedUrl(cleanFileName, 60 * 60 * 24);
 
-          if (publicUrlData?.publicUrl) {
-            finalCvUrl = publicUrlData.publicUrl;
-            setResumePublicUrl(finalCvUrl);
+          finalCvUrl = cleanFileName;
+          if (signedUrlData?.signedUrl) {
+            setResumePublicUrl(signedUrlData.signedUrl);
+          } else {
+            setResumePublicUrl(cleanFileName);
           }
         }
       } catch (storageErr) {

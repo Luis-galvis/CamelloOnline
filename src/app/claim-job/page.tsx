@@ -20,31 +20,57 @@ function ClaimJobContent() {
   const router = useRouter();
   const token = searchParams.get('token') || '';
 
-  const { jobs, claimJobPost, setActiveRole } = useAppStore();
+  const { claimJobPost, setActiveRole } = useAppStore();
   const [claimTokenInput, setClaimTokenInput] = useState(token);
   const [companyName, setCompanyName] = useState('');
   const [recruiterEmail, setRecruiterEmail] = useState('');
+  const [targetJob, setTargetJob] = useState<{ id: string; title: string; companyName: string; salaryMinUsd?: number; salaryMaxUsd?: number } | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const targetJob = jobs.find(j => j.claimToken === (claimTokenInput || token));
-
   useEffect(() => {
-    if (token) {
-      setClaimTokenInput(token);
-      const found = jobs.find(j => j.claimToken === token);
-      if (found) {
-        setCompanyName(found.companyName);
-      }
+    const t = (claimTokenInput || token).trim();
+    if (!t) {
+      setTargetJob(null);
+      return;
     }
-  }, [token, jobs]);
 
-  const handleClaim = (e: React.FormEvent) => {
+    let isCancelled = false;
+    setIsVerifying(true);
+    fetch(`/api/jobs/claim/verify?token=${encodeURIComponent(t)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (isCancelled) return;
+        if (data.valid && data.job) {
+          setTargetJob(data.job);
+          if (data.job.companyName && !companyName) {
+            setCompanyName(data.job.companyName);
+          }
+          setError(null);
+        } else {
+          setTargetJob(null);
+          if (data.error && t.length > 5) setError(data.error);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) setError('Error conectando al servicio de verificación.');
+      })
+      .finally(() => {
+        if (!isCancelled) setIsVerifying(false);
+      });
+
+    return () => { isCancelled = true; };
+  }, [claimTokenInput, token]);
+
+  const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!targetJob) {
-      setError('Token de reclamo no válido o vacante ya reclamada.');
+    const tokenToClaim = (claimTokenInput || token).trim();
+    if (!tokenToClaim) {
+      setError('Por favor ingresa un token de reclamo válido.');
       return;
     }
 
@@ -53,12 +79,15 @@ function ClaimJobContent() {
       return;
     }
 
-    const claimed = claimJobPost(targetJob.claimToken || '', companyName || targetJob.companyName, recruiterEmail);
+    setIsSubmitting(true);
+    const claimed = await claimJobPost(tokenToClaim, companyName || targetJob?.companyName || '', recruiterEmail);
+    setIsSubmitting(false);
+
     if (claimed) {
       setIsSuccess(true);
       setActiveRole('recruiter');
     } else {
-      setError('No se pudo reclamar la vacante.');
+      setError('No se pudo reclamar la vacante. Verifica que el token sea correcto y no haya expirado.');
     }
   };
 
@@ -111,7 +140,7 @@ function ClaimJobContent() {
               <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-2">
                 <span className="text-[10px] uppercase font-bold text-indigo-800 tracking-wider">Vacante Identificada en ATS</span>
                 <h3 className="font-bold text-slate-900 text-sm">{targetJob.title}</h3>
-                <p className="text-xs text-slate-600">Empresa detectada: <strong className="text-slate-800">{targetJob.companyName}</strong> · Salario: <strong className="text-emerald-600">{formatUsd(targetJob.salaryMinUsd)} - {formatUsd(targetJob.salaryMaxUsd)} USD</strong></p>
+                <p className="text-xs text-slate-600">Empresa detectada: <strong className="text-slate-800">{targetJob.companyName}</strong> · Salario: <strong className="text-emerald-600">{formatUsd(targetJob.salaryMinUsd || 0)} - {formatUsd(targetJob.salaryMaxUsd || 0)} USD</strong></p>
               </div>
             )}
 

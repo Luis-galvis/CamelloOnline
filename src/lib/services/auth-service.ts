@@ -1,4 +1,5 @@
-import { supabase, supabaseAdmin } from '../supabase';
+import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabase-server';
 import { UserRole } from '@/types';
 
 export interface RegisterUserParams {
