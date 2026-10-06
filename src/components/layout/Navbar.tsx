@@ -76,7 +76,9 @@ export function Navbar() {
                   🇨🇴
                 </span>
               </div>
-              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium leading-none hidden sm:block">Trabajos y Empleos en Colombia</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium leading-none hidden sm:block">
+                +{jobs.length > 0 ? jobs.length : '1.280'} vacantes activas en Colombia
+              </p>
             </div>
           </Link>
 

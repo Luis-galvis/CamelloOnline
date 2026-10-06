@@ -144,14 +144,17 @@ export function ColombiaJobBoard() {
       const isZero = isJobZeroExp(job);
       const cat = getJobCategory(job);
 
-      // 1. Filtro de Categoría / Especialidad Tech (Data, AI, QA, Dev, etc.)
+      // 1. Filtro de Categoría / Especialidad Tech (Data, AI, QA, Dev, etc.) y No-Tech
       const TECH_CATEGORIES = new Set(['data_ai', 'software_dev', 'qa_testing', 'it_support', 'ui_ux_product']);
       if (selectedCategory === 'all') {
         // En este portal Tech, por defecto mostramos estrictamente vacantes del sector Tech
         const isTech = isTechJob(job.title, job.description || '') && TECH_CATEGORIES.has(cat);
         if (!isTech) return false;
       } else if (selectedCategory === 'all_inclusive') {
-        // Opción explícita para explorar todas las vacantes de Colombia (Tech + Ventas + Remoto)
+        // Opción explícita para explorar todas las vacantes de Colombia (Tech + Ventas + Remoto + Prácticas)
+      } else if (selectedCategory === 'general_remote') {
+        const isSena = cat === 'general_remote' || /\b(aprendiz|sena|practicante|pasante|semillero|auxiliar)\b/i.test(`${job.title} ${job.description || ''}`);
+        if (!isSena) return false;
       } else {
         if (cat !== selectedCategory) return false;
       }
@@ -351,6 +354,12 @@ export function ColombiaJobBoard() {
   const totalQaCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'qa_testing').length, [techJobs]);
   const totalSoftwareDevCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'software_dev').length, [techJobs]);
   const totalLinkedInPostsCount = useMemo(() => techJobs.filter(isJobLinkedInPost).length, [techJobs]);
+  const totalSalesCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'sales_commercial').length, [jobs]);
+  const totalCustomerCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'customer_service').length, [jobs]);
+  const totalFinanceCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'finance_accounting').length, [jobs]);
+  const totalLogisticsCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'logistics_operations').length, [jobs]);
+  const totalHealthCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'health_nursing').length, [jobs]);
+  const totalSenaCount = useMemo(() => jobs.filter(j => getJobCategory(j) === 'general_remote' || /\b(aprendiz|sena|practicante|pasante|semillero|auxiliar)\b/i.test(`${j.title} ${j.description || ''}`)).length, [jobs]);
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-2">
@@ -408,13 +417,19 @@ export function ColombiaJobBoard() {
                   : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
-              <option value="all">Todas las áreas Tech ({totalTechCount})</option>
-              <option value="data_ai">📊 Datos & IA ({totalDataAiCount})</option>
+              <option value="all">💻 Todas las áreas Tech ({totalTechCount})</option>
+              <option value="all_inclusive">🌐 Ver Todas las Vacantes ({jobs.length})</option>
+              <option value="general_remote">🎓 Aprendices SENA & Prácticas ({totalSenaCount})</option>
               <option value="software_dev">💻 Desarrollo Software ({totalSoftwareDevCount})</option>
+              <option value="data_ai">📊 Datos & IA ({totalDataAiCount})</option>
               <option value="qa_testing">🧪 QA & Testing ({totalQaCount})</option>
-              <option value="it_support">☁️ Soporte & Cloud</option>
+              <option value="it_support">☁️ Soporte TI & Cloud</option>
               <option value="ui_ux_product">🎨 UI/UX & Producto</option>
-              <option value="all_inclusive">🌐 Ver Todas (Tech + Ventas + Remoto: {jobs.length})</option>
+              <option value="sales_commercial">💼 Ventas & Comercial ({totalSalesCount})</option>
+              <option value="customer_service">📞 Servicio al Cliente & BPO ({totalCustomerCount})</option>
+              <option value="finance_accounting">📑 Contabilidad & Finanzas ({totalFinanceCount})</option>
+              <option value="logistics_operations">📦 Logística & Operaciones ({totalLogisticsCount})</option>
+              <option value="health_nursing">🏥 Salud & Enfermería ({totalHealthCount})</option>
             </select>
           </div>
 

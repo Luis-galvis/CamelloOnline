@@ -91,54 +91,73 @@ export function useAppStore() {
   const refreshJobsFromSupabase = useCallback(async () => {
     try {
       setIsLoadingSupabase(true);
-      const { data: dbJobs, error } = await supabase
-        .from('job_posts')
-        .select(`
-          id,
-          company_id,
-          title,
-          slug,
-          description,
-          work_modality,
-          location_country,
-          location_city,
-          salary_min_usd,
-          salary_max_usd,
-          currency,
-          seniority_required,
-          english_required,
-          max_years_experience_required,
-          is_zero_experience,
-          status,
-          expires_at,
-          is_auto_ingested,
-          source_ats,
-          source_url,
-          source_job_id,
-          is_claimed,
-          views_count,
-          applications_count,
-          created_at,
-          companies (
-            id,
-            name,
-            slug,
-            logo_url,
-            website,
-            is_verified
-          )
-        `)
-        .eq('status', 'active')
-        .order('is_zero_experience', { ascending: false })
-        .order('created_at', { ascending: false });
+      let allDbJobs: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.warn('Supabase fetch error, fallback to local jobs:', error.message);
-        return;
+      while (hasMore) {
+        const { data: batch, error } = await supabase
+          .from('job_posts')
+          .select(`
+            id,
+            company_id,
+            title,
+            slug,
+            description,
+            work_modality,
+            location_country,
+            location_city,
+            salary_min_usd,
+            salary_max_usd,
+            currency,
+            seniority_required,
+            english_required,
+            max_years_experience_required,
+            is_zero_experience,
+            status,
+            expires_at,
+            is_auto_ingested,
+            source_ats,
+            source_url,
+            source_job_id,
+            is_claimed,
+            views_count,
+            applications_count,
+            created_at,
+            companies (
+              id,
+              name,
+              slug,
+              logo_url,
+              website,
+              is_verified
+            )
+          `)
+          .eq('status', 'active')
+          .order('is_zero_experience', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          console.warn('Supabase fetch error, fallback to local jobs:', error.message);
+          break;
+        }
+
+        if (batch && batch.length > 0) {
+          allDbJobs = allDbJobs.concat(batch);
+          if (batch.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
       }
 
-      if (dbJobs && dbJobs.length > 0) {
-        const mappedJobs: JobPost[] = dbJobs.map((j: any) => {
+      if (allDbJobs && allDbJobs.length > 0) {
+        const mappedJobs: JobPost[] = allDbJobs.map((j: any) => {
           const comp = Array.isArray(j.companies) ? j.companies[0] : j.companies;
           const compName = comp?.name || 'Empresa Verificada';
           
