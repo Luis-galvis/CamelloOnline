@@ -41,6 +41,7 @@ DO $$ BEGIN
     DROP POLICY IF EXISTS "Users can view all users" ON public.users;
     DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
     DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+    DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
     DROP POLICY IF EXISTS "Allow insert from trigger and self" ON public.users;
 
     CREATE POLICY "Users can view their own profile"

@@ -21,6 +21,7 @@ DROP POLICY IF EXISTS "Public can view users" ON public.users;
 DROP POLICY IF EXISTS "Users can view all users" ON public.users;
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
 DROP POLICY IF EXISTS "Allow insert from trigger and self" ON public.users;
 
 -- Solo el propio usuario autenticado puede leer su propio registro
