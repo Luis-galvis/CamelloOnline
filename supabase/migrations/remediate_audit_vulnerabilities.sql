@@ -264,3 +264,7 @@ USING (
     AND users.role IN ('recruiter', 'admin')
   )
 );
+
+-- Recargar la caché del esquema de PostgREST inmediatamente
+NOTIFY pgrst, 'reload schema';
+
