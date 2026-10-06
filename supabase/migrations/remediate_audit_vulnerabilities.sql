@@ -135,9 +135,40 @@ GRANT SELECT ON public.talent_directory_public TO anon, authenticated;
 -- ------------------------------------------------------------------------------
 ALTER TABLE public.job_posts ENABLE ROW LEVEL SECURITY;
 
--- Revocar explícitamente lectura de claim_token a los roles públicos
-REVOKE SELECT (claim_token, claim_token_expires_at, claimed_by_user_id) ON public.job_posts FROM anon;
-REVOKE SELECT (claim_token, claim_token_expires_at, claimed_by_user_id) ON public.job_posts FROM authenticated;
+-- En PostgreSQL, para restringir columnas a anon se revoca SELECT de tabla y se conceden solo columnas seguras
+REVOKE SELECT ON public.job_posts FROM anon;
+REVOKE SELECT ON public.job_posts FROM authenticated;
+
+GRANT SELECT (
+  id,
+  company_id,
+  recruiter_id,
+  title,
+  slug,
+  description,
+  work_modality,
+  location_country,
+  location_city,
+  salary_min_usd,
+  salary_max_usd,
+  currency,
+  seniority_required,
+  english_required,
+  max_years_experience_required,
+  is_zero_experience,
+  status,
+  expires_at,
+  is_auto_ingested,
+  source_ats,
+  source_url,
+  source_job_id,
+  is_claimed,
+  views_count,
+  applications_count,
+  created_at,
+  updated_at
+) ON public.job_posts TO anon, authenticated;
+GRANT ALL ON public.job_posts TO service_role;
 
 -- Función segura SECURITY DEFINER para verificar si un token de reclamo es válido
 CREATE OR REPLACE FUNCTION public.verify_claim_token(p_token text)
