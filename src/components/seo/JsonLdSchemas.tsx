@@ -31,10 +31,11 @@ export function OrganizationJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'CamelloOnline Colombia',
-    alternateName: 'CamelloOnline',
+    name: 'CamelloOnline',
+    alternateName: ['Camello Online', 'CamelloOnline Colombia'],
     url: 'https://www.camelloonline.com',
-    logo: 'https://www.camelloonline.com/favicon.ico',
+    logo: 'https://www.camelloonline.com/icon-512.png',
+    image: 'https://www.camelloonline.com/icon-512.png',
     description: 'Plataforma y portal de trabajo digital que conecta talento colombiano con oportunidades de empleo presencial, híbrido y remoto en Colombia y el exterior.',
     address: {
       '@type': 'PostalAddress',
@@ -108,23 +109,43 @@ export function JobPostingJsonLd({ jobs }: { jobs: any[] }) {
 
   // Render top 15 jobs for Google for Jobs schema indexing
   const topJobs = jobs.slice(0, 15).map((job) => {
-    const companyName = job.companyName || job.company || 'Empresa Destacada';
+    const companyName = job.companyName || job.company || 'Empresa Confidencial';
     const location = job.locationCity || job.displayLocation || job.location || 'Colombia';
+    const jobId = String(job.id || job.slug || `${companyName}-${job.title}`.toLowerCase().replace(/[^a-z0-9]/g, '-'));
     const validThrough = new Date();
-    validThrough.setDate(validThrough.getDate() + 60);
+    validThrough.setDate(validThrough.getDate() + 45);
+
+    // Map contract types to Google Schema enum
+    let empType = 'FULL_TIME';
+    if (job.contractType) {
+      const ct = job.contractType.toLowerCase();
+      if (ct.includes('part') || ct.includes('medio')) empType = 'PART_TIME';
+      else if (ct.includes('freelance') || ct.includes('prestacion') || ct.includes('contractor') || ct.includes('ops')) empType = 'CONTRACTOR';
+      else if (ct.includes('intern') || ct.includes('practicante') || ct.includes('pasant')) empType = 'INTERN';
+      else if (ct.includes('temp') || ct.includes('obra')) empType = 'TEMPORARY';
+    }
 
     const schema: Record<string, any> = {
       '@context': 'https://schema.org',
       '@type': 'JobPosting',
       title: job.title || 'Oferta de Empleo',
-      description: job.description || `${job.title} en ${companyName}. Vacante de empleo verificada en CamelloOnline Colombia.`,
+      description: job.description && job.description.length > 30 
+        ? job.description 
+        : `<p>${job.title} en <strong>${companyName}</strong>. Vacante laboral activa y verificada en Colombia con postulación directa a través de CamelloOnline.</p>`,
+      identifier: {
+        '@type': 'PropertyValue',
+        name: companyName,
+        value: jobId,
+      },
       datePosted: job.createdAt || job.postedAt || new Date().toISOString(),
       validThrough: validThrough.toISOString(),
-      employmentType: 'FULL_TIME',
+      employmentType: empType,
+      directApply: true,
       hiringOrganization: {
         '@type': 'Organization',
         name: companyName,
-        logo: job.companyLogo || 'https://www.camelloonline.com/favicon.ico',
+        logo: job.companyLogo && job.companyLogo.startsWith('http') ? job.companyLogo : 'https://www.camelloonline.com/icon-512.png',
+        sameAs: 'https://www.camelloonline.com',
       },
       jobLocation: {
         '@type': 'Place',
@@ -132,6 +153,7 @@ export function JobPostingJsonLd({ jobs }: { jobs: any[] }) {
           '@type': 'PostalAddress',
           addressCountry: 'CO',
           addressLocality: location,
+          addressRegion: location,
         },
       },
     };
@@ -150,11 +172,11 @@ export function JobPostingJsonLd({ jobs }: { jobs: any[] }) {
     if (minSal || maxSal) {
       schema.baseSalary = {
         '@type': 'MonetaryAmount',
-        currency: job.currency || job.salaryCurrency || 'COP',
+        currency: job.currency || job.salaryCurrency || (job.salaryMinUsd ? 'USD' : 'COP'),
         value: {
           '@type': 'QuantitativeValue',
-          minValue: minSal || maxSal,
-          maxValue: maxSal || minSal,
+          minValue: Number(minSal || maxSal),
+          maxValue: Number(maxSal || minSal),
           unitText: 'MONTH',
         },
       };
