@@ -153,7 +153,9 @@ export function JobPostingJsonLd({ jobs }: { jobs: any[] }) {
           '@type': 'PostalAddress',
           addressCountry: 'CO',
           addressLocality: location,
-          addressRegion: location,
+          addressRegion: location.includes('Bogot') ? 'Bogotá D.C.' : location.includes('Medell') ? 'Antioquia' : location.includes('Cali') ? 'Valle del Cauca' : location,
+          streetAddress: `${location}, Colombia`,
+          postalCode: '110111',
         },
       },
     };
@@ -170,13 +172,18 @@ export function JobPostingJsonLd({ jobs }: { jobs: any[] }) {
     const minSal = job.salaryMin || job.salaryMinUsd || job.salaryMinUsdEquivalent;
     const maxSal = job.salaryMax || job.salaryMaxUsd || job.salaryMaxUsdEquivalent;
     if (minSal || maxSal) {
+      const minNum = Number(minSal || maxSal);
+      const maxNum = Number(maxSal || minSal);
+      // Auto-detect currency: if under 20,000 it is USD, otherwise COP
+      const detectedCurrency = job.salaryMinUsd || minNum <= 20000 ? 'USD' : (job.currency || 'COP');
+
       schema.baseSalary = {
         '@type': 'MonetaryAmount',
-        currency: job.currency || job.salaryCurrency || (job.salaryMinUsd ? 'USD' : 'COP'),
+        currency: detectedCurrency,
         value: {
           '@type': 'QuantitativeValue',
-          minValue: Number(minSal || maxSal),
-          maxValue: Number(maxSal || minSal),
+          minValue: minNum,
+          maxValue: maxNum,
           unitText: 'MONTH',
         },
       };
