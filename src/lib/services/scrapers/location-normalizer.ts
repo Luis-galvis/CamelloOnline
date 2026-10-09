@@ -50,11 +50,24 @@ const COLOMBIA_CITIES_ORDERED: Array<{ key: string; name: string; dept: string; 
 // Exhaustive list of foreign cities, countries and regions that invalidate the job for Colombia
 const FOREIGN_LOCATION_REJECTION_REGEX = /\b(china|beijing|shanghai|shenzhen|hong\s*kong|taiwan|taipei|korea|seoul|bangalore|bengaluru|mumbai|delhi|hyderabad|pune|chennai|noida|gurgaon|india|san\s*francisco|new\s*york|los\s*angeles|seattle|austin|chicago|boston|denver|atlanta|dallas|miami|united\s*states|usa|u\.s\.a?|california|texas|florida|washington|london|manchester|birmingham|united\s*kingdom|uk|u\.k\.|england|ireland|dublin|madrid|barcelona|valencia|sevilla|spain|espana|berlin|munich|frankfurt|hamburg|germany|deutschland|paris|france|amsterdam|netherlands|rotterdam|poland|warsaw|krakow|toronto|vancouver|montreal|canada|sydney|melbourne|brisbane|australia|auckland|new\s*zealand|tokyo|japan|singapore|philippines|manila|cebu|vietnam|hanoi|saudi\s*arabia|uae|dubai|mexico|ciudad\s*de\s*mexico|cdmx|guadalajara|monterrey|brazil|brasil|sao\s*paulo|rio\s*de\s*janeiro|curitiba|buenos\s*aires|argentina|cordoba|rosario|santiago|chile|lima|peru|costa\s*rica|san\s*jose|panama|uruguay|montevideo|paraguay|asuncion|bolivia|la\s*paz|ecuador|quito|guayaquil|venezuela|caracas|emea|apac|latam\s*\(excluding\s*colombia\))\b/i;
 
+// 1. Strict negative remote signals (presencial signals that override loose remote mentions)
+const STRICT_PRESENCIAL_REGEX = /\b(100%\s*presencial|totalmente\s*presencial|trabajo\s*presencial|modalidad\s*presencial|vacante\s*presencial|labor\s*presencial|jornada\s*presencial|en\s*sede|en\s*oficina|en\s*punto\s*de\s*venta|punto\s*de\s*venta|tienda\s*fisica|presencial\s*en|asistir\s*a\s*la\s*oficina|no\s*es\s*remot[oa]|no\s*remot[oa]|no\s*teletrabajo|no\s*aplica\s*teletrabajo|on[\s-]?site|onsite)\b/i;
+
+// 2. Explicit remote in location field
+const RAW_LOC_REMOTE_REGEX = /\b(remot[oa]|teletrabajo|desde\s*casa|home\s*office|wfh|remote|anywhere|worldwide)\b/i;
+
+// 3. Explicit structured remote in title or description
+const STRUCTURED_REMOTE_REGEX = /\b(100%\s*remot[oa]|full\s*remote|totalmente\s*remot[oa]|trabajo\s*100%\s*remot[oa]|modalidad:\s*100%\s*remot[oa]|modalidad:\s*remot[oa]|modalidad\s*100%\s*remota|modalidad\s*remota|puesto\s*remoto|rol\s*remoto|vacante\s*remota|trabajo\s*desde\s*casa|remote\s*colombia|remote\s*worldwide|trabajo\s*remoto\b|teletrabajo\s*100%)/i;
+
+// 4. Hybrid
+const HYBRID_REGEX = /\b(hibrid[oa]|hybrid|semipresencial|alternancia|esquema\s*hibrido|modalidad\s*hibrida|modalidad:\s*hibrid[oa]|dias\s*en\s*oficina|dias\s*remoto|teletrabajo\s*\d\s*dias|remoto\s*\d\s*dias)\b/i;
+
 export function normalizeLocation(rawLocation: string, actualJobDescription: string = ''): LocationNormalizationResult {
   const loc = (rawLocation || '').trim();
   const desc = (actualJobDescription || '').trim();
   const normLoc = stripAccents(loc);
   const normDesc = stripAccents(desc);
+  const fullText = `${normLoc} ${normDesc}`;
 
   // 1. HARD REJECTION: If the location explicitly mentions a foreign city or country, reject immediately!
   if (FOREIGN_LOCATION_REJECTION_REGEX.test(normLoc)) {
@@ -72,22 +85,37 @@ export function normalizeLocation(rawLocation: string, actualJobDescription: str
     }
   }
 
-  const isExplicitRemote = /\b(remote|remoto|teletrabajo|desde\s*casa|home\s*office|wfh|100%\s*remot[oa])\b/i.test(normLoc) ||
-                          /\b(remote|remoto|teletrabajo|desde\s*casa|home\s*office|wfh|100%\s*remot[oa]|modalidad:\s*remot[oa]|modalidad\s*100%\s*remot[oa])\b/i.test(normDesc);
+  const hasStrictPresencial = STRICT_PRESENCIAL_REGEX.test(fullText);
+  const hasRawLocRemote = RAW_LOC_REMOTE_REGEX.test(normLoc);
+  const hasStructuredRemote = STRUCTURED_REMOTE_REGEX.test(fullText);
+  const hasHybrid = HYBRID_REGEX.test(fullText);
 
-  const isHybrid = /\b(hybrid|hibrido|semipresencial|alternancia)\b/i.test(normLoc) ||
-                   /\b(modalidad:\s*hibrid[oa]|esquema\s*hibrido|dias\s*de\s*teletrabajo|teletrabajo\s*\d\s*dias)\b/i.test(normDesc);
+  // Determine true modality with strict priority
+  let isRemote = false;
+  let isHybridModality = false;
 
-  // 2. Exact match in raw location field FIRST (ground truth)
+  if (hasStrictPresencial && !hasRawLocRemote) {
+    // Presencial explicitly stated
+    isRemote = false;
+    isHybridModality = false;
+  } else if (hasHybrid) {
+    isHybridModality = true;
+    isRemote = false;
+  } else if (hasRawLocRemote || hasStructuredRemote) {
+    isRemote = true;
+    isHybridModality = false;
+  }
+
+  // 2. Exact match in physical Colombian cities
   for (const cityInfo of COLOMBIA_CITIES_ORDERED) {
     if (cityInfo.regex.test(normLoc)) {
       let modality: LocationNormalizationResult['workModality'] = 'on_site';
       let display = `Presencial · ${cityInfo.name}`;
 
-      if (isExplicitRemote) {
+      if (isRemote) {
         modality = 'remote_country';
         display = `🏠 Remoto · ${cityInfo.name}`;
-      } else if (isHybrid) {
+      } else if (isHybridModality) {
         modality = 'hybrid';
         display = `Híbrido · ${cityInfo.name}`;
       }
@@ -97,20 +125,19 @@ export function normalizeLocation(rawLocation: string, actualJobDescription: str
         city: cityInfo.name,
         department: cityInfo.dept,
         country: 'CO',
-        isRemote: isExplicitRemote,
+        isRemote,
         workModality: modality,
         displayLocation: display,
-        filterKey: isExplicitRemote ? 'remoto_colombia' : cityInfo.key
+        filterKey: isRemote ? 'remoto_colombia' : cityInfo.key
       };
     }
   }
 
-  // 3. Remote Colombia ONLY if location specifically mentions Colombia or pure general remote without foreign flags
-  if (isExplicitRemote) {
+  // 3. Pure Remote Colombia (without city or general remote)
+  if (isRemote) {
     const hasColombia = normLoc.includes('colombia') || normLoc.includes('co') || normDesc.includes('colombia') || normDesc.includes('latam');
     const isGenericRemoteLoc = normLoc === 'remote' || normLoc === 'remoto' || normLoc === 'remote / teletrabajo' || normLoc === 'anywhere' || normLoc === 'worldwide' || normLoc.includes('home based') || normLoc === '';
     
-    // Accept if confirmed Colombia or truly generic remote without foreign city/country names
     if ((hasColombia || isGenericRemoteLoc) && !FOREIGN_LOCATION_REJECTION_REGEX.test(normLoc)) {
       return {
         isColombiaValid: true,
@@ -130,10 +157,10 @@ export function normalizeLocation(rawLocation: string, actualJobDescription: str
       isColombiaValid: true,
       city: 'Colombia',
       country: 'CO',
-      isRemote: false,
-      workModality: isHybrid ? 'hybrid' : 'on_site',
-      displayLocation: isHybrid ? 'Híbrido · Colombia' : '📍 Colombia',
-      filterKey: 'colombia'
+      isRemote: isRemote,
+      workModality: isRemote ? 'remote_country' : (isHybridModality ? 'hybrid' : 'on_site'),
+      displayLocation: isRemote ? '🏠 Remoto (Colombia)' : (isHybridModality ? 'Híbrido · Colombia' : '📍 Colombia'),
+      filterKey: isRemote ? 'remoto_colombia' : 'colombia'
     };
   }
 
@@ -142,9 +169,10 @@ export function normalizeLocation(rawLocation: string, actualJobDescription: str
     isColombiaValid: false,
     city: loc || 'Desconocido',
     country: 'OTHER',
-    isRemote: isExplicitRemote,
+    isRemote,
     workModality: 'on_site',
     displayLocation: loc,
     filterKey: 'other'
   };
 }
+

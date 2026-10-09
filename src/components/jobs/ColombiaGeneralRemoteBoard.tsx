@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { 
@@ -130,7 +130,7 @@ export function ColombiaGeneralRemoteBoard() {
   const filteredJobs = useMemo(() => {
     return allRemoteJobs.filter((job) => {
       const loc = ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase();
-      const isRem = job.isRemote || (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') || loc.includes('remoto');
+      const isRem = job.workModality !== 'on_site' && (job.isRemote || job.workModality === 'remote_country' || job.workModality === 'remote_worldwide');
 
       // Search
       if (searchQuery.trim()) {
@@ -158,7 +158,7 @@ export function ColombiaGeneralRemoteBoard() {
 
       // Modality
       if (selectedModality === 'remote' && !isRem) return false;
-      if (selectedModality === 'hybrid' && (isRem || job.workModality !== 'hybrid')) return false;
+      if (selectedModality === 'hybrid' && job.workModality !== 'hybrid') return false;
       if (selectedModality === 'on_site' && (isRem || job.workModality === 'hybrid')) return false;
 
       // Experience Granular

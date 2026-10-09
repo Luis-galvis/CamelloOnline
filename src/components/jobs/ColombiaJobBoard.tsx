@@ -26,6 +26,7 @@ import { JobPost } from '@/types';
 import { detectJobCategory, detectTechCategory } from '@/lib/services/scrapers/category-detector';
 import { isTechJob } from '@/lib/services/scrapers/tech-filter';
 import { detectExperience } from '@/lib/services/scrapers/experience-detector';
+import { normalizeLocation } from '@/lib/services/scrapers/location-normalizer';
 import { detectContractType, getContractTypeLabel } from '@/lib/services/scrapers/contract-detector';
 import { calculateJobAgeHours } from '@/lib/services/scrapers/date-extractor';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
@@ -61,31 +62,25 @@ export function ColombiaJobBoard() {
   };
 
   const isJobRemote = (job: JobPost): boolean => {
-    if (job.isRemote) return true;
-    if (job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') return true;
-    const disp = (job.displayLocation || '').toLowerCase();
-    const city = (job.locationCity || '').toLowerCase();
-    return disp.includes('remoto') || city.includes('remoto');
+    // Exact check: if modality or normalizer confirms remote and it is NOT explicit on-site
+    if (job.workModality === 'on_site') return false;
+    if (job.isRemote || job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') return true;
+    const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
+    return locRes.isRemote;
   };
 
   const isJobZeroExp = (job: JobPost): boolean => {
-    if (job.contractType === 'aprendizaje') return true;
-    if (job.seniorityRequired === 'trainee' || job.seniorityRequired === 'intern') {
-      // Doble verificacion: si el titulo NO tiene indicador de junior/trainee
-      // y el seniority fue asignado erroneamente, no marcamos como zero-exp
-      const titleHasJuniorIndicator = /\b(junior|jr\.?|trainee|practicante|aprendiz|pasante|semillero|intern|entry)\b/i.test(job.title || '');
-      const titleHasSeniorWords = /\b(senior|sr\.?|lead|principal|staff|architect|director|manager|gerente)\b/i.test(job.title || '');
-      if (titleHasSeniorWords) return false; // Senior siempre false
-      if (!titleHasJuniorIndicator) {
-        // Re-evaluar con el titulo como unica fuente de verdad
-        const exp = detectExperience(job.title || '', '');
-        return exp.isZeroExperience;
-      }
-      return true;
-    }
-    // Si el job trae is_zero_experience desde Supabase, usarlo directamente
-    if (typeof (job as any).isZeroExperience === 'boolean') return (job as any).isZeroExperience;
+    // 1. If explicit years in job post > 0, it is NEVER zero experience
     const exp = detectExperience(job.title || '', job.description || '');
+    if (exp.hasExplicitYears && exp.minYears !== undefined && exp.minYears > 0) {
+      return false;
+    }
+    if ((job as any).minYearsExperience !== undefined && (job as any).minYearsExperience > 0) {
+      return false;
+    }
+    if (job.maxYearsExperienceRequired !== undefined && job.maxYearsExperienceRequired > 0.5 && !exp.isZeroExperience) {
+      return false;
+    }
     return exp.isZeroExperience;
   };
 
@@ -95,15 +90,11 @@ export function ColombiaJobBoard() {
   };
 
   const getJobExperienceTier = (job: JobPost): string => {
-    // Usar campo pre-calculado si existe (mas confiable que re-evaluar sobre descripcion corta)
-    if ((job as any).experienceTier) return (job as any).experienceTier;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.experienceTier;
   };
 
   const getJobExperienceLabel = (job: JobPost): string => {
-    // Usar campo pre-calculado si existe
-    if ((job as any).experienceLabel) return (job as any).experienceLabel;
     const exp = detectExperience(job.title || '', job.description || '');
     return exp.experienceLabel;
   };

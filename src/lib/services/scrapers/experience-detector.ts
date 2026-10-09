@@ -57,6 +57,17 @@ const SIX_MONTHS_REGEX = /\b(6 meses|seis meses|medio ano|0\.5 anos?|6 months?|s
 
 const SENIOR_OR_LEAD_TITLE_REGEX = /\b(senior|sr\.?|lead|principal|staff|architect|arquitecto|director|gerente|manager|head of|vp|jefe de|lider tecnico|tech lead)\b/i;
 
+const WORD_NUMS: Record<string, string> = {
+  'un': '1',
+  'uno': '1',
+  'una': '1',
+  'seis': '6',
+  'dos': '2',
+  'tres': '3',
+  'cuatro': '4',
+  'cinco': '5',
+};
+
 // Patrones (texto ya normalizado). Los de rango van primero.
 const EXP_YEARS_PATTERNS: RegExp[] = [
   // "entre 2 y 4 anos", "entre 2 a 4 years", "between 2 and 4 years"
@@ -65,19 +76,24 @@ const EXP_YEARS_PATTERNS: RegExp[] = [
   new RegExp(`${NUM}\\s*(?:a|-|to|y)\\s*${NUM}\\s*${UNIT}\\s*(?:de\\s+)?(?:experiencia|experience|laboral)`, 'i'),
   new RegExp(`${NUM}\\s*(?:a|-|to)\\s*${NUM}\\s*${UNIT}`, 'i'),
   // "minimo 2 anos", "al menos 3 anos", "mas de 3 anos", "experiencia de 1 ano"
-  new RegExp(`(?:minimo(?:\\s+de)?|al menos|experiencia minima de|con minimo|requerid[oa] minimo|con experiencia de|experiencia de|mas de|mayor a|minimum(?: of)?|at least)\\s+${NUM}\\s*${UNIT}`, 'i'),
+  new RegExp(`(?:minimo(?:\\s+de)?|al menos|experiencia minima de|con minimo|requerid[oa] minimo|con experiencia de|experiencia de|experiencia en|mas de|mayor a|minimum(?: of)?|at least)\\s+${NUM}\\s*${UNIT}`, 'i'),
   // "2+ anos", "3+ years"
   new RegExp(`${NUM}\\s*\\+\\s*${UNIT}`, 'i'),
-  // "3 anos de experiencia", "5 years of experience"
-  new RegExp(`${NUM}\\s*${UNIT}\\s*(?:de\\s+|of\\s+)?(?:experiencia|experience)`, 'i'),
+  // "3 anos de experiencia", "5 years of experience", "6 meses en call center"
+  new RegExp(`${NUM}\\s*${UNIT}\\s*(?:de\\s+|of\\s+)?(?:experiencia|experience|laboral|profesional|en el cargo|en ventas|en soporte|en desarrollo|en atencion|en servicio)`, 'i'),
   // "experiencia (laboral|profesional) (minima) de 2 anos"
-  new RegExp(`experiencia\\s+(?:laboral\\s+|profesional\\s+)?(?:minima\\s+)?(?:de\\s+)?${NUM}\\s*${UNIT}`, 'i'),
+  new RegExp(`experiencia\\s+(?:laboral\\s+|profesional\\s+|previa\\s+|comprobable\\s+|general\\s+|especifica\\s+)?(?:minima\\s+)?(?:de\\s+|en\\s+)?${NUM}\\s*${UNIT}`, 'i'),
   // "experiencia: 2 anos", "experiencia en X de 2 anos" (ventana corta)
   new RegExp(`experiencia[^.\\n\\d]{0,60}?${NUM}\\s*${UNIT}`, 'i'),
+  // "6 meses", "1 ano" aislados cuando van acompañados de contexto laboral
+  new RegExp(`\\b(${NUM})\\s*(anos?|meses)\\b.*?(?:experiencia|requisito|laboral|cargo)`, 'i'),
 ];
 
 function toNumber(s: string): number {
-  return parseFloat(s.replace(',', '.'));
+  if (!s) return 0;
+  const lower = s.toLowerCase().trim();
+  if (WORD_NUMS[lower]) return parseFloat(WORD_NUMS[lower]);
+  return parseFloat(lower.replace(',', '.'));
 }
 
 export interface DetectExperienceOptions {
@@ -87,11 +103,22 @@ export interface DetectExperienceOptions {
 
 /** Busca la primera cifra de experiencia válida (descarta "edad entre 18 y 38 anos"). */
 function findExplicitYears(text: string): { min: number; max: number } | null {
+  // Convert common word-based periods to numbers for robust matching
+  const preprocessed = text
+    .replace(/\b(un|una)\s+ano\b/g, '1 ano')
+    .replace(/\bun\s+ano\s+de\s+experiencia\b/g, '1 ano de experiencia')
+    .replace(/\bseis\s+meses\b/g, '6 meses')
+    .replace(/\bseis\s+meses\s+de\s+experiencia\b/g, '6 meses de experiencia')
+    .replace(/\bdos\s+anos\b/g, '2 anos')
+    .replace(/\btres\s+anos\b/g, '3 anos')
+    .replace(/\bcuatro\s+anos\b/g, '4 anos')
+    .replace(/\bcinco\s+anos\b/g, '5 anos');
+
   for (const base of EXP_YEARS_PATTERNS) {
     const re = new RegExp(base.source, 'gi');
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      const before = text.slice(Math.max(0, m.index - 25), m.index);
+    while ((m = re.exec(preprocessed)) !== null) {
+      const before = preprocessed.slice(Math.max(0, m.index - 25), m.index);
       if (/\bedad\b/.test(before)) continue;
 
       const isRange = m.length >= 4 && m[2] !== undefined && !isNaN(toNumber(m[2])) && m[3] !== undefined;
