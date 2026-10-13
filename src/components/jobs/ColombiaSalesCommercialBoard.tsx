@@ -26,6 +26,7 @@ import rawColombiaJobs from '@/lib/scraped-colombia-jobs.json';
 import { detectContractType, getContractTypeLabel } from '@/lib/services/scrapers/contract-detector';
 import { detectExperience, ExperienceTier } from '@/lib/services/scrapers/experience-detector';
 import { calculateJobAgeHours } from '@/lib/services/scrapers/date-extractor';
+import { normalizeLocation } from '@/lib/services/scrapers/location-normalizer';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'highest_salary' | 'lowest_salary' | 'ibague_first';
@@ -108,13 +109,24 @@ export function ColombiaSalesCommercialBoard() {
   const allBaseSalesJobs = useMemo(() => {
     const sourceList = storeJobs && storeJobs.length > 0 ? storeJobs : (rawColombiaJobs as any[]);
     return sourceList.filter(isSalesCommercialTarget).map(job => {
+      const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
       const expRes = detectExperience(job.title || '', job.description || '');
+      const contractRes = detectContractType(job.title || '', job.description || '');
+      const cType = contractRes.contractType !== 'no_especificado' ? contractRes.contractType : (job.contractType || 'no_especificado');
+
       return {
         ...job,
         experienceTier: expRes.experienceTier,
         experienceLabel: expRes.experienceLabel,
         isZeroExperience: expRes.isZeroExperience,
-        maxYearsExperience: expRes.maxYearsExperience
+        maxYearsExperience: expRes.maxYearsExperience,
+        contractType: cType,
+        contractTypeLabel: getContractTypeLabel(cType),
+        isRemote: locRes.isRemote,
+        workModality: locRes.workModality,
+        displayLocation: locRes.displayLocation,
+        locationCity: locRes.city,
+        locationFilterKey: locRes.filterKey
       };
     });
   }, [storeJobs]);
@@ -124,7 +136,7 @@ export function ColombiaSalesCommercialBoard() {
     return allBaseSalesJobs.filter((job) => {
       const subCat = getSubCategory(job);
       const loc = ((job.displayLocation || '') + ' ' + (job.locationCity || '')).toLowerCase();
-      const isRem = job.workModality !== 'on_site' && (job.isRemote || job.workModality === 'remote_country' || job.workModality === 'remote_worldwide');
+      const isRem = job.isRemote;
 
       // 1. Subcategoría
       if (selectedCategory !== 'all' && subCat !== selectedCategory) return false;
@@ -143,9 +155,9 @@ export function ColombiaSalesCommercialBoard() {
       }
 
       // 3. Modalidad
-      if (selectedModality === 'remote' && !isRem) return false;
+      if (selectedModality === 'remote' && !job.isRemote) return false;
       if (selectedModality === 'hybrid' && job.workModality !== 'hybrid') return false;
-      if (selectedModality === 'on_site' && (isRem || job.workModality === 'hybrid')) return false;
+      if (selectedModality === 'on_site' && job.workModality !== 'on_site') return false;
 
       // 4. Experiencia
       if (selectedExp !== 'all' && job.experienceTier !== selectedExp) {
@@ -154,7 +166,7 @@ export function ColombiaSalesCommercialBoard() {
 
       // 5. Tipo de Contrato
       if (selectedContract !== 'all') {
-        const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+        const cType = job.contractType;
         if (selectedContract === 'indefinido') {
           if (cType !== 'indefinido') return false;
         } else if (selectedContract === 'no_especificado') {
@@ -450,11 +462,23 @@ export function ColombiaSalesCommercialBoard() {
                     <span>{job.contractTypeLabel || 'No especificado'}</span>
                   </span>
 
-                  {isRem && (
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
-                      🏠 Híbrido / Remoto
+                  {job.isRemote ? (
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold">
+                      🏠 Remoto
+                    </span>
+                  ) : job.workModality === 'hybrid' ? (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                      🏠 Híbrido
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-200 text-[11px] font-medium">
+                      🏢 Presencial
                     </span>
                   )}
+
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">
+                    {job.experienceLabel || (job.isZeroExperience ? 'Sin experiencia previa' : `${job.maxYearsExperience || 1} años de exp`)}
+                  </span>
                 </div>
 
                 {/* Salary Tag */}
@@ -602,8 +626,9 @@ export function ColombiaSalesCommercialBoard() {
                 <div className="grid grid-cols-2 gap-2 text-xs text-amber-900">
                   <div><strong>Salario:</strong> {selectedJob.salaryDisplayText}</div>
                   <div><strong>Contrato:</strong> {selectedJob.contractTypeLabel || 'No especificado'}</div>
-                  <div><strong>Experiencia:</strong> {selectedJob.experienceLabel || '2-4 años'}</div>
-                  <div><strong>Ubicación:</strong> {selectedJob.displayLocation}</div>
+                  <div><strong>Experiencia:</strong> {selectedJob.experienceLabel || (selectedJob.isZeroExperience ? 'Sin experiencia' : '1+ años')}</div>
+                  <div><strong>Modalidad:</strong> {selectedJob.isRemote ? 'Remoto' : (selectedJob.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}</div>
+                  <div className="col-span-2"><strong>Ubicación:</strong> {selectedJob.displayLocation}</div>
                 </div>
               </div>
 

@@ -103,8 +103,9 @@ export interface DetectExperienceOptions {
 
 /** Busca la primera cifra de experiencia válida (descarta "edad entre 18 y 38 anos"). */
 function findExplicitYears(text: string): { min: number; max: number } | null {
-  // Convert common word-based periods to numbers for robust matching
+  // Strip company tenure / history mentions (e.g. "más de 36 años en el mercado", "45 años de liderazgo", "25 años acompañando")
   const preprocessed = text
+    .replace(/\b(?:mas\s*de\s*)?\d+\s*anos?\s*(?:de\s*)?(?:trayectoria|liderazgo|historia|antiguedad|presencia|fundada|creada|acompanando|en\s*el\s*mercado)\b/gi, ' ')
     .replace(/\b(un|una)\s+ano\b/g, '1 ano')
     .replace(/\bun\s+ano\s+de\s+experiencia\b/g, '1 ano de experiencia')
     .replace(/\bseis\s+meses\b/g, '6 meses')
@@ -156,29 +157,33 @@ export function detectExperience(
   const cleanDesc = normalizeForMatch(description);
   const fullText = `${cleanTitle} ${cleanDesc}`;
 
-  // PASO 1: cifras numéricas (prioridad máxima)
+  // Priority check: if the title explicitly states "con o sin experiencia" or "sin experiencia", prioritize it
+  const isTitleZeroExp = ZERO_EXP_EXPLICIT_REGEX.test(cleanTitle);
+
+  // PASO 1: cifras numéricas
   let minDetectedYears: number | null = null;
   let maxDetectedYears: number | null = null;
   const explicit = findExplicitYears(fullText);
-  if (explicit) {
+  if (explicit && !isTitleZeroExp) {
     minDetectedYears = explicit.min;
     maxDetectedYears = explicit.max;
   }
 
-  if (minDetectedYears === null && SIX_MONTHS_REGEX.test(fullText)) {
+  if (minDetectedYears === null && SIX_MONTHS_REGEX.test(fullText) && !isTitleZeroExp) {
     minDetectedYears = 0.5;
     maxDetectedYears = 0.5;
   }
 
   const hasExplicitYears = minDetectedYears !== null;
-  const isExplicitZero = ZERO_EXP_EXPLICIT_REGEX.test(fullText);
+  const isExplicitZero = isTitleZeroExp || ZERO_EXP_EXPLICIT_REGEX.test(fullText);
   const isZeroContext = Boolean(
     options?.isZeroExpSearch ||
     (options?.query && /sin[\s-]*experiencia|primer[\s-]*empleo|aprendiz|practicante|semillero|trainee/i.test(normalizeForMatch(options.query)))
   );
 
-  // PASO 2: Senior / Lead por título -> 5+ años
-  if (SENIOR_OR_LEAD_TITLE_REGEX.test(cleanTitle)) {
+  // PASO 2: Senior / Lead por título -> 5+ años (NUNCA si dice junior, jr, entry, trainee, asistente)
+  const hasJuniorPrefix = /\b(junior|jr\.?|asistente|auxiliar|trainee|aprendiz|practicante|entry|pasante)\b/i.test(cleanTitle);
+  if (!hasJuniorPrefix && SENIOR_OR_LEAD_TITLE_REGEX.test(cleanTitle)) {
     return {
       isZeroExperience: false,
       maxYearsExperience: 5.0,
@@ -219,19 +224,34 @@ export function detectExperience(
     return { ...base, maxYearsExperience: maxY, experienceTier: 'more_than_five', experienceLabel: '5+ años de experiencia (Senior)', seniority: 'senior' };
   }
 
-  // PASO 4: 0 explícito (ej: "0 a 1 año")
+  // PASO 4: 0 explícito (ej: "0 a 1 año", "0 a 2 años")
   if (minDetectedYears !== null && minDetectedYears === 0) {
-    return {
-      isZeroExperience: true,
-      maxYearsExperience: 0.0,
-      minYears: 0,
-      maxYears: maxDetectedYears || 0,
-      experienceTier: 'zero_exp',
-      experienceLabel: 'Sin experiencia previa',
-      seniority: 'trainee',
-      isEligible: true,
-      hasExplicitYears: true
-    };
+    const maxY = maxDetectedYears || 0;
+    if (maxY <= 1.0) {
+      return {
+        isZeroExperience: true,
+        maxYearsExperience: maxY,
+        minYears: 0,
+        maxYears: maxY,
+        experienceTier: 'zero_exp',
+        experienceLabel: 'Sin experiencia previa',
+        seniority: 'trainee',
+        isEligible: true,
+        hasExplicitYears: true
+      };
+    } else {
+      return {
+        isZeroExperience: true,
+        maxYearsExperience: maxY,
+        minYears: 0,
+        maxYears: maxY,
+        experienceTier: maxY <= 3.0 ? 'two_to_three' : 'three_to_four',
+        experienceLabel: `0 a ${maxY} años de experiencia (Junior / Entry)`,
+        seniority: 'junior',
+        isEligible: true,
+        hasExplicitYears: true
+      };
+    }
   }
 
   // PASO 5: Intern / Trainee / Practicante en el TÍTULO

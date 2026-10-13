@@ -31,6 +31,7 @@ import { detectExperience } from '@/lib/services/scrapers/experience-detector';
 import { detectEnglishRequirement } from '@/lib/services/scrapers/english-detector';
 import { extractApplicantCount } from '@/lib/services/scrapers/applicant-extractor';
 import { calculateJobAgeHours } from '@/lib/services/scrapers/date-extractor';
+import { normalizeLocation } from '@/lib/services/scrapers/location-normalizer';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 
 type SortOption = 'newest' | 'oldest' | 'highest_salary' | 'lowest_salary' | 'zero_exp_first';
@@ -84,20 +85,28 @@ export function ColombiaGeneralRemoteBoard() {
           /developer|software|ingeniero|devops|fullstack|frontend|backend|programad/i.test(job.title || '');
         if (isTechDev) return false;
 
+        const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
+        // Only truly remote or hybrid jobs qualify for the remote board!
+        if (!locRes.isRemote && locRes.workModality !== 'hybrid') return false;
+
         return true;
       })
       .map((job, idx) => {
+        const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
         const contractRes = detectContractType(job.title, job.description || '', '');
         const nonTechCat = detectNonTechCategory(job.title, job.description || '');
         const expRes = detectExperience(job.title, job.description || '');
         const engRes = detectEnglishRequirement(job.title, `${job.description || ''} ${job.companyName || ''}`);
         const appRes = extractApplicantCount(job.description || '', `${job.title} ${job.companyName}`);
 
+        const cType = contractRes.contractType !== 'no_especificado' ? contractRes.contractType : (job.contractType || 'no_especificado');
+        const cLabel = getContractTypeLabel(cType);
+
         return {
           ...job,
           id: job.id || `remote-nt-${idx}`,
-          contractType: job.contractType || contractRes.contractType,
-          contractTypeLabel: job.contractTypeLabel || contractRes.contractTypeLabel,
+          contractType: cType,
+          contractTypeLabel: cLabel,
           category: nonTechCat.category,
           categoryLabel: nonTechCat.categoryLabel,
           isZeroExperience: expRes.isZeroExperience,
@@ -108,7 +117,12 @@ export function ColombiaGeneralRemoteBoard() {
           requiresEnglish: job.requiresEnglish ?? engRes.requiresEnglish,
           englishBadgeText: job.englishBadgeText || engRes.badgeText,
           applicantCountText: job.applicantCountText || appRes.applicantCountText,
-          applicantTier: job.applicantTier || appRes.applicantTier
+          applicantTier: job.applicantTier || appRes.applicantTier,
+          isRemote: locRes.isRemote,
+          workModality: locRes.workModality,
+          displayLocation: locRes.displayLocation,
+          locationCity: locRes.city,
+          locationFilterKey: locRes.filterKey
         };
       });
   }, [storeJobs]);
@@ -500,7 +514,7 @@ export function ColombiaGeneralRemoteBoard() {
                           </h4>
                           <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                            <span>100% Remoto (Colombia)</span>
+                            <span>{job.displayLocation || (job.isRemote ? '100% Remoto (Colombia)' : 'Híbrido')}</span>
                           </p>
                         </div>
                       </div>
@@ -530,8 +544,12 @@ export function ColombiaGeneralRemoteBoard() {
                         {job.contractTypeLabel || 'A convenir / No especificado'}
                       </span>
 
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                        100% Remoto
+                      <span className={`px-2 py-0.5 rounded-md font-semibold border ${
+                        job.isRemote 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {job.isRemote ? '100% Remoto' : (job.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
                       </span>
 
                       {/* Experience Badge */}
@@ -702,7 +720,7 @@ export function ColombiaGeneralRemoteBoard() {
                   {selectedJob.title}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {selectedJob.companyName} · 🏠 100% Remoto (Colombia)
+                  {selectedJob.companyName} · {selectedJob.displayLocation || (selectedJob.isRemote ? '🏠 100% Remoto (Colombia)' : 'Híbrido')}
                 </p>
               </div>
 
@@ -716,8 +734,12 @@ export function ColombiaGeneralRemoteBoard() {
 
             {/* Badges */}
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                100% Remoto
+              <span className={`px-2.5 py-1 rounded-lg font-bold border ${
+                selectedJob.isRemote 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
+                {selectedJob.isRemote ? '100% Remoto' : (selectedJob.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
                 {selectedJob.contractTypeLabel || 'No especificado'}

@@ -22,25 +22,12 @@ export function detectContractType(
 ): ContractDetectionResult {
   const combined = `${title} ${description} ${extraInfo}`.toLowerCase();
 
-  // 1. Contrato de Aprendizaje / Prácticas / SENA / Pasantía (estrictamente etapa formativa)
+  // 1. Contrato de Aprendizaje / Prácticas / SENA / Pasantía (estrictamente formativo)
   const isSeniorTitle = /\b(senior|sr\.?|lead|principal|staff|architect|director|manager|gerente)\b/i.test(title);
-  if (
-    !isSeniorTitle && (
-      combined.includes('aprendizaje') ||
-      combined.includes('practicante') ||
-      combined.includes('prácticas') ||
-      combined.includes('practicas') ||
-      combined.includes('pasante') ||
-      combined.includes('pasantia') ||
-      combined.includes('pasantía') ||
-      combined.includes('aprendiz') ||
-      /\bsena\b/.test(combined) ||
-      combined.includes('etapa productiva') ||
-      combined.includes('estudiante en practica') ||
-      combined.includes('estudiante en práctica') ||
-      /\b(internship|intern|interns|becario)\b/i.test(title)
-    )
-  ) {
+  const isApprenticeshipInTitle = /\b(aprendiz|practicante|pasante|pasantia|pasantía|internship|intern\b|becari[oa]|adso)\b/i.test(title);
+  const isExplicitAprendizajeContract = /\b(contrato\s*(?:de\s*)?aprendizaje|convenio\s*(?:con\s*el\s*)?sena|cuota\s*sena|etapa\s*productiva|etapa\s*practica|estudiante\s*en\s*pr[aá]ctica|practicante\s*(?:universitari[oa]|sena)|semillero\s*(?:sena|universitari[oa])|patrocinio\s*sena)\b/i.test(combined);
+
+  if (!isSeniorTitle && (isApprenticeshipInTitle || isExplicitAprendizajeContract)) {
     return {
       contractType: 'aprendizaje',
       contractTypeLabel: 'Contrato de Aprendizaje (Prácticas)'
@@ -139,9 +126,6 @@ export function detectContractType(
 }
 
 export function getContractTypeLabel(contractType?: string, explicitLabel?: string): string {
-  if (explicitLabel && explicitLabel !== 'A convenir / No especificado' && explicitLabel.trim() !== '') {
-    return explicitLabel;
-  }
   switch (contractType) {
     case 'indefinido':
       return 'Término Indefinido';
@@ -155,6 +139,15 @@ export function getContractTypeLabel(contractType?: string, explicitLabel?: stri
       return 'Obra o Labor';
     case 'no_especificado':
     default:
+      if (
+        explicitLabel && 
+        explicitLabel !== 'A convenir / No especificado' && 
+        explicitLabel !== 'No especificado' &&
+        explicitLabel !== 'Contrato de Aprendizaje (Prácticas)' &&
+        explicitLabel.trim() !== ''
+      ) {
+        return explicitLabel;
+      }
       return 'A convenir / No especificado';
   }
 }

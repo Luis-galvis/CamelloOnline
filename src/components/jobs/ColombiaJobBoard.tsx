@@ -61,26 +61,16 @@ export function ColombiaJobBoard() {
     return false;
   };
 
+  const getJobLocInfo = (job: JobPost) => {
+    return normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
+  };
+
   const isJobRemote = (job: JobPost): boolean => {
-    // Exact check: if modality or normalizer confirms remote and it is NOT explicit on-site
-    if (job.workModality === 'on_site') return false;
-    if (job.isRemote || job.workModality === 'remote_country' || job.workModality === 'remote_worldwide') return true;
-    const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
-    return locRes.isRemote;
+    return getJobLocInfo(job).isRemote;
   };
 
   const isJobZeroExp = (job: JobPost): boolean => {
-    // 1. If explicit years in job post > 0, it is NEVER zero experience
     const exp = detectExperience(job.title || '', job.description || '');
-    if (exp.hasExplicitYears && exp.minYears !== undefined && exp.minYears > 0) {
-      return false;
-    }
-    if ((job as any).minYearsExperience !== undefined && (job as any).minYearsExperience > 0) {
-      return false;
-    }
-    if (job.maxYearsExperienceRequired !== undefined && job.maxYearsExperienceRequired > 0.5 && !exp.isZeroExperience) {
-      return false;
-    }
     return exp.isZeroExperience;
   };
 
@@ -100,8 +90,9 @@ export function ColombiaJobBoard() {
   };
 
   const getJobContractLabel = (job: JobPost): string => {
-    const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
-    return getContractTypeLabel(cType, job.contractTypeLabel);
+    const detected = detectContractType(job.title || '', job.description || '');
+    const cType = detected.contractType !== 'no_especificado' ? detected.contractType : (job.contractType || 'no_especificado');
+    return getContractTypeLabel(cType);
   };
 
   const getResilientJobUrl = (job: JobPost): string => {
@@ -150,19 +141,21 @@ export function ColombiaJobBoard() {
         if (cat !== selectedCategory) return false;
       }
 
+      const locInfo = getJobLocInfo(job);
+
       // 2. Filtro de Modalidad
-      if (selectedModality === 'remote' && !isRemote) return false;
-      if (selectedModality === 'hybrid' && (isRemote || job.workModality !== 'hybrid')) return false;
-      if (selectedModality === 'on_site' && (isRemote || job.workModality === 'hybrid')) return false;
+      if (selectedModality === 'remote' && !locInfo.isRemote) return false;
+      if (selectedModality === 'hybrid' && locInfo.workModality !== 'hybrid') return false;
+      if (selectedModality === 'on_site' && locInfo.workModality !== 'on_site') return false;
 
       // 3. Filtro de Ubicación
       if (selectedLocation !== 'all') {
         if (selectedLocation === 'remoto_colombia') {
-          if (!isRemote) return false;
+          if (!locInfo.isRemote) return false;
         } else {
-          const key = (job.locationFilterKey || '').toLowerCase();
-          const city = (job.locationCity || '').toLowerCase();
-          const display = (job.displayLocation || '').toLowerCase();
+          const key = (locInfo.filterKey || job.locationFilterKey || '').toLowerCase();
+          const city = (locInfo.city || job.locationCity || '').toLowerCase();
+          const display = (locInfo.displayLocation || job.displayLocation || '').toLowerCase();
 
           if (selectedLocation === 'bogota' && !key.includes('bogota') && !city.includes('bogot') && !display.includes('bogot')) return false;
           if (selectedLocation === 'medellin' && !key.includes('medellin') && !city.includes('medell') && !display.includes('medell')) return false;
@@ -186,7 +179,8 @@ export function ColombiaJobBoard() {
 
       // 5. Filtro de Tipo de Contrato
       if (selectedContract !== 'all') {
-        const cType = job.contractType || detectContractType(job.title, job.description || '').contractType;
+        const detected = detectContractType(job.title || '', job.description || '');
+        const cType = detected.contractType !== 'no_especificado' ? detected.contractType : (job.contractType || 'no_especificado');
         if (selectedContract === 'indefinido') {
           if (cType !== 'indefinido') return false;
         } else if (selectedContract === 'no_especificado') {
@@ -777,11 +771,13 @@ export function ColombiaJobBoard() {
         ) : (
           <div className="space-y-3">
             {visibleJobs.map((job) => {
-              const isRem = isJobRemote(job);
+              const locInfo = getJobLocInfo(job);
+              const isRem = locInfo.isRemote;
               const cat = getJobCategory(job);
               const isLiPost = isJobLinkedInPost(job);
               const isApplied = appliedJobIds?.includes(job.id);
               const isViewed = viewedJobIds?.includes(job.id);
+              const contractLabel = getJobContractLabel(job);
 
               return (
                 <div
@@ -817,12 +813,7 @@ export function ColombiaJobBoard() {
                             <span className="text-xs text-slate-500 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-slate-400" />
                               <span>
-                                {isRem 
-                                  ? (job.locationCity && !job.locationCity.toLowerCase().includes('remoto') && job.locationCity !== 'Colombia' 
-                                      ? `Remoto · ${job.locationCity}` 
-                                      : (job.displayLocation && job.displayLocation.toLowerCase().includes('remoto') ? job.displayLocation : 'Remoto · Colombia'))
-                                  : (job.displayLocation || job.locationCity || 'Colombia')
-                                }
+                                {locInfo.displayLocation}
                               </span>
                             </span>
                           </div>
@@ -874,22 +865,28 @@ export function ColombiaJobBoard() {
 
                         {/* Contract Type Badge */}
                         <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
-                          (job.contractType === 'indefinido' || getJobContractLabel(job) === 'Término Indefinido')
+                          contractLabel === 'Término Indefinido'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : job.contractType === 'aprendizaje'
+                            : contractLabel.includes('Aprendizaje')
                             ? 'bg-purple-50 text-purple-800 border-purple-200'
+                            : contractLabel === 'Obra o Labor'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : contractLabel.includes('Servicios')
+                            ? 'bg-sky-50 text-sky-800 border-sky-200'
                             : 'bg-slate-100 text-slate-700 border-slate-200'
                         }`}>
-                          {getJobContractLabel(job)}
+                          {contractLabel}
                         </span>
 
                         {/* Modality Badge */}
                         <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
-                          isRem 
+                          locInfo.isRemote 
                             ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80' 
+                            : locInfo.workModality === 'hybrid'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-slate-50 text-slate-600 border-slate-200'
                         }`}>
-                          {isRem ? 'Remoto' : (job.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
+                          {locInfo.isRemote ? 'Remoto' : (locInfo.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
                         </span>
 
                         {/* Experience Badge */}
@@ -1125,7 +1122,7 @@ export function ColombiaJobBoard() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-slate-800">{selectedJobModal.companyName}</span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-xs text-slate-500">{selectedJobModal.displayLocation}</span>
+                  <span className="text-xs text-slate-500">{getJobLocInfo(selectedJobModal).displayLocation}</span>
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                   {selectedJobModal.title}
@@ -1194,7 +1191,7 @@ export function ColombiaJobBoard() {
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Modalidad</span>
                 <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-                  {isJobRemote(selectedJobModal) ? 'Remoto' : (selectedJobModal.workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
+                  {getJobLocInfo(selectedJobModal).isRemote ? 'Remoto' : (getJobLocInfo(selectedJobModal).workModality === 'hybrid' ? 'Híbrido' : 'Presencial')}
                 </span>
               </div>
 

@@ -5,6 +5,7 @@ import { detectJobCategory } from './services/scrapers/category-detector';
 import { detectExperience } from './services/scrapers/experience-detector';
 import { detectEnglishRequirement } from './services/scrapers/english-detector';
 import { calculateJobAgeHours } from './services/scrapers/date-extractor';
+import { normalizeLocation } from './services/scrapers/location-normalizer';
 
 function slugify(text: string): string {
   return (text || '')
@@ -58,30 +59,22 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     });
   }
 
+  const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${job.title || ''} ${job.description || ''}`);
   const contractRes = detectContractType(job.title, job.description || '', '');
   const catRes = detectJobCategory(job.title, job.description || '');
 
   const expRes = detectExperience(job.title, job.description || '');
   const engRes = detectEnglishRequirement(job.title, `${job.description || ''} ${compName}`);
 
-  const isZeroExp = Boolean(job.isZeroExperience || expRes.isZeroExperience);
-  const expYears = isZeroExp ? 0 : (job.maxYearsExperience || expRes.maxYearsExperience || 1);
-  const seniority = (job.seniority || expRes.seniority) === 'senior' ? 'junior' : (job.seniority || expRes.seniority || 'junior');
+  const isZeroExp = expRes.isZeroExperience;
+  const expYears = isZeroExp ? 0 : (expRes.maxYearsExperience || 1);
+  const seniority = (expRes.seniority === 'senior' && !isZeroExp) ? 'senior' : (isZeroExp ? 'trainee' : expRes.seniority);
   const requiresEnglishFinal = Boolean(job.requiresEnglish || engRes.requiresEnglish);
   const englishBadgeTextFinal = requiresEnglishFinal ? 'Requiere inglés' : 'Español';
 
-  const isJobRem = Boolean(job.isRemote || (job.workModality && job.workModality.includes('remote')));
-
-  let rawDisplayLoc = (job.displayLocation || job.locationCity || 'Colombia')
+  const cleanDisplayLoc = (locRes.displayLocation || job.locationCity || 'Colombia')
     .replace(/^📍\s*/, '')
     .replace(/^🏠\s*/, '');
-
-  if (isJobRem) {
-    rawDisplayLoc = rawDisplayLoc.replace(/^Presencial\s*·\s*/i, 'Remoto · ');
-    if (!rawDisplayLoc.toLowerCase().includes('remoto')) {
-      rawDisplayLoc = `Remoto · ${rawDisplayLoc}`;
-    }
-  }
 
   let cleanDesc = (job.description || '')
     .replace(/Publicada en [^.]+\.?/gi, '')
@@ -93,7 +86,7 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     .trim();
 
   if (!cleanDesc) {
-    cleanDesc = `Oportunidad laboral para el cargo de ${job.title} en ${compName} (${rawDisplayLoc}).`;
+    cleanDesc = `Oportunidad laboral para el cargo de ${job.title} en ${compName} (${cleanDisplayLoc}).`;
   }
 
   // Deterministic counts to prevent SSR hydration mismatch
@@ -107,8 +100,8 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
   const calculatedTimestamp = BASE_TIME - Math.round(ageHours * 3600 * 1000) - (idx * 1000);
   const finalCreatedAt = new Date(calculatedTimestamp).toISOString();
 
-  const finalContractType = job.contractType || contractRes.contractType;
-  const finalContractLabel = getContractTypeLabel(finalContractType, job.contractTypeLabel || contractRes.contractTypeLabel);
+  const finalContractType = contractRes.contractType !== 'no_especificado' ? contractRes.contractType : (job.contractType || 'no_especificado');
+  const finalContractLabel = getContractTypeLabel(finalContractType);
 
   return {
     id: job.id || `job-co-${idx}`,
@@ -120,10 +113,10 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     title: job.title,
     slug: `${compSlug}-${job.id || idx}`,
     description: cleanDesc,
-    isRemote: isJobRem,
-    workModality: isJobRem ? 'remote_country' : (job.workModality || 'on_site'),
-    locationCountry: 'CO',
-    locationCity: job.locationCity || 'Colombia',
+    isRemote: locRes.isRemote,
+    workModality: locRes.workModality,
+    locationCountry: locRes.country || 'CO',
+    locationCity: locRes.city || 'Colombia',
     salaryMinUsd: job.salaryMinUsdEquivalent || job.salaryMinUsd || 700,
     salaryMaxUsd: job.salaryMaxUsdEquivalent || job.salaryMaxUsd || 1500,
     currency: job.salaryCurrency || 'COP',
@@ -146,14 +139,15 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     salaryDisplayText: job.salaryDisplayText || 'No especificado en la oferta',
     requiresEnglish: requiresEnglishFinal,
     englishBadgeText: englishBadgeTextFinal,
-    displayLocation: rawDisplayLoc,
-    locationFilterKey: job.locationFilterKey || (isJobRem ? 'remoto_colombia' : 'colombia'),
+    displayLocation: cleanDisplayLoc,
+    locationFilterKey: locRes.filterKey,
     contractType: finalContractType,
     contractTypeLabel: finalContractLabel,
     category: job.category || catRes.category,
     categoryLabel: job.categoryLabel || catRes.categoryLabel,
-    experienceTier: isZeroExp ? 'zero_exp' : (job.experienceTier || expRes.experienceTier),
-    experienceLabel: isZeroExp ? 'Sin experiencia previa' : (job.experienceLabel || expRes.experienceLabel),
+    experienceTier: expRes.experienceTier,
+    experienceLabel: expRes.experienceLabel,
+
     applicantCountText: job.applicantCountText || 'Menos de 20 postulantes',
     applicantTier: job.applicantTier || 'low',
     postedDateText: postedText,
