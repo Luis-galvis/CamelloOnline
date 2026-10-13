@@ -6,6 +6,16 @@ import { detectExperience } from '../src/lib/services/scrapers/experience-detect
 import { detectEnglishRequirement } from '../src/lib/services/scrapers/english-detector';
 import { decodeHtmlEntities } from '../src/lib/services/scrapers/clean-text';
 
+function slugify(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+}
+
 async function sanitizeJsonJobs() {
   console.log('🧹 [REALJOBS] Iniciando saneamiento exhaustivo de scraped-colombia-jobs.json...');
 
@@ -20,13 +30,23 @@ async function sanitizeJsonJobs() {
   let foreignRejected = 0;
 
   const sanitizedList: any[] = [];
+  const seenSlugs = new Set<string>();
 
-  for (const job of rawJobs) {
+  for (let idx = 0; idx < rawJobs.length; idx++) {
+    const job = rawJobs[idx];
     const title = decodeHtmlEntities(job.title || '').trim();
     const compName = decodeHtmlEntities(job.companyName || '').trim();
     let desc = decodeHtmlEntities(job.description || '').trim();
 
-    // 1. Normalizar ubicación y modalidad
+    // 1. Generar slug único y semántico
+    const baseSlug = `${slugify(title)}-${slugify(compName)}`.slice(0, 50).replace(/-+$/, '');
+    const idSuffix = String(job.id || idx).replace(/[^a-z0-9]/gi, '').slice(-8) || String(idx);
+    let jobSlug = `${baseSlug}-${idSuffix}`;
+    if (seenSlugs.has(jobSlug)) jobSlug = `${jobSlug}-${idx}`;
+    seenSlugs.add(jobSlug);
+    job.slug = jobSlug;
+
+    // 2. Normalizar ubicación y modalidad
     const locRes = normalizeLocation(job.locationCity || job.displayLocation || 'Colombia', `${title} ${desc}`);
     if (!locRes.isColombiaValid) {
       foreignRejected++;

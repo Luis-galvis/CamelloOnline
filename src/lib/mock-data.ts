@@ -111,7 +111,7 @@ export const INITIAL_JOB_POSTS: JobPost[] = deduplicatedRawList.map((job, idx) =
     companyWebsite: job.companyDomain ? `https://${job.companyDomain}` : '',
     isCompanyVerified: true,
     title: job.title,
-    slug: `${compSlug}-${job.id || idx}`,
+    slug: job.slug || `${compSlug}-${job.id || idx}`,
     description: cleanDesc,
     isRemote: locRes.isRemote,
     workModality: locRes.workModality,
