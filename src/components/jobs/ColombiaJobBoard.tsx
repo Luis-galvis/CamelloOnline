@@ -356,6 +356,31 @@ export function ColombiaJobBoard() {
     <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-2">
       <JobPostingJsonLd jobs={sortedJobs} />
 
+      {/* SEO Hero Header */}
+      <header className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+                Camello Online <span className="text-amber-600">Colombia</span>
+              </h1>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                🇨🇴 Bolsa Oficial
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl font-medium leading-relaxed">
+              Encuentra camello real y verificado en Colombia y el exterior: Tecnología, Inteligencia Artificial, Ventas y Trabajo Remoto en USD y COP. Sin intermediarios y 100% gratuito.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-left sm:text-right">
+              <div className="text-xs font-bold text-slate-900">+{jobs.length} vacantes</div>
+              <div className="text-[10px] text-emerald-600 font-semibold">Verificadas a diario</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Search & Comprehensive Filters */}
       <section className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
         

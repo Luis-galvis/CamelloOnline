@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     canonical: 'https://www.camelloonline.com/remoto-colombia',
   },
   openGraph: {
-    title: 'Trabajo Remoto Colombia & Vacantes en Dólares | CamelloOnline',
+    title: 'Trabajo Remoto Colombia & Vacantes en Dólares | Camello Online',
     description: 'Vacantes 100% remotas para colombianos. Postúlate a empresas internacionales con pago en USD y contratos directos.',
     url: 'https://www.camelloonline.com/remoto-colombia',
   },

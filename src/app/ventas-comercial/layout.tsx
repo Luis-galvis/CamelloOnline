@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     canonical: 'https://www.camelloonline.com/ventas-comercial',
   },
   openGraph: {
-    title: 'Empleos en Ventas y Comercial en Colombia | CamelloOnline',
+    title: 'Empleos en Ventas y Comercial en Colombia | Camello Online',
     description: 'Encuentra las mejores oportunidades en el área comercial y ventas en Colombia con comisiones atractivas y trabajo remoto o presencial.',
     url: 'https://www.camelloonline.com/ventas-comercial',
   },

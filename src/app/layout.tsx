@@ -17,13 +17,16 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.camelloonline.com"),
   title: {
-    default: "CamelloOnline | Empleo Colombia & Trabajo Remoto Verificado",
-    template: "%s | CamelloOnline",
+    default: "Camello Online (CamelloOnline) | Bolsa de Empleo en Colombia & Trabajo Remoto",
+    template: "%s | Camello Online",
   },
-  description: "Portal de empleo líder en Colombia y trabajo remoto internacional en USD y COP. Miles de vacantes verificadas en Tech, Inteligencia Artificial, Ventas, Marketing y Atención al Cliente. 100% Gratis.",
+  description: "Camello Online (camelloonline.com) es la bolsa de empleo abierta para Colombia y trabajo remoto internacional en USD y COP. Miles de vacantes verificadas en Tech, Inteligencia Artificial, Ventas y Operaciones. 100% Gratis.",
   keywords: [
     "camello online",
+    "camello online colombia",
     "camelloonline",
+    "camello online empleos",
+    "bolsa de empleo colombia",
     "trabajo remoto colombia",
     "empleo colombia",
     "empleos bogota",
@@ -44,10 +47,10 @@ export const metadata: Metadata = {
     "trabajo desde casa colombia",
     "empleos bilingues colombia"
   ],
-  authors: [{ name: "CamelloOnline Team", url: "https://www.camelloonline.com" }],
-  creator: "CamelloOnline",
-  publisher: "CamelloOnline",
-  applicationName: "CamelloOnline",
+  authors: [{ name: "Camello Online Team", url: "https://www.camelloonline.com" }],
+  creator: "Camello Online",
+  publisher: "Camello Online",
+  applicationName: "Camello Online",
   category: "Employment & Careers",
   classification: "Portal de Empleo y Trabajo Remoto",
   alternates: {
@@ -58,10 +61,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "CamelloOnline | Portal de Empleo Colombia & Trabajo Remoto Verificado",
+    title: "Camello Online | Portal de Empleo Colombia & Trabajo Remoto Verificado",
     description: "Encuentra camello real y verificado en Colombia y el mundo: Tech, Inteligencia Artificial, Ventas y Salarios en USD. Sin intermediarios y 100% gratis.",
     url: "https://www.camelloonline.com",
-    siteName: "CamelloOnline",
+    siteName: "Camello Online",
     locale: "es_CO",
     type: "website",
     images: [
@@ -69,13 +72,13 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "CamelloOnline - Portal de Empleo Colombia y Trabajo Remoto",
+        alt: "Camello Online - Portal de Empleo Colombia y Trabajo Remoto",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CamelloOnline | Empleo Colombia & Trabajo Remoto",
+    title: "Camello Online | Empleo Colombia & Trabajo Remoto",
     description: "Vacantes reales y trabajo remoto verificado en Colombia: Tech, Ventas, IA y salarios en USD.",
     images: ["/opengraph-image"],
     creator: "@camelloonline",
