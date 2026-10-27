@@ -218,25 +218,36 @@ async function runColombiaScraperPipeline() {
 
   console.log(`📥 Sincronizando ${jobPostsToInsert.length} vacantes junior / entry-level en Supabase (upsert por source_job_id)...`);
 
-  // Cargar vacantes auto-ingestadas existentes para hacer UPSERT (clave: source_job_id determinístico).
-  // Así cada vacante conserva su id, su URL (slug) y su created_at entre corridas.
-  const { data: existingRows } = await supabase
-    .from('job_posts')
-    .select('id, slug, source_job_id, is_claimed')
-    .eq('is_auto_ingested', true);
-
-  const existingBySourceJobId = new Map<string, { id: string; slug: string; isClaimed: boolean }>();
-  for (const r of (existingRows || [])) {
-    if (r.source_job_id) existingBySourceJobId.set(r.source_job_id, { id: r.id, slug: r.slug, isClaimed: Boolean(r.is_claimed) });
+  // Cargar TODAS las vacantes auto-ingestadas existentes (con paginación: PostgREST
+  // limita a 1000 filas por petición, y sin paginar se omitían ~257 filas, causando
+  // errores "duplicate key value violates unique constraint unq_ats_source_job").
+  const existingRows: any[] = [];
+  for (let from = 0; from < 100000; from += 1000) {
+    const { data: page } = await supabase
+      .from('job_posts')
+      .select('id, slug, source_ats, source_job_id, is_claimed')
+      .eq('is_auto_ingested', true)
+      .order('id')
+      .range(from, from + 999);
+    if (!page || page.length === 0) break;
+    existingRows.push(...page);
+    if (page.length < 1000) break;
   }
 
-  const currentSourceJobIds = new Set<string>();
+  // Clave compuesta (source_ats, source_job_id) que coincide con la constraint única de la BD.
+  const existingByKey = new Map<string, { id: string; slug: string; isClaimed: boolean }>();
+  for (const r of existingRows) {
+    if (r.source_job_id) existingByKey.set(`${r.source_ats || ''}|${r.source_job_id}`, { id: r.id, slug: r.slug, isClaimed: Boolean(r.is_claimed) });
+  }
+
+  const currentKeys = new Set<string>();
   const toUpdate: { id: string; item: any }[] = [];
   const toInsert: any[] = [];
 
   for (const item of jobPostsToInsert) {
-    currentSourceJobIds.add(item.source_job_id);
-    const existing = existingBySourceJobId.get(item.source_job_id);
+    const key = `${item.source_ats || ''}|${item.source_job_id}`;
+    currentKeys.add(key);
+    const existing = existingByKey.get(key);
     if (existing) {
       toUpdate.push({ id: existing.id, item });
     } else {
@@ -290,19 +301,20 @@ async function runColombiaScraperPipeline() {
     }));
   }
 
-  // 4c. Soft delete: marcar inactivas las vacantes auto-ingestadas que ya no aparecen en esta corrida
-  //     (sin borrarlas, para conservar su URL indexada en Google).
-  const staleRows = (existingRows || []).filter(r => !currentSourceJobIds.has(r.source_job_id) && !r.is_claimed);
+  // 4c. Soft delete: marcar 'expired' las vacantes auto-ingestadas que ya no aparecen en esta
+  //     corrida (sin borrarlas, para conservar su URL indexada en Google).
+  const staleRows = existingRows.filter(r => !currentKeys.has(`${r.source_ats || ''}|${r.source_job_id}`) && !r.is_claimed);
   let totalDeactivated = 0;
   if (staleRows.length > 0) {
     const staleIds = staleRows.map(r => r.id).filter(Boolean);
-    console.log(`🧹 Marcando ${staleIds.length} vacantes antiguas como inactivas (soft delete)...`);
+    console.log(`🧹 Marcando ${staleIds.length} vacantes antiguas como expiradas (soft delete)...`);
     for (let i = 0; i < staleIds.length; i += 100) {
       const { error: dErr } = await supabase
         .from('job_posts')
-        .update({ status: 'inactive' })
+        .update({ status: 'expired' })
         .in('id', staleIds.slice(i, i + 100));
       if (!dErr) totalDeactivated += staleIds.slice(i, i + 100).length;
+      else console.warn(`  ⚠️ No se pudo expirar lote ${i / 100 + 1}:`, dErr.message);
     }
   }
 

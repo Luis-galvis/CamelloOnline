@@ -296,6 +296,13 @@ export function useAppStore() {
     }
   }, []);
 
+  // Consultar las vacantes vivas de Supabase al montar la app.
+  // El JSON seed solo es un fallback de SSR; sin esta llamada la página muestra
+  // datos viejos y NUNCA refleja las corridas diarias del scraper.
+  useEffect(() => {
+    refreshJobsFromSupabase();
+  }, [refreshJobsFromSupabase]);
+
   const setActiveRole = (role: UserRole) => {
     setActiveRoleState(role);
     localStorage.setItem(STORAGE_KEYS.ACTIVE_ROLE, role);
