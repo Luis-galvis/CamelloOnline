@@ -24,15 +24,19 @@ interface PageProps {
 
 export const dynamicParams = true;
 
+// Revalida cada hora las páginas pre-renderizadas para que no queden obsoletas
+// cuando el scraper diario actualiza slugs, estado o contenido.
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
-  const slugs = getAllJobSlugs();
+  const slugs = await getAllJobSlugs();
   // Pre-render top 60 jobs at build time, remainder generated on-demand
   return slugs.slice(0, 60).map(slug => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const job = getJobBySlug(slug);
+  const job = await getJobBySlug(slug);
 
   if (!job) {
     return {
@@ -69,7 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function JobDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const job = getJobBySlug(slug);
+  const job = await getJobBySlug(slug);
 
   if (!job) {
     notFound();

@@ -58,7 +58,73 @@ export const TARGET_COLOMBIA_ATS_BOARDS: TargetAtsBoard[] = [
   { ats: 'lever', token: 'figma', companyName: 'Figma', domain: 'figma.com', isColombiaNative: false },
   { ats: 'lever', token: 'netflix', companyName: 'Netflix', domain: 'netflix.com', isColombiaNative: false },
   { ats: 'lever', token: 'spotify', companyName: 'Spotify', domain: 'spotify.com', isColombiaNative: false },
-  { ats: 'lever', token: 'palantir', companyName: 'Palantir', domain: 'palantir.com', isColombiaNative: false }
+  { ats: 'lever', token: 'palantir', companyName: 'Palantir', domain: 'palantir.com', isColombiaNative: false },
+
+  // ===================== EXPANSIÓN REMOTO / GLOBAL (contrata LATAM) =====================
+  // Empresas remote-first y globales con tableros públicos. Si un token cambia, el fetch
+  // devuelve 404 y simplemente se omite (sin romper el pipeline).
+
+  // Greenhouse — remote-first / LATAM
+  { ats: 'greenhouse', token: 'andela', companyName: 'Andela', domain: 'andela.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'deel', companyName: 'Deel', domain: 'deel.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'toggl', companyName: 'Toggl', domain: 'toggl.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'hotjar', companyName: 'Hotjar', domain: 'hotjar.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'buffer', companyName: 'Buffer', domain: 'buffer.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'zapier', companyName: 'Zapier', domain: 'zapier.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'doist', companyName: 'Doist', domain: 'doist.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'close', companyName: 'Close', domain: 'close.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'intercom', companyName: 'Intercom', domain: 'intercom.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'zendesk', companyName: 'Zendesk', domain: 'zendesk.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'atlassian', companyName: 'Atlassian', domain: 'atlassian.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'canva', companyName: 'Canva', domain: 'canva.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'notion', companyName: 'Notion', domain: 'notion.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'airtable', companyName: 'Airtable', domain: 'airtable.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'webflow', companyName: 'Webflow', domain: 'webflow.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'wrike', companyName: 'Wrike', domain: 'wrike.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'typeform', companyName: 'Typeform', domain: 'typeform.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'databricks', companyName: 'Databricks', domain: 'databricks.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'snowflake', companyName: 'Snowflake', domain: 'snowflake.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'confluent', companyName: 'Confluent', domain: 'confluent.io', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'elastic', companyName: 'Elastic', domain: 'elastic.co', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'crowdstrike', companyName: 'CrowdStrike', domain: 'crowdstrike.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'splunk', companyName: 'Splunk', domain: 'splunk.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'fullstory', companyName: 'FullStory', domain: 'fullstory.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'braze', companyName: 'Braze', domain: 'braze.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'amplitude', companyName: 'Amplitude', domain: 'amplitude.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'miro', companyName: 'Miro', domain: 'miro.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'shopify', companyName: 'Shopify', domain: 'shopify.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'stripe', companyName: 'Stripe', domain: 'stripe.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'duolingo', companyName: 'Duolingo', domain: 'duolingo.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'reddit', companyName: 'Reddit', domain: 'reddit.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'dropbox', companyName: 'Dropbox', domain: 'dropbox.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'grammarly', companyName: 'Grammarly', domain: 'grammarly.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'hubspot', companyName: 'HubSpot', domain: 'hubspot.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'affirm', companyName: 'Affirm', domain: 'affirm.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'robinhood', companyName: 'Robinhood', domain: 'robinhood.com', isColombiaNative: false },
+  { ats: 'greenhouse', token: 'coinbase', companyName: 'Coinbase', domain: 'coinbase.com', isColombiaNative: false },
+
+  // Lever — remote / global
+  { ats: 'lever', token: 'remote', companyName: 'Remote.com', domain: 'remote.com', isColombiaNative: false },
+  { ats: 'lever', token: 'plaid', companyName: 'Plaid', domain: 'plaid.com', isColombiaNative: false },
+  { ats: 'lever', token: 'twitch', companyName: 'Twitch', domain: 'twitch.tv', isColombiaNative: false },
+  { ats: 'lever', token: 'khanacademy', companyName: 'Khan Academy', domain: 'khanacademy.org', isColombiaNative: false },
+  { ats: 'lever', token: 'flexport', companyName: 'Flexport', domain: 'flexport.com', isColombiaNative: false },
+  { ats: 'lever', token: 'instacart', companyName: 'Instacart', domain: 'instacart.com', isColombiaNative: false },
+  { ats: 'lever', token: 'nextdoor', companyName: 'Nextdoor', domain: 'nextdoor.com', isColombiaNative: false },
+  { ats: 'lever', token: 'cohere', companyName: 'Cohere', domain: 'cohere.com', isColombiaNative: false },
+
+  // Ashby — AI / startups remote-friendly
+  { ats: 'ashby', token: 'openai', companyName: 'OpenAI', domain: 'openai.com', isColombiaNative: false },
+  { ats: 'ashby', token: 'anthropic', companyName: 'Anthropic', domain: 'anthropic.com', isColombiaNative: false },
+  { ats: 'ashby', token: 'ramp', companyName: 'Ramp', domain: 'ramp.com', isColombiaNative: false },
+  { ats: 'ashby', token: 'linear', companyName: 'Linear', domain: 'linear.app', isColombiaNative: false },
+  { ats: 'ashby', token: 'scaleai', companyName: 'Scale AI', domain: 'scale.com', isColombiaNative: false },
+  { ats: 'ashby', token: 'perplexity', companyName: 'Perplexity', domain: 'perplexity.ai', isColombiaNative: false },
+  { ats: 'ashby', token: 'elevenlabs', companyName: 'ElevenLabs', domain: 'elevenlabs.io', isColombiaNative: false },
+  { ats: 'ashby', token: 'character', companyName: 'Character.AI', domain: 'character.ai', isColombiaNative: false },
+
+  // Workable — remote-friendly
+  { ats: 'workable', token: 'remote-first', companyName: 'Remote-First', domain: 'remote-first.com', isColombiaNative: false }
 ];
 
 async function fetchGreenhouseJobsRaw(token: string) {
@@ -99,6 +165,49 @@ async function fetchLeverJobsRaw(token: string) {
   }
 }
 
+async function fetchAshbyJobsRaw(org: string) {
+  try {
+    const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${org}?includeCompensation=true`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.jobs || []).map((j: any) => ({
+      id: String(j.id),
+      title: j.title || '',
+      content: ((j.descriptionHtml || j.description || '')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+      url: j.jobUrl || `https://jobs.ashbyhq.com/${org}/${j.id}`,
+      location: j.location || (j.isRemote ? 'Remote' : '')
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function fetchWorkableJobsRaw(account: string) {
+  try {
+    const res = await fetch(`https://apply.workable.com/api/v3/accounts/${account}/jobs?details=true`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.jobs || []).map((j: any) => {
+      const loc = j.location
+        ? [j.location.city, j.location.region, j.location.country].filter(Boolean).join(', ')
+        : (j.remote ? 'Remote' : '');
+      return {
+        id: String(j.shortcode || j.id),
+        title: j.title || j.full_title || '',
+        content: ((j.description || j.summary || '')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+        url: j.url || `https://apply.workable.com/${account}/j/${j.shortcode}/`,
+        location: loc
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function scrapeAtsColombiaJobs(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
   const seenIds = new Set<string>();
@@ -107,8 +216,12 @@ export async function scrapeAtsColombiaJobs(): Promise<ColombiaScrapedJob[]> {
     let rawJobs: any[] = [];
     if (target.ats === 'greenhouse') {
       rawJobs = await fetchGreenhouseJobsRaw(target.token);
-    } else {
+    } else if (target.ats === 'lever') {
       rawJobs = await fetchLeverJobsRaw(target.token);
+    } else if (target.ats === 'ashby') {
+      rawJobs = await fetchAshbyJobsRaw(target.token);
+    } else {
+      rawJobs = await fetchWorkableJobsRaw(target.token);
     }
 
     for (const raw of rawJobs) {
@@ -118,18 +231,28 @@ export async function scrapeAtsColombiaJobs(): Promise<ColombiaScrapedJob[]> {
 
       if (!title) continue;
 
-      // 1. Strict Location Check: MUST be in Colombia or Remote Latam/Colombia
+      // 1. Location Check: acepta Colombia y vacantes REMOTAS (Colombia / Latam / Worldwide),
+      //    descarta solo las presenciales/híbridas fuera de Colombia.
       const locNorm = normalizeLocation(rawLoc, `${title} ${target.companyName} ${content}`);
-      
-      // If not valid in Colombia, check if native
+      const rawLocLower = (rawLoc || '').toLowerCase();
+
       if (!locNorm.isColombiaValid) {
-        if (target.isColombiaNative && (rawLoc.toLowerCase().includes('remote') || !rawLoc || rawLoc.toLowerCase().includes('latam'))) {
+        // Señal remota explícita en la ubicación (o sin ubicación) => remoto global/latam.
+        // Se acepta independientemente de si la empresa es "nativa colombiana" o no:
+        // antes solo las empresas nativas pasaban, descartando vacantes remotas de empresas
+        // de EE.UU./globales que contratan talento en Colombia/Latam.
+        const hasRemoteSignal = /remote|remot[oa]|anywhere|worldwide|global|latam|latin\s*america|colombia|americas|emea/i.test(rawLocLower) || !rawLoc;
+        const isUsOnly = /united\s*states|usa|u\.s\.a?|us\s*only|canada|toronto|vancouver|montreal|europe|uk\b|u\.k\.|london|berlin|paris|madrid|india|bangalore|singapore|japan|australia|apac\b/i.test(rawLocLower) && !/worldwide|global|anywhere|latam|latin\s*america|americas|emea|colombia/i.test(rawLocLower);
+
+        if (hasRemoteSignal && !isUsOnly) {
+          const worldwide = /worldwide|global|anywhere|emea|americas/i.test(rawLocLower);
           locNorm.isColombiaValid = true;
-          locNorm.city = 'Bogotá, D.C.';
-          locNorm.displayLocation = 'Remoto · Bogotá, D.C.';
+          locNorm.city = 'Remoto (Colombia)';
+          locNorm.country = 'CO';
+          locNorm.displayLocation = worldwide ? '🌎 Remoto · Mundial' : '🏠 Remoto · Colombia / Latam';
           locNorm.filterKey = 'remoto_colombia';
           locNorm.isRemote = true;
-          locNorm.workModality = 'remote_country';
+          locNorm.workModality = worldwide ? 'remote_worldwide' : 'remote_country';
         } else {
           continue;
         }

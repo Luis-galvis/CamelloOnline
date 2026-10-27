@@ -266,10 +266,11 @@ export async function verifyAndEnrichJobs(jobs: ColombiaScrapedJob[]): Promise<V
     await sleep(150);
   });
 
-  // Si no se pudo verificar NINGUNA (bloqueo / sin red), no vaciar el catálogo
-  const anyVerified = Array.from(verifiedMap.values()).some(Boolean);
-  const keepUnverified = !anyVerified && unverifiedIds.size > 0;
-
+  // Las vacantes cuya página de detalle NO pudo abrirse (bloqueo anti-bot de LinkedIn/Computrabajo,
+  // timeout o sin red) se CONSERVAN con saneamiento offline en lugar de descartarse.
+  // Antes se descartaban (salvo que NADA se hubiera verificado), lo que perdía cientos de vacantes
+  // cada corrida cuando LinkedIn/Computrabajo bloqueaban el scraping. Es preferible conservar una
+  // vacante con los datos del listado que perderla por un 429 temporal.
   const result: ColombiaScrapedJob[] = [];
   let unverifiedDropped = 0;
   for (const job of jobs) {
@@ -278,19 +279,10 @@ export async function verifyAndEnrichJobs(jobs: ColombiaScrapedJob[]): Promise<V
       if (v) result.push(v);
       continue;
     }
-    if (unverifiedIds.has(job.id)) {
-      if (keepUnverified) {
-        const s = sanitizeOffline(job);
-        if (s) result.push(s);
-      } else {
-        unverifiedDropped++;
-      }
-      continue;
-    }
     const s = sanitizeOffline(job);
     if (s) result.push(s);
   }
 
-  console.log(`✅ [Verifier] ${result.length} vacantes válidas | cerradas/inexistentes: ${closed} | descartadas por años (>${MAX_MIN_YEARS_ALLOWED}): ${rejectedByExperience} | sin verificar descartadas: ${unverifiedDropped}`);
+  console.log(`✅ [Verifier] ${result.length} vacantes válidas | cerradas/inexistentes: ${closed} | descartadas por años (>${MAX_MIN_YEARS_ALLOWED}): ${rejectedByExperience} | sin verificar descartadas: ${unverifiedDropped} (se conservan con saneamiento offline)`);
   return { jobs: result, checked: toVerify.length, closed, unverifiedDropped, rejectedByExperience };
 }

@@ -1,7 +1,12 @@
 import { MetadataRoute } from 'next';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { INITIAL_JOB_POSTS } from '@/lib/mock-data';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// Revalida el sitemap cada hora (ISR) para reflejar las vacantes nuevas/inactivas
+// sin necesidad de un redeploy de Vercel tras cada corrida del scraper.
+export const revalidate = 3600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.camelloonline.com';
   const lastModified = new Date();
 
@@ -45,22 +50,46 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // 2. Individual verified job detail pages for Google indexation
+  // 2. Individual active job detail pages from the live Supabase catalog
+  //    (ya no se usa el JSON semilla obsoleto; las URLs del sitemap deben coincidir
+  //    exactamente con los slugs reales de la base de datos para que Google no encuentre 404).
   const seenUrls = new Set<string>();
   const jobRoutes: MetadataRoute.Sitemap = [];
 
-  for (const job of INITIAL_JOB_POSTS) {
-    if (!job.slug) continue;
-    const jobUrl = `${baseUrl}/jobs/${job.slug}`;
-    if (seenUrls.has(jobUrl)) continue;
+  const pushSlug = (slug: string) => {
+    if (!slug) return;
+    const jobUrl = `${baseUrl}/jobs/${slug}`;
+    if (seenUrls.has(jobUrl)) return;
     seenUrls.add(jobUrl);
-
     jobRoutes.push({
       url: jobUrl,
-      lastModified: job.createdAt ? new Date(job.createdAt) : lastModified,
-      changeFrequency: 'daily',
-      priority: 0.8,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.7,
     });
+  };
+
+  let loadedFromDb = false;
+  try {
+    for (let from = 0; from < 10000; from += 1000) {
+      const { data } = await supabaseAdmin
+        .from('job_posts')
+        .select('slug')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .range(from, from + 999);
+
+      if (!data || data.length === 0) break;
+      loadedFromDb = true;
+      for (const r of data) pushSlug(r.slug);
+      if (data.length < 1000) break;
+    }
+  } catch {
+    // fallback al JSON seed
+  }
+
+  if (!loadedFromDb) {
+    for (const job of INITIAL_JOB_POSTS) pushSlug(job.slug);
   }
 
   return [...mainRoutes, ...jobRoutes];

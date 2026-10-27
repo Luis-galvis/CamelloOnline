@@ -83,13 +83,9 @@ async function runColombiaScraperPipeline() {
     return;
   }
 
-  // 2. Limpiar vacantes anteriores en Supabase
-  console.log('🧹 Sincronizando vacantes en Supabase...');
-  try {
-    await supabase.from('job_posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  } catch (err: any) {
-    console.warn('Nota al limpiar job_posts:', err.message);
-  }
+  // 2. NO se borra la tabla: se hace UPSERT por source_job_id para preservar URLs estables
+  //    y el conteo de vistas/postulaciones. Las vacantes que ya no aparecen se marcan inactivas
+  //    (soft delete) al final, manteniendo su URL indexada en Google.
 
   // 3. Obtener o crear mapa de empresas
   const uniqueCompanies = new Map<string, any>();
@@ -169,7 +165,10 @@ async function runColombiaScraperPipeline() {
     const uniqueJobIdHash = isLiPost 
       ? `lipost-${shortHash(job.title + job.companyName)}`
       : shortHash(`${job.source}:${job.sourceJobId || job.sourceUrl}:${job.title}:${job.displayLocation}`);
-    const baseSlug = `${slugify(job.title).slice(0, 50)}-${compSlug.slice(0, 30)}-${uniqueJobIdHash.slice(0, 10)}-${Math.random().toString(36).slice(2, 6)}`;
+    // Slug determinístico (SIN sufijo aleatorio): la URL de cada vacante queda estable entre corridas.
+    // Esto es clave para SEO: Google indexa y posiciona URLs estables; el sufijo aleatorio anterior
+    // cambiaba la URL de todas las vacantes a diario y destruía el ranking.
+    const baseSlug = `${slugify(job.title).slice(0, 50)}-${compSlug.slice(0, 30)}-${uniqueJobIdHash.slice(0, 10)}`;
 
     // Strict ATS enum compliance: only valid enum values allowed in Postgres enum ats_source
     const mappedAts = ['greenhouse', 'lever', 'ashby', 'workable'].includes(job.source) ? job.source : 'manual';
@@ -217,10 +216,40 @@ async function runColombiaScraperPipeline() {
     });
   }
 
-  console.log(`📥 Insertando ${jobPostsToInsert.length} vacantes junior / entry-level en Supabase por lotes...`);
+  console.log(`📥 Sincronizando ${jobPostsToInsert.length} vacantes junior / entry-level en Supabase (upsert por source_job_id)...`);
+
+  // Cargar vacantes auto-ingestadas existentes para hacer UPSERT (clave: source_job_id determinístico).
+  // Así cada vacante conserva su id, su URL (slug) y su created_at entre corridas.
+  const { data: existingRows } = await supabase
+    .from('job_posts')
+    .select('id, slug, source_job_id, is_claimed')
+    .eq('is_auto_ingested', true);
+
+  const existingBySourceJobId = new Map<string, { id: string; slug: string; isClaimed: boolean }>();
+  for (const r of (existingRows || [])) {
+    if (r.source_job_id) existingBySourceJobId.set(r.source_job_id, { id: r.id, slug: r.slug, isClaimed: Boolean(r.is_claimed) });
+  }
+
+  const currentSourceJobIds = new Set<string>();
+  const toUpdate: { id: string; item: any }[] = [];
+  const toInsert: any[] = [];
+
+  for (const item of jobPostsToInsert) {
+    currentSourceJobIds.add(item.source_job_id);
+    const existing = existingBySourceJobId.get(item.source_job_id);
+    if (existing) {
+      toUpdate.push({ id: existing.id, item });
+    } else {
+      toInsert.push(item);
+    }
+  }
+
   let totalInserted = 0;
-  for (let i = 0; i < jobPostsToInsert.length; i += 50) {
-    const chunk = jobPostsToInsert.slice(i, i + 50);
+  let totalUpdated = 0;
+
+  // 4a. Insertar vacantes nuevas en lotes
+  for (let i = 0; i < toInsert.length; i += 50) {
+    const chunk = toInsert.slice(i, i + 50);
     const { data: res, error: jErr } = await supabase
       .from('job_posts')
       .insert(chunk)
@@ -244,8 +273,43 @@ async function runColombiaScraperPipeline() {
     }
   }
 
+  // 4b. Actualizar vacantes existentes (refresca contenido y fija slug determinístico; preserva created_at, vistas y postulaciones)
+  const updateChunks: { id: string; item: any }[][] = [];
+  for (let i = 0; i < toUpdate.length; i += 20) updateChunks.push(toUpdate.slice(i, i + 20));
+  for (const chunk of updateChunks) {
+    await Promise.all(chunk.map(async ({ id, item }) => {
+      const updateFields: any = { ...item };
+      delete updateFields.is_claimed; // no tocar el estado de reclamo de una vacante ya reclamada
+      updateFields.status = 'active';
+      const { error: uErr } = await supabase
+        .from('job_posts')
+        .update(updateFields)
+        .eq('id', id);
+      if (!uErr) totalUpdated++;
+      else console.warn(`  ⚠️ No se pudo actualizar "${item.title}":`, uErr.message);
+    }));
+  }
+
+  // 4c. Soft delete: marcar inactivas las vacantes auto-ingestadas que ya no aparecen en esta corrida
+  //     (sin borrarlas, para conservar su URL indexada en Google).
+  const staleRows = (existingRows || []).filter(r => !currentSourceJobIds.has(r.source_job_id) && !r.is_claimed);
+  let totalDeactivated = 0;
+  if (staleRows.length > 0) {
+    const staleIds = staleRows.map(r => r.id).filter(Boolean);
+    console.log(`🧹 Marcando ${staleIds.length} vacantes antiguas como inactivas (soft delete)...`);
+    for (let i = 0; i < staleIds.length; i += 100) {
+      const { error: dErr } = await supabase
+        .from('job_posts')
+        .update({ status: 'inactive' })
+        .in('id', staleIds.slice(i, i + 100));
+      if (!dErr) totalDeactivated += staleIds.slice(i, i + 100).length;
+    }
+  }
+
   console.log(`\n🎉 ========================================================`);
-  console.log(`   ✅ ${totalInserted} VACANTES REALES DE COLOMBIA PERSISTIDAS EN SUPABASE`);
+  console.log(`   ✅ ${totalInserted} VACANTES NUEVAS PERSISTIDAS EN SUPABASE`);
+  console.log(`   ✅ ${totalUpdated} VACANTES EXISTENTES ACTUALIZADAS`);
+  console.log(`   🧹 ${totalDeactivated} VACANTES ANTIGUAS MARCADAS INACTIVAS`);
   console.log(`   ✅ RESPALDO JSON LOCAL EN src/lib/scraped-colombia-jobs.json (${report.jobs.length} vacantes)`);
   console.log(`========================================================\n`);
 }

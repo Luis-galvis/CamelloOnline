@@ -113,14 +113,6 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "CamelloOnline",
   },
-  verification: {
-    google: "google-site-verification-placeholder",
-    yandex: "yandex-verification-placeholder",
-    yahoo: "yahoo-verification-placeholder",
-    other: {
-      "msvalidate.01": "bing-site-verification-placeholder",
-    }
-  },
 };
 
 export default function RootLayout({
