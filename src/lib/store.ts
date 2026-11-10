@@ -157,7 +157,10 @@ export function useAppStore() {
       }
 
       if (allDbJobs && allDbJobs.length > 0) {
-        const mappedJobs: JobPost[] = allDbJobs.map((j: any) => {
+        // Mapeo resiliente: si UNA fila falla (dato nulo/malformado), se omite esa fila
+        // y NO se tumba el refresh completo (antes una sola fila rota dejaba la web en el JSON viejo).
+        const mappedJobs: JobPost[] = allDbJobs.map((j: any): JobPost | null => {
+          try {
           const comp = Array.isArray(j.companies) ? j.companies[0] : j.companies;
           const compName = comp?.name || 'Empresa Verificada';
           
@@ -284,10 +287,15 @@ export function useAppStore() {
             postedDateText: extractPostedDate('', j.description || '').postedDateText || 'Reciente',
             createdAt: j.created_at
           };
-        });
+          } catch (rowErr) {
+            console.warn('Saltando fila de job con error de mapeo:', rowErr);
+            return null;
+          }
+        }).filter((x): x is JobPost => x !== null);
 
         setJobs(mappedJobs);
         localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(mappedJobs));
+        console.log(`[CamelloOnline] Cargadas ${mappedJobs.length} vacantes vivas desde Supabase`);
       }
     } catch (err) {
       console.warn('Error refreshing jobs from Supabase:', err);
