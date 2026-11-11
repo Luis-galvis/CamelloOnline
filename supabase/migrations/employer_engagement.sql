@@ -2,13 +2,14 @@
 -- CAMELLO ONLINE - MIGRACIÓN: EMPLEADORES + ENGAGEMENT
 -- Favoritos, Newsletter, y publicación de vacantes por empresas.
 -- Ejecutar UNA SOLA VEZ en Supabase SQL Editor. Idempotente.
+-- NOTA: job_posts.id es UUID (no TEXT).
 -- ==============================================================================
 
 -- 1. FAVORITOS (guardar vacantes)
 CREATE TABLE IF NOT EXISTS public.saved_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    job_post_id TEXT NOT NULL REFERENCES public.job_posts(id) ON DELETE CASCADE,
+    job_post_id UUID NOT NULL REFERENCES public.job_posts(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT saved_jobs_user_job_unique UNIQUE (user_id, job_post_id)
 );
@@ -43,11 +44,8 @@ ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS size TEXT;
 
 -- 4. VACANTES PUBLICADAS POR EMPRESAS
--- job_posts ya tiene recruiter_id, company_id, source y is_auto_ingested.
--- Se agrega contact_email para que el candidato contacte directo a la empresa.
 ALTER TABLE public.job_posts ADD COLUMN IF NOT EXISTS contact_email TEXT;
 
--- Permitir a reclutadores autenticados insertar/actualizar sus propias vacantes
 DROP POLICY IF EXISTS "Recruiters can insert job posts" ON public.job_posts;
 CREATE POLICY "Recruiters can insert job posts"
     ON public.job_posts FOR INSERT TO authenticated
@@ -79,7 +77,7 @@ LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_company_id uuid;
     v_slug text;
-    v_job_id text;
+    v_job_id uuid;
 BEGIN
     v_slug := lower(regexp_replace(regexp_replace(p_company_name, '[^a-zA-Z0-9]+', '-', 'g'), '(^-+|-+$)', '', 'g'));
 
@@ -90,8 +88,6 @@ BEGIN
             website = COALESCE(NULLIF(EXCLUDED.website, ''), public.companies.website)
     RETURNING id INTO v_company_id;
 
-    v_job_id := gen_random_uuid()::text;
-
     INSERT INTO public.job_posts (
         id, company_id, title, slug, description, work_modality,
         location_country, location_city, salary_min_usd, salary_max_usd, currency,
@@ -99,12 +95,13 @@ BEGIN
         is_zero_experience, status, is_auto_ingested, source_ats, contact_email, is_claimed
     )
     VALUES (
-        v_job_id, v_company_id, p_title, v_job_id, p_description, p_work_modality,
+        gen_random_uuid(), v_company_id, p_title, gen_random_uuid()::text, p_description, p_work_modality,
         'CO', p_location_city, p_salary_min_usd, p_salary_max_usd, p_currency,
         CASE WHEN p_is_zero_experience THEN 'trainee' ELSE 'junior' END,
         COALESCE(p_english_required, 'no_english'), CASE WHEN p_is_zero_experience THEN 0 ELSE 1 END,
         p_is_zero_experience, 'active', false, 'manual', p_contact_email, false
-    );
+    )
+    RETURNING id INTO v_job_id;
 
     RETURN jsonb_build_object('company_id', v_company_id, 'job_id', v_job_id);
 END;
