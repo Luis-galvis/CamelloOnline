@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Bookmark } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/context/AuthContext';
 
 const KEY = 'camelloonline_saved_jobs';
 
-export function getSavedJobIds(): string[] {
+function getLocal(): string[] {
   try {
     const list = JSON.parse(localStorage.getItem(KEY) || '[]');
     return Array.isArray(list) ? list : [];
@@ -15,26 +17,59 @@ export function getSavedJobIds(): string[] {
 }
 
 export function SaveJobButton({ jobId }: { jobId: string }) {
+  const { user, openAuthModal } = useAuth();
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setSaved(getSavedJobIds().includes(jobId));
-  }, [jobId]);
+    if (user) {
+      (async () => {
+        try {
+          const { data } = await supabase
+            .from('saved_jobs')
+            .select('job_post_id')
+            .eq('user_id', user.id)
+            .eq('job_post_id', jobId)
+            .maybeSingle();
+          setSaved(Boolean(data));
+        } catch {
+          setSaved(false);
+        }
+      })();
+    } else {
+      setSaved(getLocal().includes(jobId));
+    }
+  }, [user, jobId]);
 
-  const toggle = () => {
-    try {
-      const list = getSavedJobIds();
+  const toggle = async () => {
+    if (!user) {
+      // Sin sesión: guardado local + invitar a iniciar sesión para sincronizar
+      const list = getLocal();
       const next = list.includes(jobId) ? list.filter(x => x !== jobId) : [...list, jobId];
       localStorage.setItem(KEY, JSON.stringify(next));
       setSaved(next.includes(jobId));
-    } catch {
-      // noop
+      if (next.includes(jobId)) openAuthModal('login');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (saved) {
+        await supabase.from('saved_jobs').delete().eq('user_id', user.id).eq('job_post_id', jobId);
+        setSaved(false);
+      } else {
+        const { error } = await supabase.from('saved_jobs').insert({ user_id: user.id, job_post_id: jobId });
+        if (!error) setSaved(true);
+      }
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <button
       onClick={toggle}
+      disabled={busy}
       className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-colors ${
         saved
           ? 'bg-amber-100 text-amber-800 border-amber-300'

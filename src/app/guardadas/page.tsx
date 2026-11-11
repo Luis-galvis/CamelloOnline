@@ -3,35 +3,50 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export default function GuardadasPage() {
+  const { user } = useAuth();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const ids: string[] = JSON.parse(localStorage.getItem('camelloonline_saved_jobs') || '[]');
-        if (!Array.isArray(ids) || ids.length === 0) {
-          setLoading(false);
-          return;
+        if (user) {
+          // Sincronizado con la cuenta (tabla saved_jobs)
+          const { data } = await supabase
+            .from('saved_jobs')
+            .select('job_post_id, job_posts(id, title, slug, work_modality, location_city, is_zero_experience, salary_min_usd, currency, companies(name))')
+            .eq('user_id', user.id);
+          const mapped = (data || [])
+            .map((r: any) => (Array.isArray(r.job_posts) ? r.job_posts[0] : r.job_posts))
+            .filter(Boolean);
+          setJobs(mapped);
+        } else {
+          const ids: string[] = JSON.parse(localStorage.getItem('camelloonline_saved_jobs') || '[]');
+          if (!Array.isArray(ids) || ids.length === 0) {
+            setLoading(false);
+            return;
+          }
+          const { data } = await supabase
+            .from('job_posts')
+            .select('id, title, slug, work_modality, location_city, is_zero_experience, salary_min_usd, currency, companies(name)')
+            .in('id', ids)
+            .eq('status', 'active');
+          setJobs(data || []);
         }
-        const { data } = await supabase
-          .from('job_posts')
-          .select('id, title, slug, work_modality, location_city, is_zero_experience, salary_min_usd, currency, companies(name)')
-          .in('id', ids)
-          .eq('status', 'active');
-        setJobs(data || []);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [user]);
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <header>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">🔖 Mis vacantes guardadas</h1>
+        {user && <p className="text-xs text-slate-400 mt-1">Sincronizadas con tu cuenta.</p>}
       </header>
 
       {loading ? (
