@@ -335,6 +335,7 @@ export function ColombiaJobBoard() {
   const totalOneYearCount = useMemo(() => techJobs.filter(j => getJobExperienceTier(j) === 'one_year').length, [techJobs]);
   const totalTwoToThreeCount = useMemo(() => techJobs.filter(j => getJobExperienceTier(j) === 'two_to_three').length, [techJobs]);
   const totalSalaryDisclosedCount = useMemo(() => techJobs.filter(j => j.salaryDisclosed).length, [techJobs]);
+  const totalNoEnglishCount = useMemo(() => techJobs.filter(j => !j.requiresEnglish).length, [techJobs]);
   const totalDataAiCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'data_ai').length, [techJobs]);
   const totalQaCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'qa_testing').length, [techJobs]);
   const totalSoftwareDevCount = useMemo(() => techJobs.filter(j => getJobCategory(j) === 'software_dev').length, [techJobs]);
@@ -665,6 +666,18 @@ export function ColombiaJobBoard() {
               }`}
             >
               Sin exp ({totalZeroExpCount})
+            </button>
+
+            {/* Sin inglés */}
+            <button
+              onClick={() => setSelectedEnglish(selectedEnglish === 'no_english' ? 'all' : 'no_english')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedEnglish === 'no_english' 
+                  ? 'bg-emerald-700 text-white' 
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              Sin inglés ({totalNoEnglishCount})
             </button>
 
             {/* 6 Meses */}

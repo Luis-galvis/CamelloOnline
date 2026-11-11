@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Heart, MapPin, CheckCircle2, Globe, Briefcase, Users, HelpCircle, ShieldCheck } from 'lucide-react';
 import { CamelloIcon } from '@/components/brand/CamelloIcon';
+import { NewsletterForm } from './NewsletterForm';
 
 export function Footer() {
   return (
@@ -66,6 +67,31 @@ export function Footer() {
             <li>
               <Link href="/claim-job" className="hover:text-amber-600 hover:underline transition-colors">
                 Publicar / Reclamar Vacante
+              </Link>
+            </li>
+            <li>
+              <Link href="/para-empresas" className="hover:text-amber-600 hover:underline transition-colors">
+                Para Empresas
+              </Link>
+            </li>
+            <li>
+              <Link href="/termometro" className="hover:text-amber-600 hover:underline transition-colors">
+                Termómetro del Empleo
+              </Link>
+            </li>
+            <li>
+              <Link href="/mejores-de-la-semana" className="hover:text-amber-600 hover:underline transition-colors">
+                Mejores de la Semana
+              </Link>
+            </li>
+            <li>
+              <Link href="/match" className="hover:text-amber-600 hover:underline transition-colors">
+                Encontrar mi Match
+              </Link>
+            </li>
+            <li>
+              <Link href="/guardadas" className="hover:text-amber-600 hover:underline transition-colors">
+                Vacantes Guardadas
               </Link>
             </li>
           </ul>
@@ -139,6 +165,17 @@ export function Footer() {
               </Link>
             </li>
           </ul>
+        </div>
+      </div>
+
+      {/* Newsletter */}
+      <div className="max-w-7xl mx-auto border-t border-slate-100 pt-8 mb-8">
+        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="space-y-1 text-center sm:text-left">
+            <h3 className="font-black text-lg">📬 Los mejores camellos, en tu correo</h3>
+            <p className="text-sm text-slate-300">Cada semana te enviamos las mejores vacantes: sin experiencia, remotas y en USD.</p>
+          </div>
+          <NewsletterForm />
         </div>
       </div>
 

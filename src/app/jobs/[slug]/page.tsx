@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { getJobBySlug, getAllJobSlugs } from '@/lib/services/job-finder';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
+import { SaveJobButton } from '@/components/jobs/SaveJobButton';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -156,7 +157,7 @@ export default async function JobDetailPage({ params }: PageProps) {
             </div>
 
             {/* Direct Apply CTA (Desktop) */}
-            <div className="sm:self-center shrink-0">
+            <div className="sm:self-center shrink-0 flex flex-col gap-2">
               <a
                 href={applyUrl}
                 target="_blank"
@@ -166,6 +167,7 @@ export default async function JobDetailPage({ params }: PageProps) {
                 <span>Postularme a la oferta</span>
                 <ExternalLink className="w-4 h-4" />
               </a>
+              <SaveJobButton jobId={job.id} />
             </div>
           </div>
 
