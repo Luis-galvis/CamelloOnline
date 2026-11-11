@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Colombia Multi-Source Scraper
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://tapusiqdotxhtnyxavta.supabase.co' }}
           # La service role key SIEMPRE debe venir del secret de GitHub. NUNCA hardcodearla aquí.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run scrape
