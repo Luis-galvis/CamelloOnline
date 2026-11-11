@@ -76,6 +76,7 @@ export function mapDbRowToJobPost(row: any): JobPost {
     : srcUrl.includes('lever') ? 'Lever'
     : srcUrl.includes('linkedin') ? 'LinkedIn Jobs'
     : srcUrl.includes('weremoto') ? 'WeRemoto'
+    : srcUrl.includes('himalayas') ? 'Himalayas'
     : 'Portal Verificado';
 
   return {

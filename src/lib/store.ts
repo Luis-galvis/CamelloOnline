@@ -229,8 +229,9 @@ export function useAppStore() {
               : (srcUrl.includes('elempleo') ? 'ElEmpleo' 
               : (srcUrl.includes('torre.ai') ? 'Torre.ai' 
               : (srcUrl.includes('getonbrd') ? 'Get on Board' 
+              : (srcUrl.includes('himalayas') ? 'Himalayas' 
               : (srcUrl.includes('linkedin.com') ? 'LinkedIn Jobs' 
-              : (j.source_ats || 'Portal Verificado'))))));
+              : (j.source_ats || 'Portal Verificado')))))));
 
           return {
             id: j.id,

@@ -134,6 +134,17 @@ export function Navbar() {
                 {salesJobsCount}
               </span>
             </Link>
+
+            <Link
+              href="/termometro"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                pathname === '/termometro'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>📈 Termómetro</span>
+            </Link>
           </nav>
 
           {/* User Auth Section & Refresh */}
