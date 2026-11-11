@@ -26,6 +26,7 @@ export function PublishJobForm() {
       currency: fd.get('currency') || 'COP',
       isZeroExperience: fd.get('isZeroExperience') === 'on',
       englishRequired: fd.get('englishRequired') || 'no_english',
+      _hp: fd.get('_hp') || '',
     };
     try {
       const res = await fetch('/api/companies/publish', {
@@ -50,6 +51,8 @@ export function PublishJobForm() {
 
   return (
     <form onSubmit={submit} className="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+      {/* Honeypot anti-bots (oculto; los humanos no lo ven ni lo llenan) */}
+      <input type="text" name="_hp" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
       <h3 className="font-bold text-slate-900">Datos de la empresa</h3>
       <div className="grid sm:grid-cols-2 gap-3">
         <div>

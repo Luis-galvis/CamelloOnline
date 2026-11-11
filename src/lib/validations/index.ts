@@ -32,7 +32,7 @@ export const InboundRequestSchema = z.object({
   candidateMinSalary: z.number(),
   jobTitleOffered: z.string().min(4, 'El título del puesto es obligatorio').max(150),
   jobDescription: z.string().min(20, 'La descripción debe tener al menos 20 caracteres'),
-  stackOffered: z.array(z.string()).min(1, 'Selecciona al menos una tecnología del stack'),
+  stackOffered: z.array(z.string()).min(1, 'Selecciona al menos una tecnología del stack').max(100, 'Máximo 100 tecnologías'),
   offeredSalaryUsd: z.number().min(300, 'El salario debe ser de al menos $300 USD'),
   workModality: z.enum(['remote_worldwide', 'remote_country', 'hybrid', 'on_site']),
   initialPitchMessage: z.string().min(15, 'El mensaje personalizado de pitch es obligatorio para contactar'),
@@ -59,7 +59,7 @@ export const JobPostSchema = z.object({
     'c1_advanced',
     'c2_proficient_native'
   ]),
-  requiredSkills: z.array(z.string()).min(1, 'Indica al menos una habilidad requerida'),
+  requiredSkills: z.array(z.string()).min(1, 'Indica al menos una habilidad requerida').max(100, 'Máximo 100 habilidades'),
 }).refine(data => data.salaryMinUsd <= data.salaryMaxUsd, {
   message: 'El salario mínimo no puede exceder el salario máximo',
   path: ['salaryMaxUsd']

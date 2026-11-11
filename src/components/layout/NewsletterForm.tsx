@@ -6,8 +6,10 @@ export function NewsletterForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Honeypot anti-bots
+    if (new FormData(e.currentTarget).get('_hp')) { setStatus('ok'); return; }
     if (!email) return;
     setStatus('loading');
     try {
@@ -25,6 +27,7 @@ export function NewsletterForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md">
+      <input type="text" name="_hp" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
       <input
         type="email"
         value={email}

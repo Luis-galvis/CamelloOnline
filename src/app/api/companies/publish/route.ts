@@ -8,6 +8,8 @@ const VALID_MODALITIES = ['remote_worldwide', 'remote_country', 'hybrid', 'on_si
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    // Honeypot anti-bots: el campo oculto _hp solo lo rellenan los bots.
+    if (body._hp) return NextResponse.json({ success: true });
     const companyName = (body.companyName || '').trim();
     const contactEmail = (body.contactEmail || '').trim();
     const title = (body.title || '').trim();

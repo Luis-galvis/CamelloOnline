@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, _hp } = await request.json();
+    if (_hp) return NextResponse.json({ success: true }); // honeypot anti-bots
     const clean = (email || '').trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) {
       return NextResponse.json({ success: false, error: 'Email inválido' }, { status: 400 });
