@@ -2,114 +2,99 @@ import { ColombiaScrapedJob } from './types';
 import { extractSalary } from './salary-extractor';
 import { detectEnglishRequirement } from './english-detector';
 import { detectContractType } from './contract-detector';
-import { detectTechCategory } from './category-detector';
+import { detectJobCategory } from './category-detector';
 import { extractSkills } from '../ats-ingestion';
 import { decodeHtmlEntities } from './clean-text';
-import { isTechJob } from './tech-filter';
 import { detectExperience } from './experience-detector';
+
+const URL = 'https://remotive.com/api/remote-jobs';
 
 export async function scrapeRemotiveColombia(): Promise<ColombiaScrapedJob[]> {
   const jobs: ColombiaScrapedJob[] = [];
-  const categories = ['software-dev', 'data', 'qa', 'devops', 'product', 'design'];
-
-  for (const cat of categories) {
-    try {
-      const url = `https://remotive.com/api/remote-jobs?category=${cat}`;
-      const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) REALJOBS/1.0'
-        }
-      });
-
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      const rawJobs = data.jobs || [];
-
-      for (const item of rawJobs) {
-        const title = decodeHtmlEntities(item.title || '');
-        const companyName = decodeHtmlEntities(item.company_name || 'Empresa Tech Global');
-        const candidateLoc = (item.candidate_required_location || '').toLowerCase();
-        const rawSalary = item.salary || '';
-        const descriptionHtml = item.description || '';
-        const cleanDesc = decodeHtmlEntities(descriptionHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
-
-        // Must strictly be a tech job role
-        if (!isTechJob(title, cleanDesc)) continue;
-
-        // Must be open to Colombia / Latam / Worldwide
-        const allowsColombia = 
-          candidateLoc.includes('colombia') ||
-          candidateLoc.includes('latin america') ||
-          candidateLoc.includes('latam') ||
-          candidateLoc.includes('worldwide') ||
-          candidateLoc.includes('anywhere') ||
-          candidateLoc === '';
-
-        // Exclude foreign-specific restrictions
-        const isForeignRestricted = 
-          (candidateLoc.includes('usa') || candidateLoc.includes('united states') || candidateLoc.includes('us only')) ||
-          (candidateLoc.includes('uk') || candidateLoc.includes('united kingdom') || candidateLoc.includes('europe')) ||
-          (candidateLoc.includes('canada') || candidateLoc.includes('germany') || candidateLoc.includes('india'));
-
-        if (!allowsColombia || isForeignRestricted) continue;
-
-        // Accurate Experience detection (0 - 5 YoE)
-        const expResult = detectExperience(title, cleanDesc);
-        if (!expResult.isEligible) continue;
-
-        const pubDate = item.publication_date ? new Date(item.publication_date) : new Date();
-        const ageDays = (Date.now() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (ageDays > 45) continue;
-
-        const salResult = extractSalary(cleanDesc, rawSalary);
-        const engResult = detectEnglishRequirement(title, cleanDesc);
-        const skills = extractSkills(`${title} ${cleanDesc}`);
-        const contractRes = detectContractType(title, cleanDesc, '');
-        const catRes = detectTechCategory(title, cleanDesc);
-
-        jobs.push({
-          id: `remotive-${item.id}`,
-          source: 'lever', // mapped for ATS icon/consistency
-          sourceUrl: item.url,
-          sourceJobId: String(item.id),
-          title: title,
-          companyName: companyName,
-          companyLogo: item.company_logo || undefined,
-          description: cleanDesc.slice(0, 800) || `Oportunidad remota internacional para ${title} en ${companyName}.`,
-          locationCity: 'Remoto (Colombia)',
-          locationCountry: 'CO',
-          displayLocation: 'Remoto (Colombia / Global)',
-          locationFilterKey: 'remoto_colombia',
-          isRemote: true,
-          workModality: 'remote_worldwide',
-          salaryDisclosed: salResult.isDisclosed,
-          salaryMin: salResult.min,
-          salaryMax: salResult.max,
-          salaryCurrency: salResult.currency || 'USD',
-          salaryDisplayText: salResult.displayText,
-          salaryMinUsdEquivalent: salResult.usdEquivalentMin,
-          salaryMaxUsdEquivalent: salResult.usdEquivalentMax,
-          requiresEnglish: engResult.requiresEnglish,
-          englishLevel: engResult.englishLevel,
-          englishBadgeText: engResult.badgeText,
-          seniority: expResult.seniority === 'senior' ? 'junior' : expResult.seniority,
-          maxYearsExperience: expResult.isZeroExperience ? 0 : expResult.maxYearsExperience,
-          isZeroExperience: expResult.isZeroExperience,
-          requiredSkills: skills.length > 0 ? skills : ['Tecnología', 'Git', 'Ingeniería'],
-          contractType: contractRes.contractType,
-          contractTypeLabel: contractRes.contractTypeLabel,
-          category: catRes.category,
-          categoryLabel: catRes.categoryLabel,
-          postedDateText: 'Reciente',
-          scrapedAt: pubDate.toISOString()
-        });
-      }
-    } catch (e) {
-      console.warn(`[Remotive] Error en categoría ${cat}:`, e);
+  try {
+    const res = await fetch(URL, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) REALJOBS/1.0',
+      },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) {
+      console.warn('[Remotive] HTTP', res.status);
+      return [];
     }
+
+    const data = await res.json();
+    const rawJobs = data.jobs || [];
+
+    for (const item of rawJobs) {
+      const title = decodeHtmlEntities(item.title || '').trim();
+      const companyName = decodeHtmlEntities(item.company_name || 'Empresa Remota');
+      const candidateLoc = (item.candidate_required_location || '').toLowerCase();
+      const cleanDesc = decodeHtmlEntities((item.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+
+      if (!title) continue;
+
+      // Abierto a Colombia / Latam / Worldwide / Anywhere
+      const allows = ['colombia', 'latin america', 'latam', 'worldwide', 'anywhere', 'americas', 'global'].some(k => candidateLoc.includes(k)) || candidateLoc === '';
+      const foreignRestricted =
+        /usa|united states|us only|u\.s\.|united kingdom|\buk\b|europe|canada|germany|india|australia|japan|singapore/i.test(candidateLoc) &&
+        !/worldwide|anywhere|global|latam|latin america|americas/.test(candidateLoc);
+      if (!allows || foreignRestricted) continue;
+
+      const exp = detectExperience(title, cleanDesc);
+      const eng = detectEnglishRequirement(title, cleanDesc);
+      const contract = detectContractType(title, cleanDesc, '');
+      const cat = detectJobCategory(title, cleanDesc);
+      const skills = extractSkills(`${title} ${cleanDesc}`);
+      const sal = extractSalary(cleanDesc, item.salary || '');
+
+      jobs.push({
+        id: `remotive-${item.id}`,
+        source: 'remotive',
+        sourceUrl: item.url || '',
+        sourceJobId: String(item.id),
+        title,
+        companyName,
+        companyLogo: item.company_logo || undefined,
+        description: cleanDesc.slice(0, 800) || `Vacante remota: ${title} en ${companyName}.`,
+        locationCity: 'Remoto (Global)',
+        locationCountry: 'CO',
+        displayLocation: '🌎 Remoto · Global',
+        locationFilterKey: 'remoto_colombia',
+        isRemote: true,
+        workModality: 'remote_worldwide',
+        salaryDisclosed: sal.isDisclosed,
+        salaryMin: sal.min,
+        salaryMax: sal.max,
+        salaryCurrency: sal.currency || 'USD',
+        salaryDisplayText: sal.displayText || sal.salaryDisplayText || 'Salario a convenir',
+        salaryMinUsdEquivalent: sal.usdEquivalentMin,
+        salaryMaxUsdEquivalent: sal.usdEquivalentMax,
+        requiresEnglish: eng.requiresEnglish,
+        englishLevel: eng.englishLevel,
+        englishLevelLabel: eng.levelLabel,
+        englishBadgeText: eng.badgeText,
+        seniority: exp.seniority === 'senior' ? 'junior' : exp.seniority,
+        maxYearsExperience: exp.isZeroExperience ? 0 : Math.min(2, exp.maxYearsExperience || 1),
+        minYearsExperience: exp.minYears ?? 0,
+        isZeroExperience: exp.isZeroExperience,
+        experienceTier: exp.experienceTier,
+        experienceLabel: exp.experienceLabel,
+        experienceLevelLabel: exp.experienceLabel,
+        requiredSkills: skills.length > 0 ? skills : [cat.categoryLabel || 'Remoto', 'Inglés'],
+        contractType: contract.contractType,
+        contractTypeLabel: contract.contractTypeLabel,
+        category: cat.category,
+        categoryLabel: cat.categoryLabel,
+        postedDateText: 'Reciente',
+        scrapedAt: new Date().toISOString(),
+      });
+    }
+  } catch (e) {
+    console.warn('[Remotive] error:', e);
   }
 
+  console.log(`[Remotive] ${jobs.length} vacantes remotas recolectadas.`);
   return jobs;
 }
