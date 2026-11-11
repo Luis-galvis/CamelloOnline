@@ -14,6 +14,7 @@ import { scrapeJoobleColombia } from './jooble-colombia';
 import { scrapeLocalBoardsColombia } from './local-boards-colombia';
 import { scrapeLukColombia } from './luk-colombia';
 import { scrapeHimalayasColombia } from './himalayas-colombia';
+import { scrapeLatamTechJobs } from './latam-tech-jobs';
 import { deduplicateColombiaJobs } from './deduplicator';
 import { verifyAndEnrichJobs } from './job-verifier';
 
@@ -48,6 +49,7 @@ export interface ScrapeAggregationReport {
     localBoards: number;
     luk: number;
     himalayas: number;
+    latamTechJobs: number;
   };
   englishBreakdown: {
     requiresEnglish: number;
@@ -78,7 +80,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     nonTechJobs,
     salesJobs,
     localBoardsJobs,
-    himalayasJobs
+    himalayasJobs,
+    latamTechJobs
   ] = await Promise.allSettled([
     scrapeLinkedInColombia(),
     scrapeWeRemotoColombia(),
@@ -91,7 +94,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     scrapeNonTechRemoteColombia(),
     scrapeSalesAndCommercialColombia(),
     scrapeLocalBoardsColombia(),
-    scrapeHimalayasColombia()
+    scrapeHimalayasColombia(),
+    scrapeLatamTechJobs()
   ]);
   const linkedinPostsJobs = { status: 'fulfilled' as const, value: [] as ColombiaScrapedJob[] };
   const joobleJobs = { status: 'fulfilled' as const, value: [] as ColombiaScrapedJob[] };
@@ -112,6 +116,7 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
   const rawLocalBoards = localBoardsJobs.status === 'fulfilled' ? localBoardsJobs.value : [];
   const rawLuk = lukJobs.status === 'fulfilled' ? lukJobs.value : [];
   const rawHimalayas = himalayasJobs.status === 'fulfilled' ? himalayasJobs.value : [];
+  const rawLatamTechJobs = latamTechJobs.status === 'fulfilled' ? latamTechJobs.value : [];
 
   const combinedRaw = [
     ...rawLinkedin, 
@@ -128,7 +133,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
     ...rawJooble,
     ...rawLocalBoards,
     ...rawLuk,
-    ...rawHimalayas
+    ...rawHimalayas,
+    ...rawLatamTechJobs
   ];
   
   console.log(`📦 Vacantes brutas recolectadas en total: ${combinedRaw.length}`);
@@ -188,7 +194,8 @@ export async function aggregateAllColombiaJobs(): Promise<ScrapeAggregationRepor
       jooble: rawJooble.length,
       localBoards: rawLocalBoards.length,
       luk: rawLuk.length,
-      himalayas: rawHimalayas.length
+      himalayas: rawHimalayas.length,
+      latamTechJobs: rawLatamTechJobs.length
     },
     englishBreakdown: {
       requiresEnglish: reqEng,

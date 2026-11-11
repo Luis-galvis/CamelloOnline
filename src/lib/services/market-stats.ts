@@ -134,16 +134,24 @@ export async function getMarketStats(): Promise<MarketStats> {
     .slice(0, 12);
 
   const byCategorySorted = Array.from(byCategory.entries())
-    .map(([category, count]) => ({ category, label: categoryLabels.get(category) || category, count }))
-    .sort((a, b) => b.count - a.count);
+    .map(([category, count]) => ({
+      category,
+      label: category === 'general_remote' ? 'Otros / Sin clasificar' : (categoryLabels.get(category) || category),
+      count,
+    }))
+    .sort((a, b) => ((a.category === 'general_remote' ? 1 : 0) - (b.category === 'general_remote' ? 1 : 0)) || (b.count - a.count));
 
   const byModalitySorted = Array.from(byModality.entries())
     .map(([modality, count]) => ({ modality, count }))
     .sort((a, b) => b.count - a.count);
 
   const newTodayByProfile = Array.from(newTodayByCat.entries())
-    .map(([category, count]) => ({ category, label: categoryLabels.get(category) || category, count }))
-    .sort((a, b) => b.count - a.count);
+    .map(([category, count]) => ({
+      category,
+      label: category === 'general_remote' ? 'Otros / Sin clasificar' : (categoryLabels.get(category) || category),
+      count,
+    }))
+    .sort((a, b) => ((a.category === 'general_remote' ? 1 : 0) - (b.category === 'general_remote' ? 1 : 0)) || (b.count - a.count));
 
   let avg: number | null = null;
   if (salaries.length > 0) avg = Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length);
