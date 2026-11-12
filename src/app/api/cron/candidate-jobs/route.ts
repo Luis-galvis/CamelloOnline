@@ -36,17 +36,20 @@ export async function GET(request: Request) {
   // 1. Candidatos CON perfil → match de vacantes
   const { data: profiles } = await supabaseAdmin
     .from('candidate_profiles')
-    .select('user_id, first_name, skills, minimum_expected_salary_usd, preferred_modality, years_of_experience');
-  const { data: users } = await supabaseAdmin.from('users').select('id, email');
+    .select('user_id, first_name, skills, minimum_expected_salary_usd, preferred_modality, years_of_experience, last_jobs_email_sent_at');
+  const { data: users } = await supabaseAdmin.from('users').select('id, email, last_invite_sent_at');
   const emailById = new Map<string, string>((users || []).map((u: any) => [u.id, u.email]));
 
   let sentMatches = 0;
   const profiledIds = new Set<string>();
+  const WEEK_MS = 7 * 86400000;
 
   for (const p of profiles || []) {
     profiledIds.add(p.user_id);
     const email = emailById.get(p.user_id);
     if (!email) continue;
+    // No reenviar si ya se le envió en los últimos 7 días (evita duplicados por 429)
+    if (p.last_jobs_email_sent_at && Date.now() - new Date(p.last_jobs_email_sent_at).getTime() < WEEK_MS) continue;
 
     const skills: string[] = Array.isArray(p.skills) ? p.skills.map((s: any) => String(s)).filter(Boolean) : [];
     const matches = await matchJobs({
@@ -77,16 +80,22 @@ export async function GET(request: Request) {
       </div>
     </div>`;
 
-    if (await sendEmail(apiKey, from, email, 'Tus vacantes recomendadas 🎯', html)) sentMatches++;
+    if (await sendEmail(apiKey, from, email, 'Tus vacantes recomendadas 🎯', html)) {
+      sentMatches++;
+      await supabaseAdmin.from('candidate_profiles').update({ last_jobs_email_sent_at: new Date().toISOString() }).eq('user_id', p.user_id);
+    }
     await sleep(550);
   }
 
   // 2. Usuarios SIN perfil → invitarlos a completarlo
   let sentInvites = 0;
+  const MONTH_MS = 30 * 86400000;
   for (const u of users || []) {
     if (profiledIds.has(u.id)) continue;
     const email = u.email;
     if (!email) continue;
+    // No reenviar la invitación si ya se le envió en los últimos 30 días
+    if (u.last_invite_sent_at && Date.now() - new Date(u.last_invite_sent_at).getTime() < MONTH_MS) continue;
     const html = `<div style="max-width:600px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
       <div style="background:#0f172a;padding:20px;border-radius:14px 14px 0 0;color:#fff;">
         <h2 style="margin:0;font-size:18px;">🐫 Camello Online</h2>
@@ -97,7 +106,10 @@ export async function GET(request: Request) {
         <div style="text-align:center;margin-top:16px;"><a href="${BASE}/candidate/profile" style="background:#d97706;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:700;">Completar mi perfil →</a></div>
       </div>
     </div>`;
-    if (await sendEmail(apiKey, from, email, 'Completa tu perfil y recibe vacantes a tu medida', html)) sentInvites++;
+    if (await sendEmail(apiKey, from, email, 'Completa tu perfil y recibe vacantes a tu medida', html)) {
+      sentInvites++;
+      await supabaseAdmin.from('users').update({ last_invite_sent_at: new Date().toISOString() }).eq('id', u.id);
+    }
     await sleep(550);
   }
 
