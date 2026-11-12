@@ -29,7 +29,7 @@ export function PublishJobForm() {
       const data = await res.json();
       if (data.success) {
         setClaimStatus('sent');
-        setClaimMsg(data.token ? `Código (modo dev): ${data.token}` : 'Te enviamos el código a tu email. Pégalo abajo.');
+        setClaimMsg(data.token ? `Código de prueba: ${data.token}` : '✅ Te enviamos un código a tu email.');
       } else {
         setClaimStatus('error');
         setClaimMsg(data.error || 'Error al solicitar.');

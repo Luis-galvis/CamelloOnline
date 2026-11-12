@@ -85,6 +85,17 @@ export function Navbar() {
           {/* Desktop Section Switcher Tabs (Hidden on Mobile) */}
           <nav className="hidden lg:flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             <Link
+              href="/termometro"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                pathname === '/termometro'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>📈 Termómetro</span>
+            </Link>
+
+            <Link
               href="/"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 isTechActive
@@ -136,17 +147,6 @@ export function Navbar() {
             </Link>
 
             <Link
-              href="/termometro"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                pathname === '/termometro'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>📈 Termómetro</span>
-            </Link>
-
-            <Link
               href="/para-empresas"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 pathname === '/para-empresas'
@@ -155,6 +155,17 @@ export function Navbar() {
               }`}
             >
               <span>🏢 Empresas</span>
+            </Link>
+
+            <Link
+              href="/newsletter"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                pathname === '/newsletter'
+                  ? 'bg-white text-rose-700 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>📬 Newsletter</span>
             </Link>
           </nav>
 
