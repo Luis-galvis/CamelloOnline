@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ success: false, error: 'Email inválido' }, { status: 400 });
     if (companyName.length < 2) return NextResponse.json({ success: false, error: 'Nombre de empresa inválido' }, { status: 400 });
 
+    // Verificación: no se aceptan correos personales gratuitos para reclamar una empresa.
+    const FREE_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'yahoo.es', 'icloud.com', 'aol.com', 'live.com', 'proton.me', 'protonmail.com', 'mail.com'];
+    const domain = email.split('@')[1];
+    if (!domain || FREE_DOMAINS.includes(domain)) {
+      return NextResponse.json({ success: false, error: 'Usa un email empresarial (no gmail/hotmail/yahoo) para verificar tu empresa' }, { status: 400 });
+    }
+
     const { data, error } = await supabaseAdmin.rpc('request_company_claim', {
       p_email: email,
       p_company_name: companyName,

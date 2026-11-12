@@ -24,7 +24,7 @@ export function PublishJobForm() {
       const res = await fetch('/api/companies/request-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, companyName, _hp: '' }),
+        body: JSON.stringify({ email, companyName, website: String(fd.get('website') || ''), _hp: '' }),
       });
       const data = await res.json();
       if (data.success) {

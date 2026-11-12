@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getWeeklyTopJobs } from '@/lib/services/ranking';
+import { NewsletterForm } from '@/components/layout/NewsletterForm';
 
 export const metadata: Metadata = {
   title: 'Los Mejores Camellos de la Semana | Camello Online',
@@ -22,7 +23,26 @@ export default async function MejoresSemanaPage() {
         <p className="text-sm text-slate-600 max-w-2xl">
           Ranking automático que cambia cada semana: prioriza vacantes sin experiencia, remotas, con salario real y recién publicadas.
         </p>
-        <Link href="/newsletter" className="text-xs font-bold text-indigo-700 hover:underline">📬 Recibir esto por email cada semana →</Link>
+
+        {/* Newsletter visible de una (sin botón) */}
+        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-5 text-white">
+          <h2 className="font-bold text-base mb-1">📬 Recibe esto por email cada semana</h2>
+          <p className="text-xs text-slate-300 mb-3">Suscríbete y te enviamos el ranking directamente.</p>
+          <NewsletterForm />
+        </div>
+
+        {/* Cómo se calcula el score */}
+        <details className="bg-white rounded-xl border border-slate-200 p-4 text-xs text-slate-600">
+          <summary className="font-bold text-slate-800 cursor-pointer">¿Cómo se calcula el score?</summary>
+          <ul className="mt-2 space-y-1 list-disc pl-4">
+            <li>Sin experiencia: <strong>+40</strong></li>
+            <li>100% remoto: <strong>+25</strong></li>
+            <li>Salario real publicado: <strong>+20</strong></li>
+            <li>Pago en USD: <strong>+15</strong></li>
+            <li>Publicada en la última semana: <strong>+10</strong> · últimos 2 días: <strong>+5</strong></li>
+            <li>Fuente directa (ATS): <strong>+5</strong></li>
+          </ul>
+        </details>
       </header>
 
       <div className="grid gap-4">

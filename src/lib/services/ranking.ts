@@ -25,11 +25,19 @@ function weeklyScore(r: any): number {
   return s;
 }
 
-/** Top N vacantes de la semana, clasificadas por el algoritmo. */
+/** Nombres de empresa genéricos/placeholder que NO son empresas reales. */
+function isGenericCompanyName(name: string): boolean {
+  const n = (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  if (!n || n === 'empresa' || n === 'compania' || n === 'confidencial') return true;
+  return /^(empresa verificada|empresa confidencial|empresa remota|importante empresa|reconocida)/.test(n);
+}
+
+/** Top N vacantes de la semana, clasificadas por el algoritmo (excluye empresas fantasma). */
 export async function getWeeklyTopJobs(limit = 12): Promise<RankedJob[]> {
   const rows = await fetchActiveRows();
   return rows
     .map((r: any) => ({ job: mapDbRowToJobPost(r), score: weeklyScore(r) }))
+    .filter(x => !isGenericCompanyName(x.job.companyName))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
