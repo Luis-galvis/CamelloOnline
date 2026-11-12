@@ -10,6 +10,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     // Honeypot anti-bots: el campo oculto _hp solo lo rellenan los bots.
     if (body._hp) return NextResponse.json({ success: true });
+
+    // SOLO empresas reclamadas (token válido) pueden publicar.
+    const claimToken = (body.claimToken || '').trim();
+    if (!claimToken) return NextResponse.json({ success: false, error: 'Debes reclamar tu empresa antes de publicar' }, { status: 401 });
+    const { data: claim } = await supabaseAdmin.rpc('verify_company_claim', { p_token: claimToken });
+    if (!claim) return NextResponse.json({ success: false, error: 'Token de reclamo inválido o expirado' }, { status: 401 });
+
     const companyName = (body.companyName || '').trim();
     const contactEmail = (body.contactEmail || '').trim();
     const title = (body.title || '').trim();

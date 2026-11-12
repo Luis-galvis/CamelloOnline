@@ -135,6 +135,7 @@ export function useAppStore() {
             )
           `)
           .eq('status', 'active')
+          .order('is_auto_ingested', { ascending: true })   // vacantes publicadas por empresas primero
           .order('is_zero_experience', { ascending: false })
           .order('created_at', { ascending: false })
           .range(from, from + pageSize - 1);

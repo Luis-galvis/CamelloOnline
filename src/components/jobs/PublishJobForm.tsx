@@ -8,6 +8,37 @@ const labelCls = 'block text-xs font-bold text-slate-600 mb-1';
 export function PublishJobForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
+  const [claimMsg, setClaimMsg] = useState('');
+
+  const requestClaim = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget.form;
+    if (!form) return;
+    const fd = new FormData(form);
+    const email = String(fd.get('contactEmail') || '').trim();
+    const companyName = String(fd.get('companyName') || '').trim();
+    if (!email || !companyName) { setClaimStatus('error'); setClaimMsg('Pon tu email y nombre de empresa primero.'); return; }
+    setClaimStatus('loading');
+    try {
+      const res = await fetch('/api/companies/request-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, companyName, _hp: '' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClaimStatus('sent');
+        setClaimMsg(data.token ? `Código (modo dev): ${data.token}` : 'Te enviamos el código a tu email. Pégalo abajo.');
+      } else {
+        setClaimStatus('error');
+        setClaimMsg(data.error || 'Error al solicitar.');
+      }
+    } catch {
+      setClaimStatus('error');
+      setClaimMsg('Error de red.');
+    }
+  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +57,7 @@ export function PublishJobForm() {
       currency: fd.get('currency') || 'COP',
       isZeroExperience: fd.get('isZeroExperience') === 'on',
       englishRequired: fd.get('englishRequired') || 'no_english',
+      claimToken: fd.get('claimToken') || '',
       _hp: fd.get('_hp') || '',
     };
     try {
@@ -65,7 +97,17 @@ export function PublishJobForm() {
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>Email de contacto *</label>
-          <input name="contactEmail" type="email" required className={inputCls} placeholder="reclutamiento@miempresa.com" />
+          <div className="flex gap-2">
+            <input name="contactEmail" type="email" required className={inputCls} placeholder="reclutamiento@miempresa.com" />
+            <button type="button" onClick={requestClaim} className="shrink-0 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">
+              {claimStatus === 'loading' ? 'Enviando…' : 'Solicitar código'}
+            </button>
+          </div>
+          {claimMsg && <p className={`text-xs mt-1 ${claimStatus === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>{claimMsg}</p>}
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>Código de verificación * (te llega por email)</label>
+          <input name="claimToken" required className={inputCls} placeholder="Pega aquí el código recibido" />
         </div>
       </div>
 

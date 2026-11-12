@@ -145,6 +145,17 @@ export function Navbar() {
             >
               <span>📈 Termómetro</span>
             </Link>
+
+            <Link
+              href="/para-empresas"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                pathname === '/para-empresas'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>🏢 Empresas</span>
+            </Link>
           </nav>
 
           {/* User Auth Section & Refresh */}
