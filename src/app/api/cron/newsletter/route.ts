@@ -59,12 +59,16 @@ export async function GET(request: Request) {
   // Suscriptores activos
   const { data: subs } = await supabaseAdmin
     .from('newsletter_subscribers')
-    .select('email')
+    .select('id, email, last_newsletter_sent_at')
     .eq('is_active', true);
 
   if (!subs || subs.length === 0) {
     return NextResponse.json({ sent: 0, subscribers: 0, message: 'No hay suscriptores' });
   }
+
+  // Solo enviar a quien no recibió el newsletter en los últimos 6 días (evita duplicados).
+  const cutoff = Date.now() - 6 * 86400000;
+  const pending = subs.filter((s: any) => !s.last_newsletter_sent_at || new Date(s.last_newsletter_sent_at).getTime() < cutoff);
 
   const ranked = await getWeeklyTopJobs(10);
   const html = buildHtml(ranked);
@@ -72,7 +76,7 @@ export async function GET(request: Request) {
   let sent = 0;
   const errors: string[] = [];
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-  for (const s of subs) {
+  for (const s of pending) {
     let ok = false;
     for (let attempt = 0; attempt < 3 && !ok; attempt++) {
       try {
@@ -98,8 +102,15 @@ export async function GET(request: Request) {
       }
     }
     if (!ok && !errors.some(e => e.startsWith(s.email))) errors.push(`${s.email}: rate limit agotado`);
+    // Marcar como enviado solo si salió bien (los 429 quedan pendientes para el próximo intento).
+    if (ok) {
+      await supabaseAdmin
+        .from('newsletter_subscribers')
+        .update({ last_newsletter_sent_at: new Date().toISOString() })
+        .eq('id', s.id);
+    }
     await sleep(550); // respetar ~2 req/s de Resend
   }
 
-  return NextResponse.json({ sent, subscribers: subs.length, errors });
+  return NextResponse.json({ sent, pendientes: pending.length, total: subs.length, errors });
 }
