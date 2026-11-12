@@ -31,9 +31,10 @@ export async function POST(request: Request) {
 
     // Enviar el link por email si Resend está configurado
     const apiKey = process.env.RESEND_API_KEY;
+    let emailError = '';
     if (apiKey) {
       try {
-        await fetch('https://api.resend.com/emails', {
+        const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -43,13 +44,20 @@ export async function POST(request: Request) {
             html: `<p>Hola,</p><p>Reclama tu empresa <strong>${companyName}</strong> en Camello Online para publicar y gestionar tus vacantes.</p><p><a href="${link}" style="background:#d97706;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold;">Reclamar mi empresa →</a></p><p>Este enlace expira en 7 días.</p>`,
           }),
         });
-      } catch {
-        // si falla el email, no bloquear
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          emailError = errBody?.message || `HTTP ${res.status}`;
+          console.error('[request-claim] Resend error:', emailError);
+        }
+      } catch (e: any) {
+        emailError = e.message;
       }
+    } else {
+      emailError = 'RESEND_API_KEY no configurada';
     }
 
-    // Fallback de desarrollo: si no hay Resend, devolver el token en la respuesta.
-    return NextResponse.json({ success: true, ...(apiKey ? {} : { token, link }) });
+    // Si el email falló o no hay Resend, devolver el token como respaldo (para no bloquear).
+    return NextResponse.json({ success: true, ...(emailError ? { token, link, emailError } : {}) });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message || 'Error' }, { status: 500 });
   }
