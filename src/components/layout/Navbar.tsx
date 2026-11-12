@@ -9,6 +9,7 @@ import {
   Laptop,
   Headphones,
   Store,
+  Trophy,
   LogOut
 } from 'lucide-react';
 import { CamelloIcon } from '@/components/brand/CamelloIcon';
@@ -31,6 +32,7 @@ export function Navbar() {
   const isTechActive = pathname === '/' || pathname.startsWith('/jobs');
   const isGeneralRemoteActive = pathname === '/remoto-colombia';
   const isSalesActive = pathname === '/ventas-comercial';
+  const isRankingActive = pathname === '/mejores-de-la-semana';
 
   const generalRemoteCount = useMemo(() => {
     const NON_TECH_REMOTE = new Set(['customer_service', 'sales_commercial', 'marketing_digital', 'virtual_assistant_ops', 'hr_recruiting', 'finance_accounting', 'writing_content', 'general_remote']);
@@ -84,6 +86,18 @@ export function Navbar() {
 
           {/* Desktop Section Switcher Tabs (Hidden on Mobile) */}
           <nav className="hidden lg:flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+            <Link
+              href="/mejores-de-la-semana"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                isRankingActive
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
+              }`}
+            >
+              <Trophy className={`w-3.5 h-3.5 ${isRankingActive ? 'text-white' : 'text-amber-600'}`} />
+              <span>🏆 Top de la Semana</span>
+            </Link>
+
             <Link
               href="/termometro"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -236,7 +250,19 @@ export function Navbar() {
 
         {/* Mobile & Tablet Sub-Navigation Tabs Row */}
         <div className="lg:hidden pb-2.5 pt-0.5">
-          <nav className="grid grid-cols-3 gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+          <nav className="grid grid-cols-4 gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+            <Link
+              href="/mejores-de-la-semana"
+              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${
+                isRankingActive
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200/70'
+              }`}
+            >
+              <Trophy className={`w-3 h-3 shrink-0 ${isRankingActive ? 'text-white' : 'text-amber-600'}`} />
+              <span className="truncate">Top Semana</span>
+            </Link>
+
             <Link
               href="/"
               className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${

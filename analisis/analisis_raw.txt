@@ -1,0 +1,109 @@
+﻿TOTAL_FILAS=7736
+ACTIVAS=1959 EXPIRADAS=5777
+
+=== NUEVAS POR DIA (created_at) ===
+2026-10-27=2353
+2026-10-28=509
+2026-10-29=560
+2026-10-30=530
+2026-10-31=481
+2026-11-01=437
+2026-11-02=355
+2026-11-03=415
+2026-11-04=414
+2026-11-05=416
+2026-11-06=374
+2026-11-07=328
+2026-11-08=168
+2026-11-09=396
+
+=== EXPIRADAS: FECHA DE MARCADO (updated_at) ===
+2026-11-09=5777
+
+=== MODALIDAD ===
+on_site=5033
+remote_country=2087
+hybrid=354
+remote_worldwide=262
+
+=== TENDENCIA: % REMOTO por dia (nuevas) ===
+2026-10-27=n:2353 remoto:832 (35.4%)
+2026-10-28=n:509 remoto:140 (27.5%)
+2026-10-29=n:560 remoto:159 (28.4%)
+2026-10-30=n:530 remoto:130 (24.5%)
+2026-10-31=n:481 remoto:131 (27.2%)
+2026-11-01=n:437 remoto:134 (30.7%)
+2026-11-02=n:355 remoto:93 (26.2%)
+2026-11-03=n:415 remoto:121 (29.2%)
+2026-11-04=n:414 remoto:125 (30.2%)
+2026-11-05=n:416 remoto:118 (28.4%)
+2026-11-06=n:374 remoto:95 (25.4%)
+2026-11-07=n:328 remoto:93 (28.4%)
+2026-11-08=n:168 remoto:52 (31%)
+2026-11-09=n:396 remoto:126 (31.8%)
+
+=== SIN EXPERIENCIA ===
+zero=True=2174
+zero=False=5562
+
+=== SENIORITY ===
+junior=4842
+trainee=2826
+early_mid=68
+
+=== INGLES ===
+no_english=6434
+b2_upper_intermediate=1231
+c1_advanced=71
+
+=== TOP CIUDADES ===
+Remoto (Colombia)=2325
+BogotÃ¡, D.C.=1759
+Colombia=1597
+IbaguÃ©=709
+MedellÃ­n=630
+Cali=243
+Bucaramanga=120
+Pereira / Manizales / Armenia=109
+Barranquilla=75
+Villavicencio=48
+Cartagena=26
+Tunja=24
+Neiva=19
+Santa Marta=11
+Valledupar=10
+Pasto=8
+PopayÃ¡n=8
+Sincelejo=5
+CÃºcuta=4
+Riohacha=3
+
+=== ROLES (por título) ===
+Otros=1856
+Desarrollo/Software=1530
+Ventas/Comercial=1515
+Soporte TI/Infra=724
+Prácticas/Aprendizaje=515
+Datos/Analytics/IA=380
+QA/Testing=295
+Finanzas/Contabilidad=293
+Servicio Cliente/Call Center=241
+Salud/Enfermería=142
+Operaciones/Admin/Logística=102
+Marketing/Contenido=98
+RRHH/Reclutamiento=45
+
+=== FLAG PRACTICAS/APRENDIZAJE ===
+con_flag_practicas=887 sin_flag=6849
+
+=== SALARIO USD (min) distribucion ===
+700,00=3830
+427,00=1424
+488,00=594
+366,00=216
+610,00=172
+732,00=132
+854,00=77
+976,00=64
+537,00=63
+439,00=59

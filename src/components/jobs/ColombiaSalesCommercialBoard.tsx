@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { 
   Search, 
   MapPin, 
@@ -18,7 +19,9 @@ import {
   Briefcase,
   ChevronRight,
   ShieldCheck,
-  Award
+  Award,
+  Trophy,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useAppStore } from '@/lib/store';
@@ -244,6 +247,30 @@ export function ColombiaSalesCommercialBoard() {
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-2">
       <JobPostingJsonLd jobs={sortedJobs} />
+
+      {/* Featured Weekly Ranking Callout */}
+      <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 border border-amber-500/30 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center shrink-0 font-black">
+            <Trophy className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm sm:text-base font-black text-white">
+              🏆 ¿Buscas los mejores <span className="text-amber-400">camellos de esta semana</span>?
+            </h2>
+            <p className="text-xs text-slate-300">
+              Revisa el Top 15 semanal: vacantes sin experiencia, 100% remotas y con salario publicado.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/mejores-de-la-semana"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-extrabold shrink-0 transition-all shadow-xs"
+        >
+          <span>Ver Ranking Semanal</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
       {/* Subcategory Navigation Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">

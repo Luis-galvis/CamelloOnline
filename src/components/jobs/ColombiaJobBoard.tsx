@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { 
   Search, 
   MapPin, 
@@ -18,7 +19,8 @@ import {
   ArrowRight,
   Mail,
   MessageSquare,
-  UserCheck
+  UserCheck,
+  Trophy
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -251,9 +253,46 @@ export function ColombiaJobBoard() {
     searchQuery
   ]);
 
-  // 2. Ordenamiento riguroso por frescura relativa y fecha exacta
+  // 2. Ordenamiento riguroso por frescura relativa, ranking o salario
+  const computeWeeklyScore = (job: JobPost): number => {
+    let s = 0;
+    if (isJobZeroExp(job)) s += 40;
+    if (isJobRemote(job)) s += 25;
+    const sal = Number(job.salaryMinUsd) || 0;
+    if (job.salaryDisclosed || (sal > 0 && sal !== 700 && sal !== 1500)) s += 20;
+    if (job.currency === 'USD' || sal >= 1000) s += 15;
+    const ageHours = getJobAgeHours(job);
+    if (ageHours < 168) s += 10;
+    if (ageHours < 48) s += 5;
+    const src = (job.sourceUrl || '').toLowerCase();
+    if (src.includes('himalayas') || src.includes('greenhouse') || src.includes('lever') || src.includes('ashby')) s += 5;
+    return s;
+  };
+
+  const isGenericCompany = (name: string): boolean => {
+    const n = (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!n || n === 'empresa' || n === 'compania' || n === 'confidencial') return true;
+    return /^(empresa verificada|empresa confidencial|empresa remota|importante empresa|reconocida)/.test(n);
+  };
+
+  const weeklyTopJobs = useMemo(() => {
+    return jobs
+      .filter(j => !isGenericCompany(j.companyName))
+      .map(job => ({ job, score: computeWeeklyScore(job) }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return getJobAgeHours(a.job) - getJobAgeHours(b.job);
+      })
+      .slice(0, 6);
+  }, [jobs]);
+
   const sortedJobs = useMemo(() => {
     return [...filteredJobs].sort((a, b) => {
+      if (sortOrder === 'weekly_ranking') {
+        const diff = computeWeeklyScore(b) - computeWeeklyScore(a);
+        if (diff !== 0) return diff;
+        return getJobAgeHours(a) - getJobAgeHours(b);
+      }
       if (sortOrder === 'newest') {
         const ageA = getJobAgeHours(a);
         const ageB = getJobAgeHours(b);
@@ -368,6 +407,13 @@ export function ColombiaJobBoard() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            <Link
+              href="/mejores-de-la-semana"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-extrabold shadow-xs transition-all"
+            >
+              <Trophy className="w-4 h-4 text-white" />
+              <span>🏆 Ranking de la Semana</span>
+            </Link>
             <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-left sm:text-right">
               <div className="text-xs font-bold text-slate-900">+{jobs.length} vacantes</div>
               <div className="text-[10px] text-emerald-600 font-semibold">Verificadas a diario</div>
@@ -375,6 +421,112 @@ export function ColombiaJobBoard() {
           </div>
         </div>
       </header>
+
+      {/* Featured Weekly Top Jobs Showcase */}
+      {weeklyTopJobs.length > 0 && (
+        <section className="rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border border-amber-500/30 shadow-md text-white space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-extrabold uppercase tracking-wider">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span>Destacadas de esta semana</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                🏆 Los Mejores <span className="text-amber-400">Camellos</span> de la Semana
+              </h2>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Top seleccionado por nuestro algoritmo: prioriza ofertas sin experiencia, 100% remotas, con salario publicado y recién salidas.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setSortOrder(sortOrder === 'weekly_ranking' ? 'newest' : 'weekly_ranking')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  sortOrder === 'weekly_ranking'
+                    ? 'bg-amber-400 text-slate-950 border-amber-300'
+                    : 'bg-white/10 hover:bg-white/15 text-white border-white/15'
+                }`}
+              >
+                {sortOrder === 'weekly_ranking' ? '✓ Ordenado por Ranking' : 'Ordenar tablero por Score'}
+              </button>
+              <Link
+                href="/mejores-de-la-semana"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-extrabold shadow-sm transition-all"
+              >
+                <span>Ver Top 15 completo</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {weeklyTopJobs.map(({ job, score }, idx) => {
+              const locInfo = getJobLocInfo(job);
+              const isZero = isJobZeroExp(job);
+              return (
+                <div
+                  key={job.id}
+                  onClick={() => {
+                    markJobAsViewed(job.id);
+                    setSelectedJobModal(job);
+                  }}
+                  className="group relative rounded-xl p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 transition-all cursor-pointer flex flex-col justify-between gap-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`shrink-0 w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shadow-xs ${
+                          idx === 0
+                            ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950'
+                            : idx === 1
+                            ? 'bg-slate-200 text-slate-900'
+                            : idx === 2
+                            ? 'bg-amber-700 text-amber-100'
+                            : 'bg-slate-800 text-amber-400 border border-slate-700'
+                        }`}>
+                          #{idx + 1}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-300 truncate">
+                          {job.companyName}
+                        </span>
+                      </div>
+                      <span className="shrink-0 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[11px] font-black">
+                        ⚡ {score} pts
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
+                      {job.title}
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {isZero && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                        🌱 Sin exp
+                      </span>
+                    )}
+                    {locInfo.isRemote && (
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 border border-indigo-400/30 text-[10px] font-bold">
+                        🏠 Remoto
+                      </span>
+                    )}
+                    {job.salaryDisclosed && job.salaryDisplayText ? (
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/30 text-[10px] font-bold truncate max-w-[170px]">
+                        💰 {job.salaryDisplayText}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 truncate">
+                        📍 {locInfo.displayLocation}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Search & Comprehensive Filters */}
       <section className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
@@ -402,6 +554,7 @@ export function ColombiaJobBoard() {
                 className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer truncate"
               >
                 <option value="newest">Más recientes primero</option>
+                <option value="weekly_ranking">🏆 Ranking de la semana (Score)</option>
                 <option value="oldest">Más antiguas primero</option>
                 <option value="salary_desc">Mayor salario primero</option>
                 <option value="salary_asc">Menor salario primero</option>
@@ -606,6 +759,19 @@ export function ColombiaJobBoard() {
           
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-slate-400 font-medium mr-1 text-[11px]">Accesos directos:</span>
+
+            {/* Quick Filter: Ranking de la semana */}
+            <button
+              onClick={() => setSortOrder(sortOrder === 'weekly_ranking' ? 'newest' : 'weekly_ranking')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                sortOrder === 'weekly_ranking'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm'
+                  : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>🏆 Ranking de la Semana</span>
+            </button>
 
             {/* Quick Filter: Posts de Reclutadores */}
             <button

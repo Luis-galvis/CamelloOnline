@@ -1,0 +1,50 @@
+﻿REMOTO_TOTAL=2349
+ZERO_EXP_TOTAL=2174
+REMOTO_Y_ZERO_EXP=359
+
+=== ROLES EN REMOTO ===
+Desarrollo/Software=684
+Otros=568
+Ventas/Comercial=497
+Servicio Cliente/Call Center=158
+Soporte TI/Infra=125
+Datos/Analytics/IA=99
+Prácticas/Aprendizaje=56
+Marketing/Contenido=49
+QA/Testing=46
+Finanzas/Contabilidad=27
+Operaciones/Admin/Logística=23
+Salud/Enfermería=12
+RRHH/Reclutamiento=5
+
+=== ROLES EN SIN EXPERIENCIA ===
+Ventas/Comercial=554
+Otros=487
+Prácticas/Aprendizaje=457
+Finanzas/Contabilidad=171
+Soporte TI/Infra=129
+Desarrollo/Software=126
+Servicio Cliente/Call Center=78
+Salud/Enfermería=44
+Marketing/Contenido=37
+Operaciones/Admin/Logística=27
+QA/Testing=26
+RRHH/Reclutamiento=25
+Datos/Analytics/IA=13
+
+=== ROLES EN REMOTO+SIN EXP ===
+Otros=108
+Ventas/Comercial=56
+Prácticas/Aprendizaje=46
+Servicio Cliente/Call Center=40
+Soporte TI/Infra=31
+Desarrollo/Software=27
+Finanzas/Contabilidad=13
+Marketing/Contenido=12
+Salud/Enfermería=9
+QA/Testing=8
+Operaciones/Admin/Logística=4
+Datos/Analytics/IA=3
+RRHH/Reclutamiento=2
+
+LINKEDIN_TOTAL=1552
