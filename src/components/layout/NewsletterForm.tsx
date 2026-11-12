@@ -1,10 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function NewsletterForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [referrer, setReferrer] = useState('');
+
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) {
+      localStorage.setItem('camelloonline_ref', ref);
+      setReferrer(ref);
+    } else {
+      setReferrer(localStorage.getItem('camelloonline_ref') || '');
+    }
+  }, []);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -16,7 +27,7 @@ export function NewsletterForm() {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ref: referrer }),
       });
       const data = await res.json();
       setStatus(data.success ? 'ok' : 'error');

@@ -12,6 +12,14 @@
     {
       "path": "/api/cron/company-outreach",
       "schedule": "0 14 1 * *"
+    },
+    {
+      "path": "/api/cron/candidate-jobs",
+      "schedule": "0 14 * * 3"
+    },
+    {
+      "path": "/api/cron/premium-jobs",
+      "schedule": "0 14 * * 4"
     }
   ]
 }
