@@ -49,17 +49,6 @@ function buildHtml(ranked: any[]): string {
 }
 
 export async function GET(request: Request) {
-  // Protección opcional: query ?secret= o header Authorization.
-  const url = new URL(request.url);
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const q = url.searchParams.get('secret');
-    const header = request.headers.get('authorization');
-    if (q !== secret && header !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
-
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'Camello Online <newsletter@camelloonline.com>';
 

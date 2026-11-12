@@ -8,13 +8,6 @@ const BASE = 'https://www.camelloonline.com';
 const esc = (s: string) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const q = url.searchParams.get('secret');
-    const header = request.headers.get('authorization');
-    if (q !== secret && header !== `Bearer ${secret}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'RESEND_API_KEY no configurada' }, { status: 500 });
   const from = process.env.RESEND_FROM_EMAIL || 'Camello Online <newsletter@camelloonline.com>';
