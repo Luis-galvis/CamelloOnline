@@ -37,7 +37,7 @@ export function NewsletterForm() {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md">
+    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md min-w-0">
       <input type="text" name="_hp" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
       <input
         type="email"
@@ -45,17 +45,17 @@ export function NewsletterForm() {
         onChange={e => setEmail(e.target.value)}
         placeholder="tu@correo.com"
         required
-        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full sm:flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
       />
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm disabled:opacity-60"
+        className="w-full sm:w-auto shrink-0 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm disabled:opacity-60 transition-colors cursor-pointer"
       >
         {status === 'loading' ? 'Suscribiendo…' : 'Suscribirme'}
       </button>
-      {status === 'ok' && <p className="text-emerald-600 text-xs font-semibold">✅ ¡Listo! Te avisaremos cada semana.</p>}
-      {status === 'error' && <p className="text-red-500 text-xs font-semibold">Hubo un error, intenta de nuevo.</p>}
+      {status === 'ok' && <p className="text-emerald-400 text-xs font-semibold sm:self-center">✅ ¡Listo! Te avisaremos cada semana.</p>}
+      {status === 'error' && <p className="text-red-400 text-xs font-semibold sm:self-center">Hubo un error, intenta de nuevo.</p>}
     </form>
   );
 }

@@ -65,16 +65,16 @@ export function Navbar() {
         <div className="h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-white p-1">
-              <CamelloIcon className="w-6 h-6 text-white drop-shadow-xs" />
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0 min-w-0">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-indigo-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-white p-1 shrink-0">
+              <CamelloIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-xs" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-extrabold text-sm sm:text-lg tracking-tight text-slate-900 truncate">
                   CAMELLO<span className="text-amber-600">ONLINE</span>
                 </span>
-                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                   🇨🇴
                 </span>
               </div>
@@ -85,22 +85,22 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Section Switcher Tabs (Hidden on Mobile) */}
-          <nav className="hidden lg:flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+          <nav className="hidden xl:flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 min-w-0">
             <Link
               href="/mejores-de-la-semana"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isRankingActive
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
                   : 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
               }`}
             >
-              <Trophy className={`w-3.5 h-3.5 ${isRankingActive ? 'text-white' : 'text-amber-600'}`} />
-              <span>🏆 Top de la Semana</span>
+              <Trophy className={`w-3.5 h-3.5 shrink-0 ${isRankingActive ? 'text-white' : 'text-amber-600'}`} />
+              <span>Top Semana</span>
             </Link>
 
             <Link
               href="/termometro"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 pathname === '/termometro'
                   ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
@@ -111,14 +111,14 @@ export function Navbar() {
 
             <Link
               href="/"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isTechActive
                   ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Laptop className="w-3.5 h-3.5 text-indigo-600" />
-              <span>💻 Tecnología & Software</span>
+              <Laptop className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span>Tech & IA</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
                 isTechActive ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-600'
               }`}>
@@ -128,14 +128,14 @@ export function Navbar() {
 
             <Link
               href="/remoto-colombia"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isGeneralRemoteActive
                   ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Headphones className="w-3.5 h-3.5 text-emerald-600" />
-              <span>🏠 Remoto (No Tech)</span>
+              <Headphones className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Remoto (No Tech)</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
                 isGeneralRemoteActive ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-100 text-emerald-700'
               }`}>
@@ -145,14 +145,14 @@ export function Navbar() {
 
             <Link
               href="/ventas-comercial"
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isSalesActive
                   ? 'bg-white text-amber-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Store className="w-3.5 h-3.5 text-amber-600" />
-              <span>💼 Ventas & Comercial</span>
+              <Store className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Ventas</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
                 isSalesActive ? 'bg-amber-100 text-amber-800' : 'bg-amber-100 text-amber-700'
               }`}>
@@ -162,7 +162,7 @@ export function Navbar() {
 
             <Link
               href="/para-empresas"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 pathname === '/para-empresas'
                   ? 'bg-white text-slate-900 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
@@ -173,7 +173,7 @@ export function Navbar() {
 
             <Link
               href="/newsletter"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 pathname === '/newsletter'
                   ? 'bg-white text-rose-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
@@ -249,23 +249,23 @@ export function Navbar() {
         </div>
 
         {/* Mobile & Tablet Sub-Navigation Tabs Row */}
-        <div className="lg:hidden pb-2.5 pt-0.5">
+        <div className="xl:hidden pb-2.5 pt-0.5">
           <nav className="grid grid-cols-4 gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             <Link
               href="/mejores-de-la-semana"
-              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${
+              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center min-w-0 ${
                 isRankingActive
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
                   : 'bg-amber-50 text-amber-800 border border-amber-200/70'
               }`}
             >
               <Trophy className={`w-3 h-3 shrink-0 ${isRankingActive ? 'text-white' : 'text-amber-600'}`} />
-              <span className="truncate">Top Semana</span>
+              <span className="truncate">Top</span>
             </Link>
 
             <Link
               href="/"
-              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${
+              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center min-w-0 ${
                 isTechActive
                   ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
@@ -277,7 +277,7 @@ export function Navbar() {
 
             <Link
               href="/remoto-colombia"
-              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${
+              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center min-w-0 ${
                 isGeneralRemoteActive
                   ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
@@ -289,7 +289,7 @@ export function Navbar() {
 
             <Link
               href="/ventas-comercial"
-              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center ${
+              className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center min-w-0 ${
                 isSalesActive
                   ? 'bg-white text-amber-700 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'

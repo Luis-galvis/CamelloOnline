@@ -406,15 +406,15 @@ export function ColombiaJobBoard() {
               Encuentra camello real y verificado en Colombia y el exterior: Tecnología, Inteligencia Artificial, Ventas y Trabajo Remoto en USD y COP. Sin intermediarios y 100% gratuito.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto w-full sm:w-auto">
             <Link
               href="/mejores-de-la-semana"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-extrabold shadow-xs transition-all"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-extrabold shadow-xs transition-all whitespace-nowrap"
             >
-              <Trophy className="w-4 h-4 text-white" />
-              <span>🏆 Ranking de la Semana</span>
+              <Trophy className="w-4 h-4 text-white shrink-0" />
+              <span>Ranking de la Semana</span>
             </Link>
-            <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-left sm:text-right">
+            <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-left sm:text-right shrink-0">
               <div className="text-xs font-bold text-slate-900">+{jobs.length} vacantes</div>
               <div className="text-[10px] text-emerald-600 font-semibold">Verificadas a diario</div>
             </div>
@@ -424,37 +424,37 @@ export function ColombiaJobBoard() {
 
       {/* Featured Weekly Top Jobs Showcase */}
       {weeklyTopJobs.length > 0 && (
-        <section className="rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border border-amber-500/30 shadow-md text-white space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="space-y-1">
+        <section className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border border-amber-500/30 shadow-md text-white space-y-4 overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="space-y-1 min-w-0">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-extrabold uppercase tracking-wider">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>Destacadas de esta semana</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
+              <h2 className="text-base sm:text-xl font-black tracking-tight text-white">
                 🏆 Los Mejores <span className="text-amber-400">Camellos</span> de la Semana
               </h2>
-              <p className="text-xs text-slate-300 max-w-2xl">
+              <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
                 Top seleccionado por nuestro algoritmo: prioriza ofertas sin experiencia, 100% remotas, con salario publicado y recién salidas.
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 onClick={() => setSortOrder(sortOrder === 'weekly_ranking' ? 'newest' : 'weekly_ranking')}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                className={`flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border whitespace-nowrap ${
                   sortOrder === 'weekly_ranking'
                     ? 'bg-amber-400 text-slate-950 border-amber-300'
                     : 'bg-white/10 hover:bg-white/15 text-white border-white/15'
                 }`}
               >
-                {sortOrder === 'weekly_ranking' ? '✓ Ordenado por Ranking' : 'Ordenar tablero por Score'}
+                {sortOrder === 'weekly_ranking' ? '✓ Ordenado por Ranking' : 'Ordenar por Score'}
               </button>
               <Link
                 href="/mejores-de-la-semana"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-extrabold shadow-sm transition-all"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-extrabold shadow-sm transition-all whitespace-nowrap"
               >
                 <span>Ver Top 15 completo</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </Link>
             </div>
           </div>
