@@ -68,6 +68,13 @@ export interface MarketStats {
   lastUpdated: string;
 }
 
+/** Nombres de empresa genéricos/placeholder que NO son empresas reales. */
+function isGenericCompany(name: string): boolean {
+  const n = (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  if (!n || n === 'empresa' || n === 'compania' || n === 'confidencial') return true;
+  return /^(empresa verificada|empresa confidencial|empresa remota|importante empresa|reconocida)/.test(n);
+}
+
 export async function getMarketStats(): Promise<MarketStats> {
   const rows = await fetchActiveRows();
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -109,6 +116,7 @@ export async function getMarketStats(): Promise<MarketStats> {
 
     const comp = Array.isArray(r.companies) ? r.companies[0] : r.companies;
     const cname = comp?.name || 'Empresa Confidencial';
+    if (isGenericCompany(cname)) continue; // excluir "Empresa Verificada", "Empresa Confidencial", etc. del ranking
     const cslug = comp?.slug || 'empresa';
     if (!companyAgg.has(cname)) {
       companyAgg.set(cname, {
