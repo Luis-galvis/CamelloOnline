@@ -71,26 +71,34 @@ export async function GET(request: Request) {
 
   let sent = 0;
   const errors: string[] = [];
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
   for (const s of subs) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [s.email],
-          subject: '🏆 Los mejores camellos de la semana',
-          html,
-        }),
-      });
-      if (res.ok) sent++;
-      else errors.push(`${s.email}: ${res.status}`);
-    } catch (e: any) {
-      errors.push(`${s.email}: ${e.message}`);
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [s.email],
+            subject: '🏆 Los mejores camellos de la semana',
+            html,
+          }),
+        });
+        if (res.ok) { ok = true; sent++; }
+        else if (res.status === 429) { await sleep(1500 * (attempt + 1)); }
+        else { errors.push(`${s.email}: ${res.status}`); break; }
+      } catch (e: any) {
+        errors.push(`${s.email}: ${e.message}`);
+        break;
+      }
     }
+    if (!ok && !errors.some(e => e.startsWith(s.email))) errors.push(`${s.email}: rate limit agotado`);
+    await sleep(550); // respetar ~2 req/s de Resend
   }
 
   return NextResponse.json({ sent, subscribers: subs.length, errors });

@@ -8,13 +8,24 @@ export const maxDuration = 120;
 const BASE = 'https://www.camelloonline.com';
 const esc = (s: string) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 async function sendEmail(apiKey: string, from: string, to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [to], subject, html }),
-  });
-  return res.ok;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [to], subject, html }),
+      });
+      if (res.ok) return true;
+      if (res.status === 429) { await sleep(1500 * (attempt + 1)); continue; }
+      return false;
+    } catch {
+      await sleep(500);
+    }
+  }
+  return false;
 }
 
 export async function GET(request: Request) {
@@ -67,6 +78,7 @@ export async function GET(request: Request) {
     </div>`;
 
     if (await sendEmail(apiKey, from, email, 'Tus vacantes recomendadas 🎯', html)) sentMatches++;
+    await sleep(550);
   }
 
   // 2. Usuarios SIN perfil → invitarlos a completarlo
@@ -86,6 +98,7 @@ export async function GET(request: Request) {
       </div>
     </div>`;
     if (await sendEmail(apiKey, from, email, 'Completa tu perfil y recibe vacantes a tu medida', html)) sentInvites++;
+    await sleep(550);
   }
 
   return NextResponse.json({ sentMatches, sentInvites });
