@@ -39,6 +39,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: '/(jobs/.*|mejores-de-la-semana|termometro|empresas|sin-experiencia|primer-empleo|remoto-usd|sitemap\\.xml)',
+        headers: [
+          ...securityHeaders,
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: securityHeaders,
       },

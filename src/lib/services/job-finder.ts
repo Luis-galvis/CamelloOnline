@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { INITIAL_JOB_POSTS } from '@/lib/mock-data';
 import { JobPost } from '@/types';
@@ -128,7 +129,7 @@ export function mapDbRowToJobPost(row: any): JobPost {
   };
 }
 
-export async function getJobBySlug(slug: string): Promise<JobPost | null> {
+export const getJobBySlug = cache(async function getJobBySlug(slug: string): Promise<JobPost | null> {
   if (!slug) return null;
   const decoded = decodeURIComponent(slug).toLowerCase().trim();
 
@@ -153,7 +154,7 @@ export async function getJobBySlug(slug: string): Promise<JobPost | null> {
       j => (j.slug && j.slug.toLowerCase() === decoded) || (j.id && j.id.toLowerCase() === decoded)
     ) || null
   );
-}
+});
 
 export async function getAllJobSlugs(): Promise<string[]> {
   const seen = new Set<string>();

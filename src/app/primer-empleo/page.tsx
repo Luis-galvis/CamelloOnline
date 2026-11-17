@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.camelloonline.com/primer-empleo' },
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function PrimerEmpleoPage() {
   const jobs = await getJobsByFilter('primer-empleo', 40);

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.camelloonline.com/empresas' },
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function EmpresasPage() {
   const s = await getMarketStats();

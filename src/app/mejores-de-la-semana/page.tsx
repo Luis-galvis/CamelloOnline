@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.camelloonline.com/mejores-de-la-semana' },
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function MejoresSemanaPage() {
   const ranked = await getWeeklyTopJobs(15);

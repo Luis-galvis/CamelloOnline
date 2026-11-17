@@ -13,8 +13,15 @@ const JOB_SELECT = `
   companies (id, name, slug, logo_url, website, is_verified)
 `;
 
-/** Trae TODAS las vacantes activas (paginado). Devuelve [] si la BD no responde. */
+let cachedActiveRows: { data: any[]; expiresAt: number } | null = null;
+const ACTIVE_ROWS_TTL_MS = 10 * 60 * 1000; // 10 minutos en memoria (0 ISR Writes)
+
+/** Trae TODAS las vacantes activas (paginado) con caché en memoria por 10 min. Devuelve [] si la BD no responde. */
 export async function fetchActiveRows(): Promise<any[]> {
+  if (cachedActiveRows && Date.now() < cachedActiveRows.expiresAt) {
+    return cachedActiveRows.data;
+  }
+
   const rows: any[] = [];
   try {
     for (let from = 0; from < 50000; from += 1000) {
@@ -27,6 +34,9 @@ export async function fetchActiveRows(): Promise<any[]> {
       if (!data || data.length === 0) break;
       rows.push(...data);
       if (data.length < 1000) break;
+    }
+    if (rows.length > 0) {
+      cachedActiveRows = { data: rows, expiresAt: Date.now() + ACTIVE_ROWS_TTL_MS };
     }
   } catch (e) {
     console.warn('[market-stats] Error trayendo vacantes activas:', e);

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.camelloonline.com/termometro' },
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 function Bar({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;

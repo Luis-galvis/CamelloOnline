@@ -15,7 +15,7 @@ import {
   Calendar,
   Languages
 } from 'lucide-react';
-import { getJobBySlug, getAllJobSlugs } from '@/lib/services/job-finder';
+import { getJobBySlug } from '@/lib/services/job-finder';
 import { JobPostingJsonLd } from '@/components/seo/JsonLdSchemas';
 import { SaveJobButton } from '@/components/jobs/SaveJobButton';
 
@@ -23,17 +23,7 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const dynamicParams = true;
-
-// Revalida cada hora las páginas pre-renderizadas para que no queden obsoletas
-// cuando el scraper diario actualiza slugs, estado o contenido.
-export const revalidate = 3600;
-
-export async function generateStaticParams() {
-  const slugs = await getAllJobSlugs();
-  // Pre-render top 60 jobs at build time, remainder generated on-demand
-  return slugs.slice(0, 60).map(slug => ({ slug }));
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;

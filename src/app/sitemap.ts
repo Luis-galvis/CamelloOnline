@@ -2,11 +2,16 @@ import { MetadataRoute } from 'next';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { INITIAL_JOB_POSTS } from '@/lib/mock-data';
 
-// Revalida el sitemap cada hora (ISR) para reflejar las vacantes nuevas/inactivas
-// sin necesidad de un redeploy de Vercel tras cada corrida del scraper.
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
+
+let cachedSitemap: { data: MetadataRoute.Sitemap; expiresAt: number } | null = null;
+const SITEMAP_TTL_MS = 30 * 60 * 1000; // 30 minutos en memoria
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  if (cachedSitemap && Date.now() < cachedSitemap.expiresAt) {
+    return cachedSitemap.data;
+  }
+
   const baseUrl = 'https://www.camelloonline.com';
   const lastModified = new Date();
 
@@ -37,6 +42,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/mejores-de-la-semana`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/talent`,
       lastModified,
       changeFrequency: 'weekly',
@@ -51,8 +62,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // 2. Individual active job detail pages from the live Supabase catalog
-  //    (ya no se usa el JSON semilla obsoleto; las URLs del sitemap deben coincidir
-  //    exactamente con los slugs reales de la base de datos para que Google no encuentre 404).
   const seenUrls = new Set<string>();
   const jobRoutes: MetadataRoute.Sitemap = [];
 
@@ -92,5 +101,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const job of INITIAL_JOB_POSTS) pushSlug(job.slug);
   }
 
-  return [...mainRoutes, ...jobRoutes];
+  const result = [...mainRoutes, ...jobRoutes];
+  if (loadedFromDb) {
+    cachedSitemap = { data: result, expiresAt: Date.now() + SITEMAP_TTL_MS };
+  }
+  return result;
 }
